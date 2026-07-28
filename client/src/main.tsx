@@ -12,6 +12,19 @@ const theme = createTheme({
   primaryColor: 'blue',
   fontFamily: 'Inter, sans-serif',
   defaultRadius: 'md',
+  components: {
+    Container: {
+      defaultProps: {
+        sizes: {
+          xs: 540,
+          sm: 720,
+          md: 960,
+          lg: 1140,
+          xl: 1920,
+        },
+      },
+    },
+  },
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

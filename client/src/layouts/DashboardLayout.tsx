@@ -171,7 +171,7 @@ export const DashboardLayout: React.FC = () => {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '10px 20px' }}>
+        <div style={{ maxWidth: '1920px', margin: '0 auto', padding: '10px 20px' }}>
           <Outlet />
         </div>
       </AppShell.Main>
