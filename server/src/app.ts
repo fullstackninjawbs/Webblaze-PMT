@@ -8,6 +8,10 @@ import authRoutes from './modules/auth/auth.routes';
 import clientRoutes from './modules/clients/client.routes';
 import projectRoutes from './modules/projects/project.routes';
 import userRoutes from './modules/users/user.routes';
+import milestoneRoutes from './modules/milestones/milestone.routes';
+import taskRoutes from './modules/tasks/task.routes';
+import timeLogRoutes from './modules/timelogs/timeLog.routes';
+import todoRoutes from './modules/todos/todo.routes';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -31,6 +35,10 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/clients', clientRoutes);
 app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/milestones', milestoneRoutes);
+app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/timelogs', timeLogRoutes);
+app.use('/api/v1/todos', todoRoutes);
 
 // Health Check
 app.get('/health', (req: Request, res: Response) => {

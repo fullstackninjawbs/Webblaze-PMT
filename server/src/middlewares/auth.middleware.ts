@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { ApiError } from '../utils/ApiError';
+import { User } from '../modules/users/user.model';
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -12,8 +13,13 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as { id: string };
     
-    // Attach user id to request
-    (req as any).user = { id: decoded.id };
+    const user = await User.findById(decoded.id);
+    if (!user || !user.isActive) {
+      throw new ApiError(401, 'User not found or disabled');
+    }
+
+    // Attach full user object to request
+    (req as any).user = user;
     next();
   } catch (error) {
     next(new ApiError(401, 'Not authorized, token failed'));

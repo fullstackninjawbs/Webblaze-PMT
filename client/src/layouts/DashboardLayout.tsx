@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { ActiveTimerBadge } from '../components/common/ActiveTimerBadge';
 import { useSelector } from 'react-redux';
 import { RootState } from '../app/store';
 import { useLogoutMutation } from '../features/auth/auth.slice';
@@ -151,6 +152,8 @@ export const DashboardLayout: React.FC = () => {
           <Outlet />
         </div>
       </AppShell.Main>
+
+      <ActiveTimerBadge />
     </AppShell>
   );
 };

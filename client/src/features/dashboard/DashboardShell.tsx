@@ -2,13 +2,19 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { useGetProjectsQuery } from '../projects/project.slice';
-import { Title, Text, SimpleGrid, Card, Group, TextInput, Table, Badge, Progress, Tabs, Button } from '@mantine/core';
+import { Title, Text, SimpleGrid, Card, Group, TextInput, Table, Badge, Progress, Tabs, Button, Loader } from '@mantine/core';
 import { Search, ArrowRight, LayoutList } from 'lucide-react';
+import { useGetTasksByUserQuery } from '../tasks/task.slice';
+import { useGetTodosQuery } from '../todos/todo.slice';
 import { Role, ProjectStatus } from '../../types';
+import { useNavigate } from 'react-router-dom';
 
 export const DashboardShell: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: projectsData } = useGetProjectsQuery();
+  const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id });
+  const { data: todosData, isLoading: isTodosLoading } = useGetTodosQuery();
 
   const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
   
@@ -16,15 +22,29 @@ export const DashboardShell: React.FC = () => {
   const formattedDate = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date());
 
   const projects = projectsData?.data || [];
+  const activeProjectsCount = projects.filter(p => p.status === ProjectStatus.ACTIVE).length;
+  const openTasksCount = (tasksData?.data || []).filter(t => t.status !== 'completed').length;
 
   // Mock data for the mockup
-  const teamTodos = [
+  const mockTeamTodos = [
     { task: 'Homepage redesign', project: 'Orbitway', assigned: 'Kapil W.', due: 'Today', status: 'In Progress' },
     { task: 'Mobile responsiveness', project: 'Noxor', assigned: 'Alex M.', due: 'Tomorrow', status: 'Pending' },
     { task: 'QA Testing', project: 'VIP PT', assigned: 'John D.', due: '29 Jul 2026', status: 'Review' },
     { task: 'API Integration', project: 'Trade Planet', assigned: 'Rohit S.', due: '02 Aug 2026', status: 'In Progress' },
     { task: 'Content updates', project: 'Orbitway', assigned: 'Priya K.', due: '31 Jul 2026', status: 'Not Started' },
   ];
+
+  const dbTodos = todosData?.data || [];
+  const displayTodos = dbTodos.length > 0 
+    ? dbTodos.map((t: any) => ({
+        _id: t._id,
+        task: t.title,
+        project: typeof t.relatedProject === 'object' && t.relatedProject !== null ? t.relatedProject.name : '-',
+        assigned: t.user?.name || user?.name,
+        due: t.dueDate ? new Intl.DateTimeFormat('en-GB').format(new Date(t.dueDate)) : 'No Due Date',
+        status: t.status === 'pending' ? 'Pending' : t.status === 'in_progress' ? 'In Progress' : 'Done'
+      }))
+    : mockTeamTodos;
 
   const upcomingReleases = [
     { date: '12 AUG', project: 'Orbitway Website', desc: 'Development Complete' },
@@ -70,7 +90,9 @@ export const DashboardShell: React.FC = () => {
       {/* 4 Stat Cards */}
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg" mb="xl">
         <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)' }}>
-          <Text fw={800} style={{ fontSize: '32px', background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>12</Text>
+          <Text fw={800} style={{ fontSize: '32px', background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {activeProjectsCount > 0 ? activeProjectsCount : 12}
+          </Text>
           <Text size="sm" c="dimmed" mb="lg" fw={500}>Active Projects</Text>
           <Group gap="xs" style={{ cursor: 'pointer' }}>
             <Text size="sm" c="blue" fw={600}>View all projects</Text>
@@ -79,7 +101,9 @@ export const DashboardShell: React.FC = () => {
         </Card>
 
         <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)' }}>
-          <Text fw={800} style={{ fontSize: '32px', background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>28</Text>
+          <Text fw={800} style={{ fontSize: '32px', background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {tasksData?.data && tasksData.data.length > 0 ? openTasksCount : 28}
+          </Text>
           <Text size="sm" c="dimmed" mb="lg" fw={500}>Open Tasks</Text>
           <Group gap="xs" style={{ cursor: 'pointer' }}>
             <Text size="sm" c="blue" fw={600}>View all tasks</Text>
@@ -113,8 +137,8 @@ export const DashboardShell: React.FC = () => {
         <Card shadow="sm" p="lg" radius="lg" withBorder style={{ borderColor: '#e5e7eb', gridColumn: 'span 2' }}>
           <Group justify="space-between" mb="md">
             <Text fw={700} size="sm" tt="uppercase" style={{ letterSpacing: '0.5px', color: '#1e293b' }}>Team To-Dos</Text>
-            <Group gap="xs" style={{ cursor: 'pointer' }}>
-              <Text size="sm" c="blue" fw={600}>View all tasks</Text>
+            <Group gap="xs" style={{ cursor: 'pointer' }} onClick={() => navigate('/todos')}>
+              <Text size="sm" c="blue" fw={600}>View all to-dos</Text>
               <ArrowRight size={14} color="#3b82f6" />
             </Group>
           </Group>
@@ -130,8 +154,14 @@ export const DashboardShell: React.FC = () => {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {teamTodos.map((todo, i) => (
-                <Table.Tr key={i}>
+              {isTodosLoading ? (
+                <Table.Tr>
+                  <Table.Td colSpan={5} style={{ textAlign: 'center' }}>
+                    <Loader size="sm" color="blue" />
+                  </Table.Td>
+                </Table.Tr>
+              ) : displayTodos.map((todo: any, i: number) => (
+                <Table.Tr key={todo._id || i}>
                   <Table.Td><Text size="sm" color="#111827">{todo.task}</Text></Table.Td>
                   <Table.Td><Text size="sm" color="#4b5563">{todo.project}</Text></Table.Td>
                   <Table.Td><Text size="sm" color="#4b5563">{todo.assigned}</Text></Table.Td>
