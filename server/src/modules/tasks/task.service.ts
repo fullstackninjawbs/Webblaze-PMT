@@ -49,6 +49,19 @@ export const getTasksByUser = async (userId: string): Promise<ITask[]> => {
     .sort({ createdAt: -1 });
 };
 
+export const getAllTasks = async (): Promise<ITask[]> => {
+  return Task.find()
+    .populate('assignedTo', 'name email avatarUrl role department')
+    .populate({
+      path: 'milestone',
+      populate: {
+        path: 'project',
+        select: 'name client',
+      },
+    })
+    .sort({ createdAt: -1 });
+};
+
 export const getTaskById = async (id: string): Promise<ITask> => {
   const task = await Task.findById(id).populate('assignedTo', 'name email avatarUrl role');
   if (!task) {

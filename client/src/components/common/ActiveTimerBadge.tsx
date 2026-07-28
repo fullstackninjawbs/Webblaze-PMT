@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Group, Text, ActionIcon, Tooltip } from '@mantine/core';
+import { Group, Text, ActionIcon, Tooltip } from '@mantine/core';
 import { Play, Square } from 'lucide-react';
 import { useGetActiveTimerQuery, useStopTimerMutation } from '../../features/timelogs/timeLog.slice';
 
@@ -58,43 +58,31 @@ export const ActiveTimerBadge: React.FC = () => {
   const projectTitle = typeof activeTimer.task === 'object' && typeof activeTimer.task.milestone === 'object' && typeof activeTimer.task.milestone.project === 'object' ? activeTimer.task.milestone.project.name : '';
 
   return (
-    <Card 
-      shadow="md" 
-      radius="md" 
-      p="xs" 
-      withBorder 
-      style={{ 
-        position: 'fixed', 
-        bottom: 20, 
-        right: 20, 
-        zIndex: 1000, 
-        borderColor: '#3b82f6',
-        borderLeftWidth: '4px',
-        animation: 'slide-up 0.3s ease-out'
-      }}
-    >
+    <Group gap="xl" style={{ width: '100%', justifyContent: 'space-between' }}>
       <Group gap="md">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '50%', backgroundColor: '#eff6ff', color: '#3b82f6' }}>
-          <Play size={18} fill="currentColor" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: '50%', backgroundColor: '#fff', color: '#3b82f6', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+          <Play size={18} fill="currentColor" style={{ marginLeft: 3 }} />
         </div>
         
         <div>
-          <Text size="xs" color="dimmed" fw={600} style={{ lineHeight: 1.2 }}>{projectTitle || 'Active Timer'}</Text>
-          <Text size="sm" fw={700} style={{ maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <Text size="xs" color="dimmed" fw={600} style={{ lineHeight: 1.2 }}>Tracking: {projectTitle}</Text>
+          <Text size="sm" fw={700} style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#111827' }}>
             {taskTitle}
           </Text>
         </div>
-        
-        <Text fw={700} size="lg" style={{ fontFamily: 'monospace', color: '#1e293b', minWidth: '70px', textAlign: 'right' }}>
+      </Group>
+      
+      <Group gap="lg">
+        <Text fw={700} size="xl" style={{ fontFamily: 'monospace', color: '#1e293b', minWidth: '90px', textAlign: 'right', letterSpacing: '1px' }}>
           {formatTime(elapsed)}
         </Text>
         
         <Tooltip label="Stop Timer">
-          <ActionIcon color="red" variant="light" size="lg" radius="md" onClick={handleStop} loading={isLoading}>
+          <ActionIcon color="red" variant="filled" size="lg" radius="md" onClick={handleStop} loading={isLoading} style={{ boxShadow: '0 2px 5px rgba(239,68,68,0.3)' }}>
             <Square size={16} fill="currentColor" />
           </ActionIcon>
         </Tooltip>
       </Group>
-    </Card>
+    </Group>
   );
 };

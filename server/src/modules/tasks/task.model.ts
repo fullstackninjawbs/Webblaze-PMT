@@ -6,6 +6,7 @@ export interface ITask extends Document {
   description?: string;
   department?: 'design' | 'development' | 'seo';
   estimatedHours: number;
+  spentHours: number;
   startDate?: Date;
   endDate?: Date;
   assignedTo?: Types.ObjectId;
@@ -39,6 +40,11 @@ const taskSchema = new Schema<ITask>(
       type: Number,
       required: [true, 'Estimated hours are required'],
       min: [0, 'Estimated hours cannot be negative'],
+    },
+    spentHours: {
+      type: Number,
+      default: 0,
+      min: [0, 'Spent hours cannot be negative'],
     },
     startDate: {
       type: Date,

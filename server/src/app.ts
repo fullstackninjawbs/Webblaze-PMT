@@ -12,6 +12,8 @@ import milestoneRoutes from './modules/milestones/milestone.routes';
 import taskRoutes from './modules/tasks/task.routes';
 import timeLogRoutes from './modules/timelogs/timeLog.routes';
 import todoRoutes from './modules/todos/todo.routes';
+import releaseRoutes from './modules/releases/release.routes';
+import invoiceRoutes from './modules/invoices/invoice.routes';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -39,6 +41,8 @@ app.use('/api/v1/milestones', milestoneRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/timelogs', timeLogRoutes);
 app.use('/api/v1/todos', todoRoutes);
+app.use('/api/v1/releases', releaseRoutes);
+app.use('/api/v1/invoices', invoiceRoutes);
 
 // Health Check
 app.get('/health', (req: Request, res: Response) => {

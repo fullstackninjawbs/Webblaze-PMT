@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { useGetClientsQuery, useCreateClientMutation } from './client.slice';
-import { Table, Button, Group, Title, Modal, TextInput, Select, Card, Text, Badge, ActionIcon, Menu } from '@mantine/core';
+import React, { useState, useMemo } from 'react';
+import { useGetClientsQuery, useCreateClientMutation, useUpdateClientMutation } from './client.slice';
+import { Table, Button, Group, Title, Drawer, TextInput, Select, Card, Text, Badge, ActionIcon, Menu, Divider, Stack } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, Building2, Mail, MoreVertical, Edit, Trash } from 'lucide-react';
+import { Plus, Building2, MoreVertical, Edit, Trash, Eye, Search, Filter } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
+import { useGetProjectsQuery } from '../projects/project.slice';
 
 const clientSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -15,14 +16,25 @@ const clientSchema = z.object({
   source: z.enum(['upwork', 'direct']),
   billingType: z.enum(['hourly', 'fixed']),
   country: z.string().optional(),
+  address: z.string().optional(),
+  contactNumber: z.string().optional(),
 });
 
 export const ClientsList: React.FC = () => {
   const { data } = useGetClientsQuery();
+  const { data: projectsData } = useGetProjectsQuery();
   const [createClient, { isLoading: isCreating }] = useCreateClientMutation();
-  const [modalOpened, setModalOpened] = useState(false);
-  const { user } = useSelector((state: RootState) => state.auth);
+  const [updateClient, { isLoading: isUpdating }] = useUpdateClientMutation();
+  
+  const [drawerOpened, setDrawerOpened] = useState(false);
+  const [viewDrawerOpened, setViewDrawerOpened] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+  const [billingFilter, setBillingFilter] = useState<string | null>(null);
 
+  const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
 
   const form = useForm({
@@ -33,22 +45,79 @@ export const ClientsList: React.FC = () => {
       source: 'upwork',
       billingType: 'hourly',
       country: '',
+      address: '',
+      contactNumber: '',
     },
     validate: zodResolver(clientSchema),
   });
 
+  const openCreateDrawer = () => {
+    setSelectedClient(null);
+    form.reset();
+    setDrawerOpened(true);
+  };
+
+  const openEditDrawer = (client: any) => {
+    setSelectedClient(client);
+    form.setValues({
+      name: client.name || '',
+      email: client.email || '',
+      companyName: client.companyName || '',
+      source: client.source || 'upwork',
+      billingType: client.billingType || 'hourly',
+      country: client.country || '',
+      address: client.address || '',
+      contactNumber: client.contactNumber || '',
+    });
+    setDrawerOpened(true);
+  };
+
+  const openViewDrawer = (client: any) => {
+    setSelectedClient(client);
+    setViewDrawerOpened(true);
+  };
+
   const onSubmit = async (values: typeof form.values) => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await createClient(values as any).unwrap();
-      setModalOpened(false);
+      if (selectedClient) {
+        await updateClient({ id: selectedClient._id, data: values as any }).unwrap();
+      } else {
+        await createClient(values as any).unwrap();
+      }
+      setDrawerOpened(false);
       form.reset();
     } catch (error) {
-      console.error('Failed to create client', error);
+      console.error('Failed to save client', error);
     }
   };
 
-  const rows = data?.data.map((client) => (
+  // Filter clients
+  const filteredClients = useMemo(() => {
+    let result = data?.data || [];
+    
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(c => c.name.toLowerCase().includes(q) || c.companyName?.toLowerCase().includes(q));
+    }
+    
+    if (sourceFilter) {
+      result = result.filter(c => c.source === sourceFilter);
+    }
+
+    if (billingFilter) {
+      result = result.filter(c => c.billingType === billingFilter);
+    }
+
+    return result;
+  }, [data, searchQuery, sourceFilter, billingFilter]);
+
+  // Compute active projects per client
+  const projects = projectsData?.data || [];
+  const getActiveProjectsCount = (clientId: string) => {
+    return projects.filter(p => (p.client as any)?._id === clientId && p.status === 'active').length;
+  };
+
+  const rows = filteredClients.map((client) => (
     <Table.Tr key={client._id}>
       <Table.Td>
         <Group gap="sm">
@@ -67,12 +136,7 @@ export const ClientsList: React.FC = () => {
         </Group>
       </Table.Td>
       <Table.Td>
-        {client.email ? (
-          <Text size="sm" c="dimmed">
-            <Mail size={12} style={{ display: 'inline', marginRight: 4 }} />
-            {client.email}
-          </Text>
-        ) : '-'}
+        <Text size="sm" c="dimmed">{client.country || '-'}</Text>
       </Table.Td>
       <Table.Td>
         <Badge variant="light" color={client.source === 'upwork' ? 'green' : 'blue'}>
@@ -85,19 +149,27 @@ export const ClientsList: React.FC = () => {
         </Badge>
       </Table.Td>
       <Table.Td>
-        {isAdminOrPM && (
-          <Menu position="bottom-end" shadow="sm">
-            <Menu.Target>
-              <ActionIcon variant="subtle" color="gray">
-                <MoreVertical size={16} />
-              </ActionIcon>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item leftSection={<Edit size={14} />}>Edit</Menu.Item>
-              <Menu.Item color="red" leftSection={<Trash size={14} />}>Delete</Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        )}
+        <Text size="sm" fw={600}>{getActiveProjectsCount(client._id)}</Text>
+      </Table.Td>
+      <Table.Td>
+        <Group gap={4} justify="flex-end">
+          <ActionIcon variant="subtle" color="blue" onClick={() => openViewDrawer(client)}>
+            <Eye size={16} />
+          </ActionIcon>
+          {isAdminOrPM && (
+            <Menu position="bottom-end" shadow="sm">
+              <Menu.Target>
+                <ActionIcon variant="subtle" color="gray">
+                  <MoreVertical size={16} />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item leftSection={<Edit size={14} />} onClick={() => openEditDrawer(client)}>Edit</Menu.Item>
+                <Menu.Item color="red" leftSection={<Trash size={14} />}>Delete</Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          )}
+        </Group>
       </Table.Td>
     </Table.Tr>
   ));
@@ -117,12 +189,43 @@ export const ClientsList: React.FC = () => {
             radius="md" 
             variant="filled" 
             color="blue"
-            onClick={() => setModalOpened(true)}
+            onClick={openCreateDrawer}
           >
             Add Client
           </Button>
         )}
       </Group>
+
+      {/* Filters */}
+      <Card shadow="sm" p="md" radius="md" withBorder mb="lg" style={{ borderColor: '#e5e7eb' }}>
+        <Group align="flex-end">
+          <TextInput
+            placeholder="Search clients or companies..."
+            leftSection={<Search size={16} color="gray" />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.currentTarget.value)}
+            style={{ flex: 1, minWidth: '200px' }}
+          />
+          <Select
+            placeholder="Filter Source"
+            leftSection={<Filter size={16} color="gray" />}
+            data={[{ value: 'upwork', label: 'Upwork' }, { value: 'direct', label: 'Direct' }]}
+            value={sourceFilter}
+            onChange={setSourceFilter}
+            clearable
+            style={{ width: '150px' }}
+          />
+          <Select
+            placeholder="Filter Billing"
+            leftSection={<Filter size={16} color="gray" />}
+            data={[{ value: 'hourly', label: 'Hourly' }, { value: 'fixed', label: 'Fixed Price' }]}
+            value={billingFilter}
+            onChange={setBillingFilter}
+            clearable
+            style={{ width: '150px' }}
+          />
+        </Group>
+      </Card>
 
       <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
         <Table.ScrollContainer minWidth={800}>
@@ -130,16 +233,17 @@ export const ClientsList: React.FC = () => {
             <Table.Thead style={{ backgroundColor: '#F9FAFB' }}>
               <Table.Tr>
                 <Table.Th>Client</Table.Th>
-                <Table.Th>Contact</Table.Th>
+                <Table.Th>Country</Table.Th>
                 <Table.Th>Source</Table.Th>
-                <Table.Th>Billing</Table.Th>
-                <Table.Th w={80}></Table.Th>
+                <Table.Th>Billing Type</Table.Th>
+                <Table.Th>Active Projects</Table.Th>
+                <Table.Th w={100}></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {rows?.length ? rows : (
                 <Table.Tr>
-                  <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '40px' }}>
+                  <Table.Td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
                     <Text c="dimmed">No clients found.</Text>
                   </Table.Td>
                 </Table.Tr>
@@ -149,32 +253,138 @@ export const ClientsList: React.FC = () => {
         </Table.ScrollContainer>
       </Card>
 
-      <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title={<Text fw={600}>Add New Client</Text>} radius="md">
+      {/* Add/Edit Drawer */}
+      <Drawer
+        opened={drawerOpened}
+        onClose={() => setDrawerOpened(false)}
+        title={<Text fw={700} size="lg">{selectedClient ? 'Edit Client' : 'Add New Client'}</Text>}
+        position="right"
+        size="md"
+        padding="xl"
+      >
         <form onSubmit={form.onSubmit(onSubmit)}>
-          <TextInput label="Name" placeholder="Client Name" required mb="md" {...form.getInputProps('name')} />
-          <TextInput label="Company" placeholder="Company Name (Optional)" mb="md" {...form.getInputProps('companyName')} />
-          <TextInput label="Email" placeholder="client@example.com" mb="md" {...form.getInputProps('email')} />
-          
-          <Group grow mb="md">
-            <Select 
-              label="Source" 
-              data={[{ value: 'upwork', label: 'Upwork' }, { value: 'direct', label: 'Direct' }]} 
-              {...form.getInputProps('source')}
-            />
-            <Select 
-              label="Billing Type" 
-              data={[{ value: 'hourly', label: 'Hourly' }, { value: 'fixed', label: 'Fixed Price' }]} 
-              {...form.getInputProps('billingType')}
-            />
-          </Group>
-          <TextInput label="Country" placeholder="e.g. United States" mb="xl" {...form.getInputProps('country')} />
+          <Stack gap="xl">
+            {/* Section 1: Identity */}
+            <div>
+              <Text fw={600} size="sm" mb="sm" c="blue">Identity</Text>
+              <TextInput label="Client Name" placeholder="e.g. John Doe" required mb="sm" {...form.getInputProps('name')} />
+              <TextInput label="Company Name" placeholder="e.g. Acme Corp (Optional)" mb="sm" {...form.getInputProps('companyName')} />
+              <TextInput label="Country" placeholder="e.g. United States" mb="sm" {...form.getInputProps('country')} />
+              <TextInput label="Address" placeholder="e.g. 123 Main St, City" {...form.getInputProps('address')} />
+            </div>
+            <Divider />
 
-          <Group justify="flex-end">
-            <Button variant="light" onClick={() => setModalOpened(false)}>Cancel</Button>
-            <Button type="submit" loading={isCreating}>Create Client</Button>
-          </Group>
+            {/* Section 2: Contact */}
+            <div>
+              <Text fw={600} size="sm" mb="sm" c="blue">Contact</Text>
+              <TextInput label="Email" placeholder="client@example.com" mb="sm" {...form.getInputProps('email')} />
+              <TextInput label="Contact Number" placeholder="+1 (555) 123-4567" {...form.getInputProps('contactNumber')} />
+            </div>
+            <Divider />
+
+            {/* Section 3: Business */}
+            <div>
+              <Text fw={600} size="sm" mb="sm" c="blue">Business</Text>
+              <Text size="xs" c="dimmed" mb="sm">Billing type will impact how you invoice this client in the future.</Text>
+              <Group grow>
+                <Select 
+                  label="Source" 
+                  data={[{ value: 'upwork', label: 'Upwork' }, { value: 'direct', label: 'Direct' }]} 
+                  {...form.getInputProps('source')}
+                />
+                <Select 
+                  label="Billing Type" 
+                  data={[{ value: 'hourly', label: 'Hourly' }, { value: 'fixed', label: 'Fixed Price' }]} 
+                  {...form.getInputProps('billingType')}
+                />
+              </Group>
+            </div>
+
+            <Group justify="flex-end" mt="xl">
+              <Button variant="light" onClick={() => setDrawerOpened(false)}>Cancel</Button>
+              <Button type="submit" loading={isCreating || isUpdating}>
+                {selectedClient ? 'Update Client' : 'Create Client'}
+              </Button>
+            </Group>
+          </Stack>
         </form>
-      </Modal>
+      </Drawer>
+
+      {/* View Drawer */}
+      <Drawer
+        opened={viewDrawerOpened}
+        onClose={() => setViewDrawerOpened(false)}
+        title={<Text fw={700} size="lg">Client Details</Text>}
+        position="right"
+        size="md"
+        padding="xl"
+      >
+        {selectedClient && (
+          <Stack gap="xl">
+            <div>
+              <Group gap="sm" mb="md">
+                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', fontWeight: 600, fontSize: '20px' }}>
+                  {selectedClient.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <Text fw={700} size="lg">{selectedClient.name}</Text>
+                  {selectedClient.companyName && (
+                    <Text size="sm" c="dimmed">
+                      <Building2 size={14} style={{ display: 'inline', marginRight: 4 }} />
+                      {selectedClient.companyName}
+                    </Text>
+                  )}
+                </div>
+              </Group>
+            </div>
+            <Divider />
+
+            <div>
+              <Text fw={600} size="sm" mb="sm" c="dimmed" tt="uppercase">Contact Information</Text>
+              {selectedClient.email ? (
+                <Text size="sm" mb={4}><strong>Email:</strong> {selectedClient.email}</Text>
+              ) : <Text size="sm" mb={4} c="dimmed">No email provided</Text>}
+              
+              {selectedClient.contactNumber ? (
+                <Text size="sm" mb={4}><strong>Phone:</strong> {selectedClient.contactNumber}</Text>
+              ) : <Text size="sm" mb={4} c="dimmed">No phone provided</Text>}
+              
+              {selectedClient.country ? (
+                <Text size="sm" mb={4}><strong>Country:</strong> {selectedClient.country}</Text>
+              ) : <Text size="sm" mb={4} c="dimmed">No country provided</Text>}
+              
+              {selectedClient.address ? (
+                <Text size="sm" mb={4}><strong>Address:</strong> {selectedClient.address}</Text>
+              ) : <Text size="sm" mb={4} c="dimmed">No address provided</Text>}
+            </div>
+            <Divider />
+
+            <div>
+              <Text fw={600} size="sm" mb="sm" c="dimmed" tt="uppercase">Business Details</Text>
+              <Group gap="md">
+                <div>
+                  <Text size="xs" c="dimmed">Source</Text>
+                  <Badge variant="light" color={selectedClient.source === 'upwork' ? 'green' : 'blue'}>
+                    {selectedClient.source}
+                  </Badge>
+                </div>
+                <div>
+                  <Text size="xs" c="dimmed">Billing Type</Text>
+                  <Badge variant="dot" color={selectedClient.billingType === 'hourly' ? 'orange' : 'teal'}>
+                    {selectedClient.billingType}
+                  </Badge>
+                </div>
+                <div>
+                  <Text size="xs" c="dimmed">Active Projects</Text>
+                  <Text size="sm" fw={600}>{getActiveProjectsCount(selectedClient._id)}</Text>
+                </div>
+              </Group>
+            </div>
+          </Stack>
+        )}
+      </Drawer>
     </div>
   );
 };
+
+export default ClientsList;

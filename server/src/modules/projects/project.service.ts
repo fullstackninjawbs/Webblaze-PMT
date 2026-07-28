@@ -11,9 +11,13 @@ export class ProjectService {
       if (project.toObject) {
         const obj = project.toObject();
         delete obj.totalBudget;
+        delete obj.receivedAmount;
+        delete obj.pendingAmount;
         return obj;
       }
       delete project.totalBudget;
+      delete project.receivedAmount;
+      delete project.pendingAmount;
     }
     return project;
   }

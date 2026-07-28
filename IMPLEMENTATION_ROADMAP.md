@@ -13,20 +13,23 @@ full-stack developers; adjust to your team size.
 ## Phase 1 — Auth & RBAC Foundation (3–5 days)
 - User model, register (admin-only), login, JWT + refresh flow
 - `auth.middleware`, `rbac.middleware`, `permissions.js`
-- Frontend: login page, `ProtectedRoute`, `RoleGuard`, role-based layouts
-- **Demo:** users can log in and see a role-specific empty dashboard shell
+- Frontend: Split-layout login page (branding + form), context-aware validation, "Remember me"
+- `ProtectedRoute`, `RoleGuard` to enforce role-based access
+- Frontend Layouts: Role-specific sidebars and dashboard heroes (Admin, PM, TL, TM)
+- **Demo:** Users can log in and see a fully personalized, role-specific dashboard shell
 
 ## Phase 2 — Clients & Projects (4–6 days)
-- Client CRUD (Admin/PM)
-- Project CRUD, client linkage, status enum, team assignment
-- Project overview page skeleton
-- **Demo:** Admin/PM can onboard a client and create a project
+- Client CRUD (Admin/PM): Advanced Drawers for identity, contact, business mapping
+- Project CRUD, client linkage, status enum, team assignment via Split-Layout Modals
+- Project overview page with Role-aware headers, KPIs (Budget, Received, Pending for Admin/PM only) and Tabbed sections
+- **Demo:** Admin/PM can onboard a client and create a project, viewing restricted KPIs properly.
 
 ## Phase 3 — Milestones & Tasks (5–7 days)
-- Milestone CRUD + hour-cap enforcement
-- Task CRUD, assignment flow (Assigned → TL → Member)
-- Task list views (by project, by user)
-- **Demo:** full client → project → milestone → task → assignment chain works
+- Milestone CRUD + hour-cap enforcement (Enhanced UI with cards and visual progress)
+- Task CRUD, strict Hour Cap enforcement, and blocking validation
+- Task list views with department and status filtering
+- Team Tasks view: Unassigned vs Assigned panel for Team Leads
+- **Demo:** full client → project → milestone → task → assignment chain works with visual hour caps
 
 ## Phase 4 — Time Tracking & Progress (5–7 days)
 - Timer start/stop, TimeLog model, active-timer endpoint

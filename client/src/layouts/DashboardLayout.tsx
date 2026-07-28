@@ -4,40 +4,66 @@ import { ActiveTimerBadge } from '../components/common/ActiveTimerBadge';
 import { useSelector } from 'react-redux';
 import { RootState } from '../app/store';
 import { useLogoutMutation } from '../features/auth/auth.slice';
-import { LayoutDashboard, CheckSquare, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity } from 'lucide-react';
 import { Role } from '../types';
-import { AppShell, Stack, Avatar, Text, UnstyledButton, Group, Box, Menu, Divider } from '@mantine/core';
+import { AppShell, Stack, Avatar, Text, UnstyledButton, Group, Box, Menu, Badge } from '@mantine/core';
+import { useGetActiveTimerQuery } from '../features/timelogs/timeLog.slice';
 
-const coreNavigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER] },
-  { name: 'Team To-Dos', href: '/todos', icon: CheckSquare, roles: [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER] },
-  { name: 'Projects', href: '/projects', icon: Briefcase, roles: [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER] },
-  { name: 'Releases', href: '/releases', icon: Rocket, roles: [Role.ADMIN, Role.PM] },
-];
-
-const mgmtNavigation = [
-  { name: 'Clients', href: '/clients', icon: Users, roles: [Role.ADMIN, Role.PM] },
-  { name: 'Team', href: '/team', icon: Users, roles: [Role.ADMIN, Role.PM] },
-  { name: 'Reports', href: '/reports', icon: BarChart3, roles: [Role.ADMIN, Role.PM] },
-  { name: 'Time Tracking', href: '/time', icon: Clock, roles: [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: [Role.ADMIN] },
-];
+// Distinct sidebars based on user role as specified in Phase 1 requirements
+const sidebarNavigation = {
+  [Role.ADMIN]: [
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'All Projects', href: '/projects', icon: Briefcase },
+    { name: 'Clients', href: '/clients', icon: Users },
+    { name: 'Team', href: '/team', icon: Users },
+    { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
+    { name: 'Releases', href: '/releases', icon: Rocket },
+    { name: 'Time Tracking', href: '/team-time', icon: Clock },
+    { name: 'Invoices', href: '/invoices', icon: DollarSign },
+    { name: 'Reports', href: '/reports', icon: BarChart3 },
+    { name: 'Settings', href: '/settings', icon: Settings },
+  ],
+  [Role.PM]: [
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Projects', href: '/projects', icon: Briefcase },
+    { name: 'Clients', href: '/clients', icon: Users },
+    { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
+    { name: 'Releases', href: '/releases', icon: Rocket },
+    { name: 'Time Tracking', href: '/team-time', icon: Clock },
+    { name: 'Reports', href: '/reports', icon: BarChart3 },
+  ],
+  [Role.TEAM_LEAD]: [
+    { name: 'My Projects', href: '/projects', icon: Briefcase },
+    { name: 'Team Tasks', href: '/team-tasks', icon: ListTodo },
+    { name: 'Team Todos', href: '/todos/team', icon: CheckSquare },
+    { name: 'Releases', href: '/releases', icon: Rocket },
+  ],
+  [Role.TEAM_MEMBER]: [
+    { name: 'My Tasks', href: '/my-tasks', icon: ListTodo },
+    { name: 'My Todos', href: '/todos/me', icon: CheckSquare },
+    { name: 'Daily Status', href: '/daily-status', icon: Activity },
+  ]
+};
 
 export const DashboardLayout: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const [logout] = useLogoutMutation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: activeTimerData } = useGetActiveTimerQuery();
+  const activeTimer = activeTimerData?.data;
 
   const handleLogout = async () => {
     await logout({}).unwrap();
     navigate('/login');
   };
 
-  const renderNavItems = (items: typeof coreNavigation) => {
-    const visibleItems = items.filter((item) => user && item.roles.includes(user.role));
-    
-    return visibleItems.map((item) => {
+  const navItems = user?.role ? sidebarNavigation[user.role] : [];
+
+  const renderNavItems = () => {
+    return navItems.map((item) => {
+      // Default to /dashboard if clicking a link that's just a placeholder, 
+      // but the requirement says to redirect to /dashboard for unauthorized access.
       const active = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
       return (
         <UnstyledButton
@@ -76,9 +102,16 @@ export const DashboardLayout: React.FC = () => {
         width: 260,
         breakpoint: 'sm',
       }}
+      header={activeTimer ? { height: 60 } : undefined}
       padding="xl"
       bg="#f8f9fa"
     >
+      {activeTimer && (
+        <AppShell.Header style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', padding: '0 20px' }}>
+          <ActiveTimerBadge />
+        </AppShell.Header>
+      )}
+
       <AppShell.Navbar style={{ borderRight: '1px solid #e5e7eb', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
         
         {/* Branding */}
@@ -90,21 +123,11 @@ export const DashboardLayout: React.FC = () => {
 
         <AppShell.Section grow p="md" pt={0}>
           <Stack gap="xs">
-            {renderNavItems(coreNavigation)}
-          </Stack>
-
-          <Divider my="xl" color="#f3f4f6" />
-
-          <Text size="xs" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: '1px' }} mb="md" pl="md">
-            Management
-          </Text>
-          
-          <Stack gap="xs">
-            {renderNavItems(mgmtNavigation)}
+            {renderNavItems()}
           </Stack>
         </AppShell.Section>
         
-        {/* User Profile at Bottom */}
+        {/* User Profile at Bottom with Role explicitly visible */}
         <AppShell.Section p="md" style={{ borderTop: '1px solid #f3f4f6' }}>
           <Menu position="top-start" shadow="sm" width={220}>
             <Menu.Target>
@@ -128,9 +151,9 @@ export const DashboardLayout: React.FC = () => {
                     <Text size="sm" fw={600} truncate color="#111827">
                       {user?.name}
                     </Text>
-                    <Text color="dimmed" size="xs" truncate>
-                      {user?.role === Role.ADMIN ? 'Admin' : user?.role.replace('_', ' ')}
-                    </Text>
+                    <Badge size="xs" variant="light" color="blue" mt={2}>
+                      Role: {user?.role === Role.ADMIN ? 'Admin' : user?.role?.replace('_', ' ')}
+                    </Badge>
                   </div>
                   <ChevronDown size={16} color="#9ca3af" />
                 </Group>
@@ -152,8 +175,6 @@ export const DashboardLayout: React.FC = () => {
           <Outlet />
         </div>
       </AppShell.Main>
-
-      <ActiveTimerBadge />
     </AppShell>
   );
 };

@@ -6,6 +6,7 @@ export interface IMilestone extends Document {
   estimatedHours: number;
   startDate?: Date;
   endDate?: Date;
+  spentHours: number;
   status: 'not_started' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +28,11 @@ const milestoneSchema = new Schema<IMilestone>(
       type: Number,
       required: [true, 'Estimated hours are required'],
       min: [0, 'Estimated hours cannot be negative'],
+    },
+    spentHours: {
+      type: Number,
+      default: 0,
+      min: [0, 'Spent hours cannot be negative'],
     },
     startDate: {
       type: Date,

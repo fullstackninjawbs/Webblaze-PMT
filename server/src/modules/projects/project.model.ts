@@ -5,6 +5,8 @@ export interface IProject extends Document {
   name: string;
   client: mongoose.Types.ObjectId;
   totalBudget?: number;
+  receivedAmount?: number;
+  pendingAmount?: number;
   description?: string;
   type?: string;
   status: ProjectStatus;
@@ -19,6 +21,8 @@ const projectSchema = new Schema(
     name: { type: String, required: true },
     client: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
     totalBudget: { type: Number },
+    receivedAmount: { type: Number, default: 0 },
+    pendingAmount: { type: Number, default: 0 },
     description: { type: String },
     type: { type: String },
     status: {

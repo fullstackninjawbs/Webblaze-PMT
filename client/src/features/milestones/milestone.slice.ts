@@ -5,6 +5,7 @@ export interface Milestone {
   project: string; // project ID or populated project
   title: string;
   estimatedHours: number;
+  spentHours?: number;
   startDate?: string;
   endDate?: string;
   status: 'not_started' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';

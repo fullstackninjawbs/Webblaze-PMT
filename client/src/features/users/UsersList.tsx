@@ -53,10 +53,10 @@ export const UsersList: React.FC = () => {
       <Table.Td>
         <Group gap="sm">
           <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9333EA', fontWeight: 600 }}>
-            {user.name.charAt(0).toUpperCase()}
+            {(user.name || 'U').charAt(0).toUpperCase()}
           </div>
           <div>
-            <Text size="sm" fw={600}>{user.name}</Text>
+            <Text size="sm" fw={600}>{user.name || 'Unknown User'}</Text>
             <Text size="xs" c="dimmed">
               <Mail size={12} style={{ display: 'inline', marginRight: 4 }} />
               {user.email}

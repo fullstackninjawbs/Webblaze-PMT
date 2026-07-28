@@ -21,6 +21,8 @@ export const getTasks = asyncHandler(async (req: Request, res: Response) => {
     tasks = await taskService.getTasksByMilestone(milestoneId as string);
   } else if (userId) {
     tasks = await taskService.getTasksByUser(userId as string);
+  } else {
+    tasks = await taskService.getAllTasks();
   }
   
   res.status(200).json({

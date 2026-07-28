@@ -8,6 +8,8 @@ export interface Project {
   name: string;
   client: Client;
   totalBudget?: number;
+  receivedAmount?: number;
+  pendingAmount?: number;
   description?: string;
   type?: string;
   status: ProjectStatus;

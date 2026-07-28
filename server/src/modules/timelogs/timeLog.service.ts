@@ -1,5 +1,6 @@
 import { TimeLog, ITimeLog } from './timeLog.model';
 import { Task } from '../tasks/task.model';
+import { Milestone } from '../milestones/milestone.model';
 import { ApiError } from '../../utils/ApiError';
 
 export const startTimer = async (userId: string, taskId: string, description?: string): Promise<ITimeLog> => {
@@ -33,20 +34,36 @@ export const startTimer = async (userId: string, taskId: string, description?: s
 };
 
 export const stopTimer = async (userId: string, description?: string): Promise<ITimeLog> => {
-  const activeTimer = await TimeLog.findOne({ user: userId, endTime: { $exists: false } });
+  const activeTimer = await TimeLog.findOne({ user: userId, endTime: { $exists: false } }).populate('task');
 
   if (!activeTimer) {
     throw new ApiError(400, 'No active timer found to stop');
   }
 
   activeTimer.endTime = new Date();
-  activeTimer.durationSeconds = Math.floor((activeTimer.endTime.getTime() - activeTimer.startTime.getTime()) / 1000);
+  const durationSeconds = Math.floor((activeTimer.endTime.getTime() - activeTimer.startTime.getTime()) / 1000);
+  activeTimer.durationSeconds = durationSeconds;
   
   if (description) {
     activeTimer.description = description;
   }
 
   await activeTimer.save();
+
+  // Increment spentHours on the Task and Milestone
+  const durationHours = durationSeconds / 3600;
+  const taskDoc: any = activeTimer.task;
+  
+  await Task.findByIdAndUpdate(taskDoc._id, {
+    $inc: { spentHours: durationHours }
+  });
+
+  if (taskDoc.milestone) {
+    await Milestone.findByIdAndUpdate(taskDoc.milestone, {
+      $inc: { spentHours: durationHours }
+    });
+  }
+
   return activeTimer;
 };
 
