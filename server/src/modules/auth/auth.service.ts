@@ -1,0 +1,56 @@
+import jwt from 'jsonwebtoken';
+import { User, IUser } from '../users/user.model';
+import { ApiError } from '../../utils/ApiError';
+
+const generateTokens = (userId: string) => {
+  const accessToken = jwt.sign(
+    { id: userId },
+    process.env.JWT_ACCESS_SECRET as string,
+    { expiresIn: (process.env.JWT_ACCESS_EXPIRES || '15m') as any }
+  );
+
+  const refreshToken = jwt.sign(
+    { id: userId },
+    process.env.JWT_REFRESH_SECRET as string,
+    { expiresIn: (process.env.JWT_REFRESH_EXPIRES || '7d') as any }
+  );
+
+  return { accessToken, refreshToken };
+};
+
+export const loginUser = async (email: string, password: string): Promise<{ user: IUser, tokens: { accessToken: string, refreshToken: string } }> => {
+  const user = await User.findOne({ email }).select('+password');
+  if (!user || !user.isActive) {
+    throw new ApiError(401, 'Invalid email or password');
+  }
+
+  const isMatch = await user.comparePassword(password);
+  if (!isMatch) {
+    throw new ApiError(401, 'Invalid email or password');
+  }
+
+  const tokens = generateTokens((user._id as any).toString());
+  return { user, tokens };
+};
+
+export const registerUser = async (userData: any): Promise<{ user: IUser }> => {
+  const existing = await User.findOne({ email: userData.email });
+  if (existing) {
+    throw new ApiError(400, 'User with this email already exists', 'DUPLICATE_EMAIL');
+  }
+  const user = await User.create(userData);
+  return { user };
+};
+
+export const refreshTokens = async (token: string): Promise<{ accessToken: string, refreshToken: string }> => {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET as string) as { id: string };
+    const user = await User.findById(decoded.id);
+    if (!user || !user.isActive) {
+      throw new ApiError(401, 'User not found or disabled');
+    }
+    return generateTokens((user._id as any).toString());
+  } catch (error) {
+    throw new ApiError(401, 'Invalid or expired refresh token');
+  }
+};
