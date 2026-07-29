@@ -70,34 +70,7 @@ export const DashboardLayout: React.FC = () => {
         <UnstyledButton
           key={item.name}
           onClick={() => navigate(item.href)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            width: '100%',
-            padding: '9px 14px',
-            borderRadius: '10px',
-            backgroundColor: active ? 'transparent' : 'transparent',
-            backgroundImage: active ? 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)' : 'none',
-            color: active ? '#ffffff' : '#64748b',
-            fontWeight: active ? 600 : 500,
-            fontSize: '0.875rem',
-            letterSpacing: '-0.01em',
-            transition: 'all 0.18s ease',
-            boxShadow: active ? '0 4px 14px rgba(59, 130, 246, 0.35)' : 'none',
-            position: 'relative',
-          }}
-          onMouseEnter={(e) => {
-            if (!active) {
-              e.currentTarget.style.backgroundColor = '#f0f5ff';
-              e.currentTarget.style.color = '#3b82f6';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!active) {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#64748b';
-            }
-          }}
+          className={`nav-item ${active ? 'active' : ''}`}
         >
           <div style={{
             display: 'flex',
@@ -237,19 +210,7 @@ export const DashboardLayout: React.FC = () => {
         <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #f1f4f9' }}>
           <Menu position="top-start" shadow="lg" width={230} offset={8}>
             <Menu.Target>
-              <UnstyledButton
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '12px',
-                  transition: 'background-color 0.18s ease',
-                  backgroundColor: 'transparent',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8faff'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
+              <UnstyledButton className="user-menu-btn">
                 <Group wrap="nowrap" style={{ flex: 1, gap: '10px' }}>
                   <Avatar
                     src={user?.avatarUrl}

@@ -166,6 +166,24 @@ h1, h2, h3, h4, h5, h6 {
   50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
 }
 
+@keyframes float-bubble {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-14px) scale(1.05);
+  }
+}
+
+@keyframes float-bubble-reverse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(14px) scale(0.95);
+  }
+}
+
 /* Page Entry Animations */
 .fade-in {
   animation: fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -308,12 +326,14 @@ h1, h2, h3, h4, h5, h6 {
 .mantine-Tabs-tab {
   font-family: var(--font-primary) !important;
   font-size: 0.875rem !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   letter-spacing: -0.01em !important;
   color: var(--color-text-muted) !important;
   padding: 10px 16px !important;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
   transition: all var(--transition-fast) !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 .mantine-Tabs-tab:hover {
@@ -323,7 +343,65 @@ h1, h2, h3, h4, h5, h6 {
 
 .mantine-Tabs-tab[data-active] {
   color: var(--color-brand-from) !important;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.mantine-Tabs-tab:focus,
+.mantine-Tabs-tab:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Sidebar Navigation Links */
+.nav-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: 10px;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: -0.01em;
+  transition: all 0.18s ease;
+  background-color: transparent;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.nav-item:hover {
+  background-color: #f0f5ff !important;
+  color: #3b82f6 !important;
+}
+
+.nav-item.active {
+  background-image: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35) !important;
+}
+
+.nav-item.active:hover {
+  background-image: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  color: #ffffff !important;
+}
+
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: background-color 0.18s ease;
+  background-color: transparent;
+}
+
+.user-menu-btn:hover {
+  background-color: #f8faff !important;
 }
 
 /* ---- ACCORDION ---- */
