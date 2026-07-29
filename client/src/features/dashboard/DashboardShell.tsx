@@ -111,26 +111,24 @@ export const DashboardShell: React.FC = () => {
       <Group justify="space-between" align="flex-start" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
           <Title
-            order={1}
+            order={2}
             style={{
               color: '#0f172a',
-              fontSize: '1.875rem',
-              fontWeight: 800,
-              letterSpacing: '-0.04em',
-              lineHeight: 1.2,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.25,
             }}
           >
             Command Center
           </Title>
           <Text
             size="sm"
-            mt={6}
+            mt={4}
             style={{
-              color: '#94a3b8',
-              fontSize: '0.9rem',
+              color: '#64748b',
+              fontSize: '0.875rem',
               fontWeight: 400,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
               letterSpacing: '-0.01em',
             }}
           >
@@ -148,7 +146,7 @@ export const DashboardShell: React.FC = () => {
             padding: '7px 14px',
             boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
           }}>
-            <span style={{ fontSize: '0.8125rem', color: '#64748b', fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{formattedDate}</span>
+            <span style={{ fontSize: '0.8125rem', color: '#64748b', fontWeight: 500, letterSpacing: '-0.01em' }}>{formattedDate}</span>
           </div>
           <TextInput
             placeholder="Search dashboard..."
@@ -163,7 +161,6 @@ export const DashboardShell: React.FC = () => {
                 width: '240px',
                 fontSize: '0.875rem',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
               }
             }}
           />

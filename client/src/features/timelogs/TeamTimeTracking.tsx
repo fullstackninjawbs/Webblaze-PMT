@@ -24,19 +24,18 @@ export const TeamTimeTracking = () => {
             order={2}
             style={{
               color: '#0f172a',
-              fontSize: '1.875rem',
-              fontWeight: 800,
-              letterSpacing: '-0.04em',
-              lineHeight: 1.2,
-              fontFamily: "'Inter', sans-serif",
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.25,
             }}
           >
             Time Tracking Overview
           </Title>
           <Text
             size="sm"
-            mt={6}
-            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+            mt={4}
+            style={{ color: '#64748b', letterSpacing: '-0.01em' }}
           >
             Monitor active work and historical time logs across the team.
           </Text>

@@ -81,7 +81,6 @@ export const DashboardLayout: React.FC = () => {
             color: active ? '#ffffff' : '#64748b',
             fontWeight: active ? 600 : 500,
             fontSize: '0.875rem',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
             letterSpacing: '-0.01em',
             transition: 'all 0.18s ease',
             boxShadow: active ? '0 4px 14px rgba(59, 130, 246, 0.35)' : 'none',
@@ -117,8 +116,7 @@ export const DashboardLayout: React.FC = () => {
           <Text
             size="sm"
             style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: active ? 600 : 500,
+                fontWeight: active ? 600 : 500,
               fontSize: '0.875rem',
               letterSpacing: '-0.01em',
             }}
@@ -185,8 +183,7 @@ export const DashboardLayout: React.FC = () => {
                   fontSize: '1.0625rem',
                   letterSpacing: '-0.04em',
                   lineHeight: 1.2,
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  color: '#0f172a',
+                        color: '#0f172a',
                 }}
               >
                 <span style={{
@@ -205,8 +202,7 @@ export const DashboardLayout: React.FC = () => {
                   fontSize: '0.6875rem',
                   fontWeight: 500,
                   letterSpacing: '0.03em',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}
+                      }}
               >
                 Project Management
               </Text>
@@ -228,8 +224,7 @@ export const DashboardLayout: React.FC = () => {
               letterSpacing: '0.08em',
               color: '#94a3b8',
               padding: '8px 14px 4px',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-            }}
+              }}
           >
             Main Menu
           </Text>
@@ -280,8 +275,7 @@ export const DashboardLayout: React.FC = () => {
                         color: '#0f172a',
                         fontSize: '0.875rem',
                         letterSpacing: '-0.015em',
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                        lineHeight: 1.3,
+                                    lineHeight: 1.3,
                       }}
                     >
                       {user?.name}
@@ -295,8 +289,7 @@ export const DashboardLayout: React.FC = () => {
                         fontSize: '0.625rem',
                         fontWeight: 700,
                         letterSpacing: '0.02em',
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      }}
+                                  }}
                     >
                       {user?.role === Role.ADMIN ? 'Admin' : user?.role?.replace('_', ' ')}
                     </Badge>
@@ -309,7 +302,7 @@ export const DashboardLayout: React.FC = () => {
               <Menu.Item
                 leftSection={<Settings size={14} />}
                 onClick={() => navigate('/settings')}
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, fontSize: '0.875rem' }}
+                style={{ fontWeight: 500, fontSize: '0.875rem' }}
               >
                 Profile Settings
               </Menu.Item>
@@ -318,7 +311,7 @@ export const DashboardLayout: React.FC = () => {
                 color="red"
                 leftSection={<LogOut size={14} />}
                 onClick={handleLogout}
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 500, fontSize: '0.875rem' }}
+                style={{ fontWeight: 500, fontSize: '0.875rem' }}
               >
                 Log out
               </Menu.Item>

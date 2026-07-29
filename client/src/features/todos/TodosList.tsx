@@ -92,19 +92,18 @@ export const TodosList = () => {
             order={2}
             style={{
               color: '#0f172a',
-              fontSize: '1.875rem',
-              fontWeight: 800,
-              letterSpacing: '-0.04em',
-              lineHeight: 1.2,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.25,
             }}
           >
             Team To-Dos
           </Title>
           <Text
             size="sm"
-            mt={6}
-            style={{ color: '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}
+            mt={4}
+            style={{ color: '#64748b', letterSpacing: '-0.01em' }}
           >
             Manage your personal and team tasks
           </Text>
@@ -114,7 +113,6 @@ export const TodosList = () => {
           color="blue"
           onClick={() => handleOpenModal()}
           style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 600,
             boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
           }}

@@ -149,13 +149,12 @@ export const ProjectDetails = () => {
       <Button
         variant="subtle"
         color="gray"
-        leftSection={<ArrowLeft size={15} />}
+        leftSection={<ArrowLeft size={16} />}
         onClick={() => navigate('/projects')}
-        mb="lg"
+        mb="md"
         style={{
           paddingLeft: 0,
           color: '#64748b',
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontWeight: 500,
           fontSize: '0.875rem',
           letterSpacing: '-0.01em',

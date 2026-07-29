@@ -74,19 +74,18 @@ export const DailyStatus: React.FC = () => {
             order={2}
             style={{
               color: '#0f172a',
-              fontSize: '1.875rem',
-              fontWeight: 800,
-              letterSpacing: '-0.04em',
-              lineHeight: 1.2,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.25,
             }}
           >
             Daily Work Status
           </Title>
           <Text
             size="sm"
-            mt={6}
-            style={{ color: '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}
+            mt={4}
+            style={{ color: '#64748b', letterSpacing: '-0.01em' }}
           >
             Log your daily progress and keep the team updated on milestones.
           </Text>

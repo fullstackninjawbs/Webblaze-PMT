@@ -144,19 +144,18 @@ export const InvoicesPage = () => {
             order={2}
             style={{
               color: '#0f172a',
-              fontSize: '1.875rem',
-              fontWeight: 800,
-              letterSpacing: '-0.04em',
-              lineHeight: 1.2,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: '1.5rem',
+              fontWeight: 700,
+              letterSpacing: '-0.025em',
+              lineHeight: 1.25,
             }}
           >
             Financial Overview
           </Title>
           <Text
             size="sm"
-            mt={6}
-            style={{ color: '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}
+            mt={4}
+            style={{ color: '#64748b', letterSpacing: '-0.01em' }}
           >
             Manage all project invoices and track payments.
           </Text>
@@ -167,7 +166,6 @@ export const InvoicesPage = () => {
           color="blue"
           onClick={openCreateModal}
           style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 600,
             boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
           }}
@@ -188,13 +186,13 @@ export const InvoicesPage = () => {
             size="xs"
             fw={700}
             tt="uppercase"
-            style={{ color: '#059669', letterSpacing: '0.08em', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.7rem' }}
+            style={{ color: '#059669', letterSpacing: '0.08em', fontSize: '0.7rem' }}
           >
             Total Received
           </Text>
           <Text
-            fw={800}
-            style={{ fontSize: '1.75rem', color: '#065f46', letterSpacing: '-0.04em', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2, marginTop: '4px' }}
+            fw={700}
+            style={{ fontSize: '1.5rem', color: '#065f46', letterSpacing: '-0.03em', lineHeight: 1.25, marginTop: '4px' }}
           >
             ${totalReceived.toLocaleString()}
           </Text>
@@ -210,13 +208,13 @@ export const InvoicesPage = () => {
             size="xs"
             fw={700}
             tt="uppercase"
-            style={{ color: '#d97706', letterSpacing: '0.08em', fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: '0.7rem' }}
+            style={{ color: '#d97706', letterSpacing: '0.08em', fontSize: '0.7rem' }}
           >
             Total Pending
           </Text>
           <Text
-            fw={800}
-            style={{ fontSize: '1.75rem', color: '#92400e', letterSpacing: '-0.04em', fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.2, marginTop: '4px' }}
+            fw={700}
+            style={{ fontSize: '1.5rem', color: '#92400e', letterSpacing: '-0.03em', lineHeight: 1.25, marginTop: '4px' }}
           >
             ${totalPending.toLocaleString()}
           </Text>

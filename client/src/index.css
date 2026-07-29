@@ -7,7 +7,8 @@
 
 /* CSS Custom Properties */
 :root {
-  --font-primary: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Brand Colors */
   --color-brand-from: #3b82f6;
@@ -63,10 +64,11 @@
 }
 
 html {
-  font-size: 15px;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 /* ---- CONTAINER: full width, no extra side padding ---- */
@@ -84,9 +86,9 @@ body {
   font-family: var(--font-primary);
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  line-height: 1.6;
+  line-height: 1.5;
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.011em;
 }
 
 /* Headings */
