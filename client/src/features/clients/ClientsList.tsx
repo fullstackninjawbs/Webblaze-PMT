@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useGetClientsQuery, useCreateClientMutation, useUpdateClientMutation } from './client.slice';
-import { Table, Button, Group, Title, Drawer, TextInput, Select, Card, Text, Badge, ActionIcon, Menu, Divider, Stack } from '@mantine/core';
+import { useGetClientsQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation } from './client.slice';
+import { Table, Button, Group, Title, Drawer, TextInput, Select, Card, Text, Badge, ActionIcon, Divider, Stack, Paper } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { Plus, Building2, MoreVertical, Edit, Trash, Eye, Search, Filter } from 'lucide-react';
+import { Plus, Building2, Edit, Trash, Eye, Search, Filter } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
@@ -23,8 +24,10 @@ const clientSchema = z.object({
 export const ClientsList: React.FC = () => {
   const { data } = useGetClientsQuery();
   const { data: projectsData } = useGetProjectsQuery();
+  const navigate = useNavigate();
   const [createClient, { isLoading: isCreating }] = useCreateClientMutation();
   const [updateClient, { isLoading: isUpdating }] = useUpdateClientMutation();
+  const [deleteClient] = useDeleteClientMutation();
   
   const [drawerOpened, setDrawerOpened] = useState(false);
   const [viewDrawerOpened, setViewDrawerOpened] = useState(false);
@@ -77,6 +80,16 @@ export const ClientsList: React.FC = () => {
     setViewDrawerOpened(true);
   };
 
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this client?')) {
+      try {
+        await deleteClient(id).unwrap();
+      } catch (error) {
+        console.error('Failed to delete client', error);
+      }
+    }
+  };
+
   const onSubmit = async (values: typeof form.values) => {
     try {
       if (selectedClient) {
@@ -116,6 +129,9 @@ export const ClientsList: React.FC = () => {
   const getActiveProjectsCount = (clientId: string) => {
     return projects.filter(p => (p.client as any)?._id === clientId && p.status === 'active').length;
   };
+  const getClientProjects = (clientId: string) => {
+    return projects.filter(p => (p.client as any)?._id === clientId || (p.client as any) === clientId);
+  };
 
   const rows = filteredClients.map((client) => (
     <Table.Tr key={client._id}>
@@ -152,22 +168,19 @@ export const ClientsList: React.FC = () => {
         <Text size="sm" fw={600}>{getActiveProjectsCount(client._id)}</Text>
       </Table.Td>
       <Table.Td>
-        <Group gap={4} justify="flex-end">
+        <Group gap={4} justify="flex-end" wrap="nowrap">
           <ActionIcon variant="subtle" color="blue" onClick={() => openViewDrawer(client)}>
             <Eye size={16} />
           </ActionIcon>
           {isAdminOrPM && (
-            <Menu position="bottom-end" shadow="sm">
-              <Menu.Target>
-                <ActionIcon variant="subtle" color="gray">
-                  <MoreVertical size={16} />
-                </ActionIcon>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Item leftSection={<Edit size={14} />} onClick={() => openEditDrawer(client)}>Edit</Menu.Item>
-                <Menu.Item color="red" leftSection={<Trash size={14} />}>Delete</Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
+            <>
+              <ActionIcon variant="subtle" color="blue" onClick={() => openEditDrawer(client)} title="Edit">
+                <Edit size={16} />
+              </ActionIcon>
+              <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(client._id)} title="Delete">
+                <Trash size={16} />
+              </ActionIcon>
+            </>
           )}
         </Group>
       </Table.Td>
@@ -380,6 +393,47 @@ export const ClientsList: React.FC = () => {
                 </div>
               </Group>
             </div>
+            <Divider />
+
+            <div>
+              <Text fw={600} size="sm" mb="sm" c="dimmed" tt="uppercase">Associated Projects</Text>
+              {getClientProjects(selectedClient._id).length === 0 ? (
+                <Text size="sm" color="dimmed">No projects found for this client.</Text>
+              ) : (
+                <Stack gap="xs">
+                  {getClientProjects(selectedClient._id).map((proj) => (
+                    <Paper key={proj._id} withBorder p="xs" radius="md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <Text 
+                          component="span" 
+                          size="sm" 
+                          fw={600} 
+                          style={{ cursor: 'pointer', color: '#2563EB', textDecoration: 'underline' }}
+                          onClick={() => {
+                            setViewDrawerOpened(false);
+                            navigate(`/projects/${proj._id}`);
+                          }}
+                        >
+                          {proj.name}
+                        </Text>
+                        <Text size="xs" color="dimmed">{proj.type || 'Web App'}</Text>
+                      </div>
+                      <Badge 
+                        size="xs" 
+                        variant="light" 
+                        color={proj.status === 'active' ? 'green' : proj.status === 'on_hold' ? 'orange' : 'blue'}
+                      >
+                        {proj.status}
+                      </Badge>
+                    </Paper>
+                  ))}
+                </Stack>
+              )}
+            </div>
+            <Divider />
+            <Group justify="flex-end">
+              <Button variant="default" onClick={() => setViewDrawerOpened(false)}>Close</Button>
+            </Group>
           </Stack>
         )}
       </Drawer>

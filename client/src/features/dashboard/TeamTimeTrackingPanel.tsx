@@ -71,7 +71,7 @@ export const TeamTimeTrackingPanel: React.FC = () => {
               <Table.Tr key={member.user._id}>
                 <Table.Td>
                   <Group gap="sm">
-                    <Avatar src={member.user.avatarUrl} radius="xl" size="sm" color="indigo">
+                    <Avatar src={member.user.avatarUrl} radius="xl" size="sm" color="blue">
                       {member.user.name?.charAt(0)}
                     </Avatar>
                     <div>

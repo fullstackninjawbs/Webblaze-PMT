@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { useGetProjectsQuery, useCreateProjectMutation, useDeleteProjectMutation } from './project.slice';
+import React, { useState, useMemo } from 'react';
+import { useGetProjectsQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation } from './project.slice';
 import { useGetClientsQuery } from '../clients/client.slice';
 import { useGetUsersQuery } from '../users/user.slice';
-import { Table, Button, Group, Title, Modal, TextInput, Select, Card, Text, Badge, ActionIcon, Menu, NumberInput, MultiSelect, Grid, Progress } from '@mantine/core';
+import { useGetReleasesQuery } from '../releases/release.slice';
+import { Table, Button, Group, Title, Modal, TextInput, Select, Card, Text, Badge, ActionIcon, NumberInput, MultiSelect, Grid, Progress, Tabs } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, MoreVertical, Edit, Trash, Briefcase, DollarSign, Eye } from 'lucide-react';
+import { Plus, Edit, Trash, Briefcase, DollarSign, Eye } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus } from '../../types';
@@ -26,9 +27,13 @@ export const ProjectsList: React.FC = () => {
   const { data: projectsData } = useGetProjectsQuery();
   const { data: clientsData } = useGetClientsQuery();
   const { data: usersData } = useGetUsersQuery();
+  const { data: releasesData } = useGetReleasesQuery();
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
+  const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const [deleteProject] = useDeleteProjectMutation();
   const [modalOpened, setModalOpened] = useState(false);
+  const [editingProject, setEditingProject] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>('all');
   const { user } = useSelector((state: RootState) => state.auth);
 
   const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
@@ -46,17 +51,53 @@ export const ProjectsList: React.FC = () => {
     validate: zodResolver(projectSchema),
   });
 
+  const openCreateModal = () => {
+    setEditingProject(null);
+    form.reset();
+    setModalOpened(true);
+  };
+
+  const openEditModal = (project: any) => {
+    setEditingProject(project);
+    form.setValues({
+      name: project.name || '',
+      client: project.client?._id || project.client || '',
+      description: project.description || '',
+      type: project.type || 'Web App',
+      totalBudget: project.totalBudget || 0,
+      status: project.status || ProjectStatus.ACTIVE,
+      team: project.team?.map((t: any) => t._id || t) || [],
+    });
+    setModalOpened(true);
+  };
+
   const onSubmit = async (values: typeof form.values) => {
     try {
-      await createProject({
+      const payload = {
         ...values,
         totalBudget: values.totalBudget || undefined,
         team: values.team.length > 0 ? values.team : undefined
-      } as any).unwrap();
+      };
+      
+      if (editingProject) {
+        await updateProject({ id: editingProject._id, data: payload as any }).unwrap();
+      } else {
+        await createProject(payload as any).unwrap();
+      }
       setModalOpened(false);
       form.reset();
     } catch (error) {
-      console.error('Failed to create project', error);
+      console.error('Failed to save project', error);
+    }
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      try {
+        await deleteProject(id).unwrap();
+      } catch (e) {
+        console.error('Failed to delete project', e);
+      }
     }
   };
 
@@ -67,7 +108,29 @@ export const ProjectsList: React.FC = () => {
 
   const getClientName = (id: string) => clientOptions.find(c => c.value === id)?.label || 'Unknown Client';
 
-  const rows = projectsData?.data.map((project) => (
+  const getProjectReleaseDate = (projectId: string) => {
+    const projectReleases = (releasesData?.data || []).filter(
+      (r) => (r.project as any)?._id === projectId || (r.project as any) === projectId
+    );
+    if (projectReleases.length === 0) return 'TBD';
+
+    const sorted = [...projectReleases].sort(
+      (a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
+    );
+    return new Date(sorted[0].releaseDate).toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const filteredProjects = useMemo(() => {
+    const raw = projectsData?.data || [];
+    if (activeTab === 'all') return raw;
+    return raw.filter(p => p.status === activeTab);
+  }, [projectsData, activeTab]);
+
+  const rows = filteredProjects.map((project: any) => (
     <Table.Tr key={project._id}>
       <Table.Td>
         <Group gap="sm">
@@ -97,42 +160,45 @@ export const ProjectsList: React.FC = () => {
         </Badge>
       </Table.Td>
       <Table.Td>
-        <Text size="sm" c="dimmed">TBD</Text>
+        <Text size="sm" c="dimmed">{getProjectReleaseDate(project._id)}</Text>
       </Table.Td>
       {isAdminOrPM && (
         <>
           <Table.Td>
             {project.totalBudget ? <Text size="sm" fw={500}>${project.totalBudget.toLocaleString()}</Text> : <Text size="sm" c="dimmed">-</Text>}
           </Table.Td>
-          <Table.Td><Text size="sm" c="teal" fw={500}>$0</Text></Table.Td>
           <Table.Td>
-            {project.totalBudget ? <Text size="sm" c="blue" fw={500}>${project.totalBudget.toLocaleString()}</Text> : <Text size="sm" c="dimmed">-</Text>}
+            <Text size="sm" c="teal" fw={500}>
+              ${(project.receivedAmount || 0).toLocaleString()}
+            </Text>
+          </Table.Td>
+          <Table.Td>
+            <Text size="sm" c="blue" fw={500}>
+              ${(project.pendingAmount || 0).toLocaleString()}
+            </Text>
           </Table.Td>
         </>
       )}
       <Table.Td>
         <Group gap="xs" wrap="nowrap">
-          <Text size="sm" w={35} ta="right">0%</Text>
-          <Progress value={0} color="blue" size="sm" radius="xl" style={{ flex: 1 }} />
+          <Text size="sm" w={35} ta="right">{project.progress || 0}%</Text>
+          <Progress value={project.progress || 0} color="blue" size="sm" radius="xl" style={{ flex: 1 }} />
         </Group>
       </Table.Td>
       <Table.Td>
-        <Group gap={4} justify="flex-end">
+        <Group gap={4} justify="flex-end" wrap="nowrap">
           <ActionIcon variant="subtle" color="blue" onClick={() => navigate(`/projects/${project._id}`)} title="View Details">
             <Eye size={16} />
           </ActionIcon>
           {isAdminOrPM && (
-            <Menu position="bottom-end" shadow="sm">
-              <Menu.Target>
-                <ActionIcon variant="subtle" color="gray">
-                  <MoreVertical size={16} />
-                </ActionIcon>
-              </Menu.Target>
-              <Menu.Dropdown>
-                <Menu.Item leftSection={<Edit size={14} />}>Edit</Menu.Item>
-                <Menu.Item color="red" leftSection={<Trash size={14} />} onClick={() => deleteProject(project._id)}>Delete</Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
+            <>
+              <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(project)} title="Edit">
+                <Edit size={16} />
+              </ActionIcon>
+              <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteProject(project._id)} title="Delete">
+                <Trash size={16} />
+              </ActionIcon>
+            </>
           )}
         </Group>
       </Table.Td>
@@ -153,15 +219,23 @@ export const ProjectsList: React.FC = () => {
             leftSection={<Plus size={18} />}
             radius="md"
             variant="filled"
-            color="indigo"
-            onClick={() => setModalOpened(true)}
+            color="blue"
+            onClick={openCreateModal}
           >
             New Project
           </Button>
         )}
       </Group>
 
-      {/* Project Status Filters could go here */}
+      <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'all')} color="blue" mb="xl">
+        <Tabs.List>
+          <Tabs.Tab value="all">All Projects</Tabs.Tab>
+          <Tabs.Tab value={ProjectStatus.ACTIVE}>Active</Tabs.Tab>
+          <Tabs.Tab value={ProjectStatus.ON_HOLD}>On Hold</Tabs.Tab>
+          <Tabs.Tab value={ProjectStatus.MAINTENANCE}>Maintenance</Tabs.Tab>
+          <Tabs.Tab value={ProjectStatus.COMPLETED}>Completed</Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
 
       <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
         <Table.ScrollContainer minWidth={800}>
@@ -199,7 +273,7 @@ export const ProjectsList: React.FC = () => {
       <Modal
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
-        title={<Text fw={700} size="xl">Create New Project</Text>}
+        title={<Text fw={700} size="xl">{editingProject ? 'Edit Project' : 'Create New Project'}</Text>}
         radius="lg"
         size="1000px" // large for split layout
       >
@@ -225,6 +299,7 @@ export const ProjectsList: React.FC = () => {
                     { value: ProjectStatus.ACTIVE, label: 'Active' },
                     { value: ProjectStatus.ON_HOLD, label: 'On Hold' },
                     { value: ProjectStatus.MAINTENANCE, label: 'Maintenance' },
+                    { value: ProjectStatus.COMPLETED, label: 'Completed' },
                   ]}
                   {...form.getInputProps('status')}
                 />
@@ -254,7 +329,9 @@ export const ProjectsList: React.FC = () => {
 
               <Group justify="flex-start" mt="xl">
                 <Button variant="light" onClick={() => setModalOpened(false)}>Cancel</Button>
-                <Button type="submit" color="indigo" loading={isCreating}>Create Project</Button>
+                <Button type="submit" color="blue" loading={isCreating || isUpdating}>
+                  {editingProject ? 'Update Project' : 'Create Project'}
+                </Button>
               </Group>
             </Grid.Col>
 

@@ -15,18 +15,11 @@ import { TeamTimeTracking } from '../features/timelogs/TeamTimeTracking';
 import { ReleasesPage } from '../features/releases/ReleasesPage';
 import { InvoicesPage } from '../features/invoices/InvoicesPage';
 import { MyTodos } from '../features/todos/MyTodos';
+import { DailyStatus } from '../features/dailyStatus/DailyStatus';
+import { ReportsPage } from '../features/reports/ReportsPage';
+import { SettingsPage } from '../features/settings/SettingsPage';
 import { RoleGuard } from '../components/common/RoleGuard';
 import { Role } from '../types';
-import { Container, Title, Text, Card } from '@mantine/core';
-
-const PlaceholderPage = ({ title }: { title: string }) => (
-  <Container size="xl" py="xl">
-    <Card shadow="sm" p="xl" radius="md" withBorder>
-      <Title order={2} mb="sm">{title}</Title>
-      <Text color="dimmed">This module is scheduled for a future development phase.</Text>
-    </Card>
-  </Container>
-);
 
 const AppRoutes = () => {
   return (
@@ -58,8 +51,8 @@ const AppRoutes = () => {
             </RoleGuard>
           } 
         />
-        <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
-        <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route 
           path="/team-tasks" 
           element={
@@ -78,7 +71,7 @@ const AppRoutes = () => {
         />
         <Route path="/tasks/:id" element={<TaskDetail />} />
         
-        <Route path="/daily-status" element={<PlaceholderPage title="Daily Status" />} />
+        <Route path="/daily-status" element={<DailyStatus />} />
 
         <Route 
           path="/team-time" 

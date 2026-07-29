@@ -63,7 +63,12 @@ export const getAllTasks = async (): Promise<ITask[]> => {
 };
 
 export const getTaskById = async (id: string): Promise<ITask> => {
-  const task = await Task.findById(id).populate('assignedTo', 'name email avatarUrl role');
+  const task = await Task.findById(id)
+    .populate('assignedTo', 'name email avatarUrl role')
+    .populate({
+      path: 'attachments',
+      populate: { path: 'uploadedBy', select: 'name' }
+    });
   if (!task) {
     throw new ApiError(404, 'Task not found');
   }
@@ -80,7 +85,12 @@ export const updateTask = async (id: string, updateData: Partial<ITask>): Promis
   const updatedTask = await Task.findByIdAndUpdate(id, updateData, {
     new: true,
     runValidators: true,
-  }).populate('assignedTo', 'name email avatarUrl role');
+  })
+    .populate('assignedTo', 'name email avatarUrl role')
+    .populate({
+      path: 'attachments',
+      populate: { path: 'uploadedBy', select: 'name' }
+    });
 
   return updatedTask!;
 };

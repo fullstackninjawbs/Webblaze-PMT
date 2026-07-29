@@ -16,6 +16,9 @@ export interface Project {
   team: User[];
   createdAt: string;
   updatedAt: string;
+  progress?: number;
+  estHours?: number;
+  spentHours?: number;
 }
 
 export const projectApi = baseApi.injectEndpoints({
@@ -36,7 +39,7 @@ export const projectApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Project'],
     }),
-    updateProject: builder.mutation<{ success: boolean; data: Project }, { id: string; data: Partial<Project> }>({
+    updateProject: builder.mutation<{ success: boolean; data: Project }, { id: string; data: Partial<Omit<Project, 'team' | 'client'> & { team?: string[]; client?: string }> }>({
       query: ({ id, data }) => ({
         url: `/projects/${id}`,
         method: 'PATCH',

@@ -12,6 +12,7 @@ export const createTaskSchema = z.object({
     endDate: z.string().datetime().optional(),
     assignedTo: z.string().optional(),
     status: z.enum(['assigned', 'in_progress', 'in_review', 'completed']).optional(),
+    attachments: z.array(z.string()).optional(),
   }),
 });
 
@@ -26,5 +27,6 @@ export const updateTaskSchema = z.object({
     endDate: z.string().datetime().optional(),
     assignedTo: z.string().optional().nullable(),
     status: z.enum(['assigned', 'in_progress', 'in_review', 'completed']).optional(),
+    attachments: z.array(z.string()).optional(),
   }),
 });

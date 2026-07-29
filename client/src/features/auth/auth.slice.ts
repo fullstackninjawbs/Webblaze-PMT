@@ -87,7 +87,14 @@ export const authApi = baseApi.injectEndpoints({
         }
       }
     }),
+    changePassword: builder.mutation<{ success: boolean; message: string }, any>({
+      query: (body) => ({
+        url: '/auth/change-password',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useLoginMutation, useLogoutMutation, useGetMeQuery } = authApi;
+export const { useLoginMutation, useLogoutMutation, useGetMeQuery, useChangePasswordMutation } = authApi;

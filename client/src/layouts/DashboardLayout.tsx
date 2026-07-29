@@ -17,6 +17,7 @@ const sidebarNavigation = {
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Team', href: '/team', icon: Users },
     { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
+    { name: 'Daily Status', href: '/daily-status', icon: Activity },
     { name: 'Releases', href: '/releases', icon: Rocket },
     { name: 'Time Tracking', href: '/team-time', icon: Clock },
     { name: 'Invoices', href: '/invoices', icon: DollarSign },
@@ -28,6 +29,7 @@ const sidebarNavigation = {
     { name: 'Projects', href: '/projects', icon: Briefcase },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
+    { name: 'Daily Status', href: '/daily-status', icon: Activity },
     { name: 'Releases', href: '/releases', icon: Rocket },
     { name: 'Time Tracking', href: '/team-time', icon: Clock },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
@@ -36,6 +38,7 @@ const sidebarNavigation = {
     { name: 'My Projects', href: '/projects', icon: Briefcase },
     { name: 'Team Tasks', href: '/team-tasks', icon: ListTodo },
     { name: 'Team Todos', href: '/todos/team', icon: CheckSquare },
+    { name: 'Daily Status', href: '/daily-status', icon: Activity },
     { name: 'Releases', href: '/releases', icon: Rocket },
   ],
   [Role.TEAM_MEMBER]: [
@@ -160,7 +163,7 @@ export const DashboardLayout: React.FC = () => {
               </UnstyledButton>
             </Menu.Target>
             <Menu.Dropdown>
-              <Menu.Item leftSection={<Settings size={14} />}>Profile Settings</Menu.Item>
+              <Menu.Item leftSection={<Settings size={14} />} onClick={() => navigate('/settings')}>Profile Settings</Menu.Item>
               <Menu.Divider />
               <Menu.Item color="red" leftSection={<LogOut size={14} />} onClick={handleLogout}>
                 Log out

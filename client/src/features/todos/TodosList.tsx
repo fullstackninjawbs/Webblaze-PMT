@@ -3,7 +3,7 @@ import { useGetProjectsQuery } from '../projects/project.slice';
 import { Container, Title, Text, Button, Group, Card, Badge, Stack, Modal, TextInput, Select, NumberInput, Table, ActionIcon, Menu } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
-import { Plus, MoreVertical, Edit2, Trash, CheckCircle } from 'lucide-react';
+import { Plus, Edit2, Trash, CheckCircle } from 'lucide-react';
 
 import { useState } from 'react';
 
@@ -150,21 +150,12 @@ export const TodosList = () => {
                         <CheckCircle size={16} />
                       </ActionIcon>
                     )}
-                    <Menu shadow="sm" width={120} position="bottom-end">
-                      <Menu.Target>
-                        <ActionIcon variant="subtle" color="gray">
-                          <MoreVertical size={16} />
-                        </ActionIcon>
-                      </Menu.Target>
-                      <Menu.Dropdown>
-                        <Menu.Item leftSection={<Edit2 size={14} />} onClick={() => handleOpenModal(todo)}>
-                          Edit
-                        </Menu.Item>
-                        <Menu.Item color="red" leftSection={<Trash size={14} />} onClick={() => handleDelete(todo._id)}>
-                          Delete
-                        </Menu.Item>
-                      </Menu.Dropdown>
-                    </Menu>
+                    <ActionIcon variant="subtle" color="blue" onClick={() => handleOpenModal(todo)} title="Edit">
+                      <Edit2 size={16} />
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(todo._id)} title="Delete">
+                      <Trash size={16} />
+                    </ActionIcon>
                   </Group>
                 </Table.Td>
               </Table.Tr>

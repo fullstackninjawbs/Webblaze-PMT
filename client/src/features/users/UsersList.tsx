@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useGetUsersQuery, useRegisterUserMutation, useDeleteUserMutation } from './user.slice';
-import { Table, Button, Group, Title, Modal, TextInput, Select, Card, Text, Badge, ActionIcon, Menu, PasswordInput } from '@mantine/core';
+import { useGetUsersQuery, useRegisterUserMutation, useUpdateUserMutation, useDeleteUserMutation } from './user.slice';
+import { Table, Button, Group, Title, Modal, TextInput, Select, Card, Text, Badge, ActionIcon, PasswordInput } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, Mail, MoreVertical, Edit, Trash } from 'lucide-react';
+import { Plus, Mail, Edit, Trash } from 'lucide-react';
 import { Role } from '../../types';
 
 const registerSchema = z.object({
@@ -17,8 +17,11 @@ const registerSchema = z.object({
 export const UsersList: React.FC = () => {
   const { data: usersData } = useGetUsersQuery();
   const [registerUser, { isLoading: isRegistering }] = useRegisterUserMutation();
+  const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const [deleteUser] = useDeleteUserMutation();
   const [modalOpened, setModalOpened] = useState(false);
+  const [editModalOpened, setEditModalOpened] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
 
   const form = useForm({
     initialValues: {
@@ -31,6 +34,13 @@ export const UsersList: React.FC = () => {
     validate: zodResolver(registerSchema),
   });
 
+  const editForm = useForm({
+    initialValues: {
+      role: Role.TEAM_MEMBER,
+      department: '',
+    },
+  });
+
   const onSubmit = async (values: typeof form.values) => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -39,6 +49,32 @@ export const UsersList: React.FC = () => {
       form.reset();
     } catch (error) {
       console.error('Failed to register user', error);
+    }
+  };
+
+  const openEditModal = (user: any) => {
+    setEditingUser(user);
+    editForm.setValues({
+      role: user.role,
+      department: user.department || '',
+    });
+    setEditModalOpened(true);
+  };
+
+  const onEditSubmit = async (values: typeof editForm.values) => {
+    if (!editingUser) return;
+    try {
+      await updateUser({
+        id: editingUser._id,
+        data: {
+          role: values.role,
+          department: values.department || undefined,
+        }
+      }).unwrap();
+      setEditModalOpened(false);
+      setEditingUser(null);
+    } catch (error) {
+      console.error('Failed to update user role', error);
     }
   };
 
@@ -84,17 +120,14 @@ export const UsersList: React.FC = () => {
         )}
       </Table.Td>
       <Table.Td>
-        <Menu position="bottom-end" shadow="sm">
-          <Menu.Target>
-            <ActionIcon variant="subtle" color="gray">
-              <MoreVertical size={16} />
-            </ActionIcon>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item leftSection={<Edit size={14} />}>Edit Role</Menu.Item>
-            <Menu.Item color="red" leftSection={<Trash size={14} />} onClick={() => handleDelete(user._id)}>Remove User</Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
+        <Group gap={4} wrap="nowrap">
+          <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(user)} title="Edit Role">
+            <Edit size={16} />
+          </ActionIcon>
+          <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(user._id)} title="Remove User">
+            <Trash size={16} />
+          </ActionIcon>
+        </Group>
       </Table.Td>
     </Table.Tr>
   ));
@@ -112,7 +145,7 @@ export const UsersList: React.FC = () => {
           leftSection={<Plus size={18} />} 
           radius="md" 
           variant="filled" 
-          color="grape"
+          color="blue"
           onClick={() => setModalOpened(true)}
         >
           Invite Member
@@ -171,9 +204,44 @@ export const UsersList: React.FC = () => {
 
           <Group justify="flex-end">
             <Button variant="light" onClick={() => setModalOpened(false)}>Cancel</Button>
-            <Button type="submit" color="grape" loading={isRegistering}>Send Invite</Button>
+            <Button type="submit" color="blue" loading={isRegistering}>Send Invite</Button>
           </Group>
         </form>
+      </Modal>
+
+      <Modal opened={editModalOpened} onClose={() => setEditModalOpened(false)} title={<Text fw={600}>Edit Team Member</Text>} radius="md">
+        {editingUser && (
+          <form onSubmit={editForm.onSubmit(onEditSubmit)}>
+            <TextInput label="Full Name" value={editingUser.name || ''} disabled mb="md" />
+            <TextInput label="Email Address" value={editingUser.email || ''} disabled mb="md" />
+            
+            <Group grow mb="xl">
+              <Select 
+                label="Role" 
+                data={[
+                  { value: Role.ADMIN, label: 'Admin' },
+                  { value: Role.PM, label: 'Project Manager' },
+                  { value: Role.TEAM_LEAD, label: 'Team Lead' },
+                  { value: Role.TEAM_MEMBER, label: 'Team Member' },
+                ]} 
+                required
+                {...editForm.getInputProps('role')}
+              />
+              <Select 
+                label="Department" 
+                placeholder="None"
+                data={[{ value: 'design', label: 'Design' }, { value: 'development', label: 'Development' }, { value: 'seo', label: 'SEO' }]} 
+                clearable
+                {...editForm.getInputProps('department')}
+              />
+            </Group>
+
+            <Group justify="flex-end">
+              <Button variant="light" onClick={() => setEditModalOpened(false)}>Cancel</Button>
+              <Button type="submit" color="blue" loading={isUpdating}>Save Changes</Button>
+            </Group>
+          </form>
+        )}
       </Modal>
     </div>
   );

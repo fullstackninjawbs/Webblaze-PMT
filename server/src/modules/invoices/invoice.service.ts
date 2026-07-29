@@ -53,22 +53,29 @@ export const updateInvoice = async (id: string, updateData: Partial<IInvoice>): 
 
   // Handle payments if added
   if (updateData.paymentDetails) {
+    invoice.paymentDetails = updateData.paymentDetails as any;
     let received = 0;
-    updateData.paymentDetails.forEach(p => {
+    invoice.paymentDetails.forEach(p => {
       received += p.amount;
     });
-    updateData.receivedAmount = received;
+    invoice.receivedAmount = received;
+    
+    delete updateData.paymentDetails;
+    delete updateData.receivedAmount;
   }
 
-  const updated = await Invoice.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
-    .populate('project', 'name client');
+  // Assign other fields
+  Object.assign(invoice, updateData);
+
+  const updated = await invoice.save();
+  await updated.populate('project', 'name client');
   
   if (updated) {
     // Only sent/paid invoices affect project financials
     await updateProjectFinancials(updated.project._id.toString());
   }
 
-  return updated!;
+  return updated;
 };
 
 export const deleteInvoice = async (id: string): Promise<void> => {

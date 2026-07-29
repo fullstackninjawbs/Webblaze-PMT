@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Avatar, Timeline, Loader, Center, Modal, Textarea, Select } from '@mantine/core';
-import { ArrowLeft, Play, Square, Clock, CheckCircle } from 'lucide-react';
+import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Avatar, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper } from '@mantine/core';
+import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip } from 'lucide-react';
 import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
+import { useUploadFileMutation } from '../uploads/upload.slice';
 
 export const TaskDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,9 @@ export const TaskDetail = () => {
   const [statusModalOpened, setStatusModalOpened] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [statusComment, setStatusComment] = useState('');
+
+  const [uploadFile, { isLoading: isUploadingAttachment }] = useUploadFileMutation();
+  const [newFile, setNewFile] = useState<File | null>(null);
 
   const task = taskData?.data;
   const timeLogs = timeLogsData?.data || [];
@@ -70,6 +74,25 @@ export const TaskDetail = () => {
     await updateTask({ _id: task._id, status: selectedStatus as any }).unwrap();
     setStatusModalOpened(false);
     setStatusComment('');
+  };
+
+  const handleUploadAttachment = async () => {
+    if (!newFile) return;
+    try {
+      const formData = new FormData();
+      formData.append('file', newFile);
+      const uploadRes = await uploadFile(formData).unwrap();
+      if (uploadRes.success && uploadRes.data) {
+        const existingIds = (task.attachments || []).map((att: any) => att._id || att);
+        await updateTask({
+          _id: task._id,
+          attachments: [...existingIds, uploadRes.data._id]
+        }).unwrap();
+        setNewFile(null);
+      }
+    } catch (err) {
+      console.error('Failed to upload attachment:', err);
+    }
   };
 
   return (
@@ -178,6 +201,66 @@ export const TaskDetail = () => {
             ))}
           </Timeline>
         )}
+      </Card>
+
+      {/* Attachments Section */}
+      <Title order={4} mt="xl" mb="md">Task Attachments</Title>
+      <Card shadow="sm" p="xl" radius="md" withBorder mb="xl">
+        <Stack gap="md">
+          {(!task.attachments || task.attachments.length === 0) ? (
+            <Text color="dimmed" ta="center">No attachments uploaded yet.</Text>
+          ) : (
+            <Stack gap="xs">
+              {(task.attachments as any[]).map((att) => (
+                <Paper key={att._id} withBorder p="xs" radius="md" bg="#f8fafc">
+                  <Group justify="space-between">
+                    <Group gap="xs">
+                      <Paperclip size={16} color="#64748b" />
+                      <div>
+                        <Text 
+                          component="a" 
+                          href={att.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          size="sm" 
+                          fw={600} 
+                          c="blue"
+                          style={{ textDecoration: 'underline' }}
+                        >
+                          {att.name}
+                        </Text>
+                        <Text size="xs" color="dimmed">
+                          Uploaded by {att.uploadedBy?.name || 'Unknown'} on {new Date(att.createdAt).toLocaleDateString()}
+                        </Text>
+                      </div>
+                    </Group>
+                    <Badge size="xs" variant="outline" color="gray">
+                      {(att.sizeBytes / 1024).toFixed(1)} KB
+                    </Badge>
+                  </Group>
+                </Paper>
+              ))}
+            </Stack>
+          )}
+
+          <Group align="flex-end" mt="md">
+            <FileInput
+              placeholder="Choose file to upload..."
+              leftSection={<UploadCloud size={16} />}
+              value={newFile}
+              onChange={setNewFile}
+              style={{ flex: 1 }}
+            />
+            <Button 
+              color="blue" 
+              onClick={handleUploadAttachment} 
+              loading={isUploadingAttachment} 
+              disabled={!newFile}
+            >
+              Upload Attachment
+            </Button>
+          </Group>
+        </Stack>
       </Card>
 
       {/* Status Update Modal */}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Title, Text, Group, TextInput, Badge, SimpleGrid, Card } from '@mantine/core';
@@ -6,7 +6,7 @@ import { Search, CheckCircle, CheckSquare, Activity, Clock } from 'lucide-react'
 import { Role } from '../../types';
 
 import { useGetProjectsQuery } from '../projects/project.slice';
-import { useGetTasksByUserQuery } from '../tasks/task.slice';
+import { useGetTasksByUserQuery, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useGetTodosQuery } from '../todos/todo.slice';
 
 import { ProjectSummaryCards } from './ProjectSummaryCards';
@@ -20,7 +20,10 @@ export const DashboardShell: React.FC = () => {
 
   const { data: projectsData } = useGetProjectsQuery();
   const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id });
+  const { data: allTasksData } = useGetAllTasksQuery(undefined, { skip: user?.role === Role.TEAM_MEMBER });
   const { data: todosData } = useGetTodosQuery();
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   const projects = projectsData?.data || [];
   const dbTodos = todosData?.data || [];
@@ -29,26 +32,58 @@ export const DashboardShell: React.FC = () => {
   const openTasksCount = dbTasks.filter(t => t.status !== 'completed').length;
   const myTodosCount = dbTodos.filter(t => (typeof t.user === 'object' ? t.user._id : t.user) === user?._id && t.status !== 'done').length;
 
-  const TLHero = () => (
-    <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" mb="xl">
-      <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', color: 'white' }}>
-        <Group justify="space-between" mb="md">
-          <Activity size={32} color="rgba(255,255,255,0.8)" />
-          <Badge color="rgba(255,255,255,0.2)" variant="filled" size="lg">Team Workload</Badge>
-        </Group>
-        <Text fw={800} size="32px">{dbTodos.length} Open Team Todos</Text>
-        <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>Across all active projects</Text>
-      </Card>
-      <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white' }}>
-        <Group justify="space-between" mb="md">
-          <Clock size={32} color="rgba(255,255,255,0.8)" />
-          <Badge color="rgba(255,255,255,0.2)" variant="filled" size="lg">Deadlines</Badge>
-        </Group>
-        <Text fw={800} size="32px">Critical</Text>
-        <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>Check tasks due this week</Text>
-      </Card>
-    </SimpleGrid>
-  );
+  const filteredProjects = searchQuery
+    ? projects.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : projects;
+
+  const filteredTodos = searchQuery
+    ? dbTodos.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : dbTodos;
+
+  const getTasksDueThisWeekCount = (tasksList: any[]) => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Saturday
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    return tasksList.filter(t => {
+      if (!t.endDate || t.status === 'completed') return false;
+      const dueDate = new Date(t.endDate);
+      return dueDate >= startOfWeek && dueDate <= endOfWeek;
+    }).length;
+  };
+
+  const TLHero = () => {
+    const tlTasks = allTasksData?.data || [];
+    const dueThisWeek = getTasksDueThisWeekCount(tlTasks);
+
+    return (
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" mb="xl">
+        <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', color: 'white' }}>
+          <Group justify="space-between" mb="md">
+            <Activity size={32} color="rgba(255,255,255,0.8)" />
+            <Badge color="rgba(255,255,255,0.2)" variant="filled" size="lg">Team Workload</Badge>
+          </Group>
+          <Text fw={800} size="32px">{filteredTodos.length} Open Team Todos</Text>
+          <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>Across all active projects</Text>
+        </Card>
+        <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white' }}>
+          <Group justify="space-between" mb="md">
+            <Clock size={32} color="rgba(255,255,255,0.8)" />
+            <Badge color="rgba(255,255,255,0.2)" variant="filled" size="lg">Deadlines</Badge>
+          </Group>
+          <Text fw={800} size="32px">{dueThisWeek} Critical</Text>
+          <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+            {dueThisWeek === 1 ? 'Task due this week' : 'Tasks due this week'}
+          </Text>
+        </Card>
+      </SimpleGrid>
+    );
+  };
 
   const TMHero = () => (
     <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" mb="xl">
@@ -88,19 +123,21 @@ export const DashboardShell: React.FC = () => {
             placeholder="Search dashboard..." 
             rightSection={<Search size={16} color="#9ca3af" />}
             radius="md"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             styles={{ input: { backgroundColor: '#fff', border: '1px solid #e5e7eb', width: '250px' } }}
           />
         </Group>
       </Group>
 
       {(user?.role === Role.ADMIN || user?.role === Role.PM) && (
-        <ProjectSummaryCards projects={projects} />
+        <ProjectSummaryCards projects={filteredProjects} />
       )}
       {user?.role === Role.TEAM_LEAD && <TLHero />}
       {user?.role === Role.TEAM_MEMBER && <TMHero />}
 
       {(user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD) && (
-        <TeamTodoOverview todos={dbTodos} />
+        <TeamTodoOverview todos={filteredTodos} />
       )}
       
       {(user?.role === Role.ADMIN || user?.role === Role.PM) && (

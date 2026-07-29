@@ -54,3 +54,18 @@ export const refreshTokens = async (token: string): Promise<{ accessToken: strin
     throw new ApiError(401, 'Invalid or expired refresh token');
   }
 };
+
+export const changePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<void> => {
+  const user = await User.findById(userId).select('+password');
+  if (!user) {
+    throw new ApiError(404, 'User not found');
+  }
+
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    throw new ApiError(400, 'Current password is incorrect');
+  }
+
+  user.password = newPassword;
+  await user.save();
+};

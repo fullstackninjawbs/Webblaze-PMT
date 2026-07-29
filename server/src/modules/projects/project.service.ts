@@ -1,4 +1,5 @@
 import { Project, IProject } from './project.model';
+import { Milestone } from '../milestones/milestone.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 
@@ -22,6 +23,21 @@ export class ProjectService {
     return project;
   }
 
+  static async attachProgress(project: any) {
+    const milestones = await Milestone.find({ project: project._id });
+    const estHours = milestones.reduce((sum, m) => sum + (m.estimatedHours || 0), 0);
+    const spentHours = milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0);
+    const progress = estHours > 0 ? Math.min(Math.round((spentHours / estHours) * 100), 100) : 0;
+    
+    const obj = project.toObject ? project.toObject() : project;
+    return {
+      ...obj,
+      progress,
+      estHours,
+      spentHours
+    };
+  }
+
   static async createProject(data: Partial<IProject>, userId: string) {
     return Project.create({ ...data, createdBy: userId });
   }
@@ -39,7 +55,11 @@ export class ProjectService {
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 });
 
-    return projects.map((p) => this.stripFinancials(p, userRole));
+    const projectsWithProgress = await Promise.all(
+      projects.map(p => this.attachProgress(p))
+    );
+
+    return projectsWithProgress.map((p) => this.stripFinancials(p, userRole));
   }
 
   static async getProjectById(id: string, userRole: Role, userId: string) {
@@ -55,7 +75,8 @@ export class ProjectService {
       if (!isTeamMember) throw new ApiError(403, 'You do not have access to this project');
     }
 
-    return this.stripFinancials(project, userRole);
+    const projectWithProgress = await this.attachProgress(project);
+    return this.stripFinancials(projectWithProgress, userRole);
   }
 
   static async updateProject(id: string, data: Partial<IProject>) {

@@ -1,9 +1,10 @@
 import { baseApi } from '../../app/api';
 import { User } from '../auth/auth.slice';
+import { Attachment } from '../uploads/upload.slice';
 
 export interface Task {
   _id: string;
-  milestone: string | { _id: string; project: string | { _id: string; name: string } };
+  milestone: string | { _id: string; title: string; project: string | { _id: string; name: string } };
   title: string;
   description?: string;
   department?: 'design' | 'development' | 'seo';
@@ -13,6 +14,7 @@ export interface Task {
   endDate?: string;
   assignedTo?: User | string;
   status: 'assigned' | 'in_progress' | 'in_review' | 'completed';
+  attachments?: Attachment[] | string[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -25,9 +27,9 @@ export const taskApi = baseApi.injectEndpoints({
       providesTags: (result, _error, milestoneId) =>
         result?.data
           ? [
-              ...result.data.map(({ _id }) => ({ type: 'Task' as const, id: _id })),
-              { type: 'Task', id: `LIST-MILESTONE-${milestoneId}` },
-            ]
+            ...result.data.map(({ _id }) => ({ type: 'Task' as const, id: _id })),
+            { type: 'Task', id: `LIST-MILESTONE-${milestoneId}` },
+          ]
           : [{ type: 'Task', id: `LIST-MILESTONE-${milestoneId}` }],
     }),
     getTasksByUser: builder.query<{ success: boolean; data: Task[] }, string>({
@@ -35,9 +37,9 @@ export const taskApi = baseApi.injectEndpoints({
       providesTags: (result, _error, userId) =>
         result?.data
           ? [
-              ...result.data.map(({ _id }) => ({ type: 'Task' as const, id: _id })),
-              { type: 'Task', id: `LIST-USER-${userId}` },
-            ]
+            ...result.data.map(({ _id }) => ({ type: 'Task' as const, id: _id })),
+            { type: 'Task', id: `LIST-USER-${userId}` },
+          ]
           : [{ type: 'Task', id: `LIST-USER-${userId}` }],
     }),
     getTaskById: builder.query<{ success: boolean; data: Task }, string>({
@@ -49,9 +51,9 @@ export const taskApi = baseApi.injectEndpoints({
       providesTags: (result) =>
         result?.data
           ? [
-              ...result.data.map(({ _id }) => ({ type: 'Task' as const, id: _id })),
-              { type: 'Task', id: 'LIST-ALL' },
-            ]
+            ...result.data.map(({ _id }) => ({ type: 'Task' as const, id: _id })),
+            { type: 'Task', id: 'LIST-ALL' },
+          ]
           : [{ type: 'Task', id: 'LIST-ALL' }],
     }),
     createTask: builder.mutation<{ success: boolean; data: Task; message: string }, Partial<Task>>({

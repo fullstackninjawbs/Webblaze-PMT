@@ -1,19 +1,20 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useGetProjectsQuery } from './project.slice';
+import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation } from '../milestones/milestone.slice';
-import { useGetTasksByMilestoneQuery, useCreateTaskMutation } from '../tasks/task.slice';
+import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Accordion, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Avatar, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert } from '@mantine/core';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Accordion, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Avatar, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter } from 'lucide-react';
+import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus } from '../../types';
 import { useGetUsersQuery } from '../users/user.slice';
-import { useGetReleasesQuery } from '../releases/release.slice';
-import { useGetInvoicesQuery } from '../invoices/invoice.slice';
+import { useGetReleasesQuery, useCreateReleaseMutation, useUpdateReleaseMutation, useDeleteReleaseMutation } from '../releases/release.slice';
+import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from '../invoices/invoice.slice';
+import { useUploadFileMutation } from '../uploads/upload.slice';
 
 const milestoneSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -65,6 +66,8 @@ export const ProjectDetails = () => {
 
   const [createMilestone, { isLoading: isCreatingMilestone }] = useCreateMilestoneMutation();
   const [createTask, { isLoading: isCreatingTask }] = useCreateTaskMutation();
+  const [uploadFile, { isLoading: isUploadingFile }] = useUploadFileMutation();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [milestoneDrawerOpened, setMilestoneDrawerOpened] = useState(false);
   const [taskDrawerOpened, setTaskDrawerOpened] = useState(false);
@@ -106,13 +109,27 @@ export const ProjectDetails = () => {
 
   const handleCreateTask = async (values: typeof taskForm.values) => {
     try {
+      let attachmentIds: string[] = [];
+
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        const uploadRes = await uploadFile(formData).unwrap();
+        if (uploadRes.success && uploadRes.data) {
+          attachmentIds.push(uploadRes.data._id);
+        }
+      }
+
       await createTask({
         ...values,
         department: values.department as any,
         startDate: values.startDate ? new Date(values.startDate).toISOString() : undefined,
         endDate: values.endDate ? new Date(values.endDate).toISOString() : undefined,
-        assignedTo: values.assignedTo || undefined
+        assignedTo: values.assignedTo || undefined,
+        attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
       }).unwrap();
+      
+      setSelectedFile(null);
       setTaskDrawerOpened(false);
       taskForm.reset();
     } catch (e) {
@@ -271,8 +288,12 @@ export const ProjectDetails = () => {
           )}
         </Tabs.Panel>
 
-        <Tabs.Panel value="tasks"><Placeholder tab="Tasks" /></Tabs.Panel>
-        <Tabs.Panel value="team"><Placeholder tab="Project Team" /></Tabs.Panel>
+        <Tabs.Panel value="tasks">
+          <ProjectTasks projectId={id!} milestones={milestones} />
+        </Tabs.Panel>
+        <Tabs.Panel value="team">
+          <ProjectTeam projectId={id!} projectData={project} />
+        </Tabs.Panel>
         <Tabs.Panel value="releases">
           <ProjectReleases projectId={id!} />
         </Tabs.Panel>
@@ -281,7 +302,9 @@ export const ProjectDetails = () => {
             <ProjectInvoices projectId={id!} projectData={project} />
           </Tabs.Panel>
         )}
-        <Tabs.Panel value="reports"><Placeholder tab="Reports" /></Tabs.Panel>
+        <Tabs.Panel value="reports">
+          <ProjectReports project={project} milestones={milestones} />
+        </Tabs.Panel>
       </Tabs>
 
       {/* Add Milestone Drawer */}
@@ -363,13 +386,14 @@ export const ProjectDetails = () => {
 
             <FileInput
               label="Attachments"
-              placeholder="Upload files (Mocked UI)"
+              placeholder="Select file to upload..."
               leftSection={<UploadCloud size={16} />}
-              disabled // Mocked for this phase
-              description="File upload is scheduled for Phase 7"
+              value={selectedFile}
+              onChange={setSelectedFile}
+              clearable
             />
 
-            <Button type="submit" color="blue" fullWidth disabled={isOverAllocated} loading={isCreatingTask} mt="md">
+            <Button type="submit" color="blue" fullWidth disabled={isOverAllocated} loading={isCreatingTask || isUploadingFile} mt="md">
               Create Task
             </Button>
           </Stack>
@@ -522,22 +546,490 @@ const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAd
   );
 };
 
-const Placeholder = ({ tab }: { tab: string }) => (
-  <Card withBorder shadow="sm" p="xl" radius="md" ta="center">
-    <Title order={3} mb="sm">{tab}</Title>
-    <Text c="dimmed">Module scheduled for future development</Text>
-  </Card>
-);
+
+const ProjectReports = ({ project, milestones }: { project: any; milestones: any[] }) => {
+  const { data: tasksData } = useGetAllTasksQuery();
+  
+  if (!project) return null;
+
+  const milestoneIds = milestones.map(m => m._id);
+  const projectTasks = (tasksData?.data || []).filter((t: any) => {
+    const milestoneId = typeof t.milestone === 'object' ? t.milestone?._id : t.milestone;
+    return milestoneIds.includes(milestoneId);
+  });
+
+  const totalTasks = projectTasks.length;
+  const completedTasks = projectTasks.filter((t: any) => t.status === 'completed').length;
+  const taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  const budget = project.totalBudget || 0;
+  const received = project.receivedAmount || 0;
+  const pending = Math.max(budget - received, 0);
+  const paidPercent = budget > 0 ? (received / budget) * 100 : 0;
+  const pendingPercent = budget > 0 ? (pending / budget) * 100 : 0;
+
+  const totalEstimated = projectTasks.reduce((sum: number, t: any) => sum + (t.estimatedHours || 0), 0);
+  const totalSpent = projectTasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
+  const hoursPercent = totalEstimated > 0 ? Math.round((totalSpent / totalEstimated) * 100) : 0;
+
+  return (
+    <Stack gap="xl" style={{ marginTop: '20px' }}>
+      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
+        <Card shadow="xs" p="lg" radius="lg" withBorder>
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} color="dimmed" tt="uppercase">Financial Progress</Text>
+            <DollarSign size={18} color="#10b981" />
+          </Group>
+          <Text size="lg" fw={800} color="teal">${received.toLocaleString()} Received</Text>
+          <Text size="xs" c="dimmed" mt={4}>Of total ${budget.toLocaleString()} budget</Text>
+          <Progress value={paidPercent} color="teal" size="sm" mt="md" radius="xl" />
+        </Card>
+
+        <Card shadow="xs" p="lg" radius="lg" withBorder>
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} color="dimmed" tt="uppercase">Tasks Completion</Text>
+            <CheckCircle size={18} color="#3b82f6" />
+          </Group>
+          <Text size="lg" fw={800} color="blue">{taskCompletionRate}% Rate</Text>
+          <Text size="xs" c="dimmed" mt={4}>{completedTasks} of {totalTasks} tasks done</Text>
+          <Progress value={taskCompletionRate} color="blue" size="sm" mt="md" radius="xl" />
+        </Card>
+
+        <Card shadow="xs" p="lg" radius="lg" withBorder>
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} color="dimmed" tt="uppercase">Hours Distribution</Text>
+            <Clock size={18} color="#f59e0b" />
+          </Group>
+          <Text size="lg" fw={800} color="orange">{totalSpent}h Spent</Text>
+          <Text size="xs" c="dimmed" mt={4}>Of total {totalEstimated}h estimated</Text>
+          <Progress value={Math.min(hoursPercent, 100)} color={hoursPercent > 100 ? 'red' : 'orange'} size="sm" mt="md" radius="xl" />
+        </Card>
+      </SimpleGrid>
+
+      <Card shadow="xs" p="xl" radius="lg" withBorder>
+        <Title order={4} mb="md">Budget Invoicing Progress</Title>
+        <Progress.Root size="lg" radius="xl" mb="md" style={{ backgroundColor: '#f1f5f9' }}>
+          <Progress.Section value={paidPercent} color="teal" />
+          <Progress.Section value={pendingPercent} color="orange" />
+        </Progress.Root>
+        <Group justify="space-between">
+          <Group gap="xs">
+            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#0ca678' }} />
+            <Text size="xs" color="dimmed" fw={500}>Paid Budget: ${received.toLocaleString()} ({Math.round(paidPercent)}%)</Text>
+          </Group>
+          <Group gap="xs">
+            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f76707' }} />
+            <Text size="xs" color="dimmed" fw={500}>Pending Budget: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)</Text>
+          </Group>
+        </Group>
+      </Card>
+    </Stack>
+  );
+};
+
+const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string; milestones: any[] }) => {
+  const { data: tasksData, isLoading } = useGetAllTasksQuery();
+  const { data: activeTimerData } = useGetActiveTimerQuery();
+  const [startTimer] = useStartTimerMutation();
+  const [stopTimer] = useStopTimerMutation();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deptFilter, setDeptFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [milestoneFilter, setMilestoneFilter] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
+  const activeTimer = activeTimerData?.data;
+  const allTasks = tasksData?.data || [];
+
+  const projectMilestoneIds = useMemo(() => milestones.map(m => m._id), [milestones]);
+  const projectTasks = useMemo(() => {
+    return allTasks.filter((t: any) => {
+      const milestoneId = typeof t.milestone === 'object' ? t.milestone?._id : t.milestone;
+      return projectMilestoneIds.includes(milestoneId);
+    });
+  }, [allTasks, projectMilestoneIds]);
+
+  const filteredTasks = useMemo(() => {
+    let result = projectTasks;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(t => t.title.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q));
+    }
+
+    if (deptFilter) {
+      result = result.filter(t => t.department === deptFilter);
+    }
+
+    if (statusFilter) {
+      result = result.filter(t => t.status === statusFilter);
+    }
+
+    if (milestoneFilter) {
+      result = result.filter(t => {
+        const milestoneId = typeof t.milestone === 'object' ? t.milestone?._id : t.milestone;
+        return milestoneId === milestoneFilter;
+      });
+    }
+
+    return result;
+  }, [projectTasks, searchQuery, deptFilter, statusFilter, milestoneFilter]);
+
+  const handleStartTimer = async (taskId: string) => {
+    try { await startTimer({ taskId }).unwrap(); } catch (e) { console.error(e); }
+  };
+
+  const handleStopTimer = async () => {
+    try { await stopTimer({}).unwrap(); } catch (e) { console.error(e); }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'assigned': return 'gray';
+      case 'in_progress': return 'blue';
+      case 'in_review': return 'orange';
+      case 'completed': return 'green';
+      default: return 'gray';
+    }
+  };
+
+  return (
+    <Card withBorder shadow="sm" p="md" radius="md">
+      <Group justify="space-between" mb="lg">
+        <Title order={3}>Tasks</Title>
+      </Group>
+
+      {/* Filters */}
+      <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="md" mb="xl">
+        <TextInput
+          placeholder="Search tasks..."
+          leftSection={<Search size={14} />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+        />
+        <Select
+          placeholder="Filter Milestone"
+          leftSection={<Filter size={14} />}
+          data={milestones.map(m => ({ value: m._id, label: m.title }))}
+          value={milestoneFilter}
+          onChange={setMilestoneFilter}
+          clearable
+        />
+        <Select
+          placeholder="Filter Department"
+          leftSection={<Filter size={14} />}
+          data={['design', 'development', 'seo']}
+          value={deptFilter}
+          onChange={setDeptFilter}
+          clearable
+        />
+        <Select
+          placeholder="Filter Status"
+          leftSection={<Filter size={14} />}
+          data={['assigned', 'in_progress', 'in_review', 'completed']}
+          value={statusFilter}
+          onChange={setStatusFilter}
+          clearable
+        />
+      </SimpleGrid>
+
+      <Table verticalSpacing="sm" striped highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Task</Table.Th>
+            <Table.Th>Milestone</Table.Th>
+            <Table.Th>Department</Table.Th>
+            <Table.Th>Assigned To</Table.Th>
+            <Table.Th>Est. Time</Table.Th>
+            <Table.Th>Status</Table.Th>
+            <Table.Th>Progress</Table.Th>
+            <Table.Th w={150}></Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {filteredTasks.map((task) => {
+            const milestone = typeof task.milestone === 'object' ? task.milestone : null;
+            const assignee = typeof task.assignedTo === 'object' ? task.assignedTo : null;
+            const isTimerActive = activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id;
+
+            return (
+              <Table.Tr key={task._id}>
+                <Table.Td>
+                  <Text fw={600} size="sm" style={{ cursor: 'pointer', color: '#228be6' }} onClick={() => navigate(`/tasks/${task._id}`)}>
+                    {task.title}
+                  </Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm">{milestone?.title || 'Unknown Milestone'}</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Badge variant="outline" color="gray">{task.department || 'N/A'}</Badge>
+                </Table.Td>
+                <Table.Td>
+                  {assignee ? (
+                    <Group gap="xs" wrap="nowrap">
+                      <Avatar size="sm" radius="xl" color="blue">{assignee.name?.charAt(0)}</Avatar>
+                      <Text size="sm">{assignee.name}</Text>
+                    </Group>
+                  ) : (
+                    <Badge variant="light" color="orange">Unassigned</Badge>
+                  )}
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" fw={600}>{task.estimatedHours}h</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Badge color={getStatusColor(task.status)} variant="light">
+                    {task.status.replace('_', ' ')}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Tooltip label={`${(task.spentHours || 0).toFixed(1)}h / ${task.estimatedHours}h`}>
+                    <Progress value={((task.spentHours || 0) / task.estimatedHours) * 100} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} />
+                  </Tooltip>
+                </Table.Td>
+                <Table.Td>
+                  <Group gap={4}>
+                    {isTimerActive ? (
+                      <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
+                    ) : (
+                      <Button size="xs" color="blue" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer || task.status === 'completed'}>Start</Button>
+                    )}
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            );
+          })}
+          {filteredTasks.length === 0 && !isLoading && (
+            <Table.Tr>
+              <Table.Td colSpan={8} ta="center" py="xl">
+                <Text color="dimmed">No tasks found matching filters.</Text>
+              </Table.Td>
+            </Table.Tr>
+          )}
+        </Table.Tbody>
+      </Table>
+    </Card>
+  );
+};
+
+const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectData: any }) => {
+  const { data: usersData } = useGetUsersQuery();
+  const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
+  const { user: currentUser } = useSelector((state: RootState) => state.auth);
+
+  const isAdminOrPM = currentUser?.role === Role.ADMIN || currentUser?.role === Role.PM;
+  const [modalOpened, setModalOpened] = useState(false);
+
+  const team = projectData?.team || [];
+  const allUsers = usersData?.data || [];
+
+  const assignableUsers = allUsers.filter(u => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER);
+  const assignableOptions = assignableUsers.map(u => ({
+    value: u._id,
+    label: `${u.name} (${u.role.replace('_', ' ')})`
+  }));
+
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+
+  const handleOpenModal = () => {
+    setSelectedMembers(team.map((t: any) => t._id));
+    setModalOpened(true);
+  };
+
+  const handleSaveTeam = async () => {
+    try {
+      await updateProject({
+        id: projectId,
+        data: { team: selectedMembers }
+      }).unwrap();
+      setModalOpened(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (window.confirm('Are you sure you want to remove this member from the project?')) {
+      try {
+        const updatedTeamIds = team.filter((t: any) => t._id !== userId).map((t: any) => t._id);
+        await updateProject({
+          id: projectId,
+          data: { team: updatedTeamIds }
+        }).unwrap();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  return (
+    <Card withBorder shadow="sm" p="md" radius="md">
+      <Group justify="space-between" mb="lg">
+        <Title order={3}>Project Team ({team.length})</Title>
+        {isAdminOrPM && (
+          <Button leftSection={<Plus size={16} />} color="blue" onClick={handleOpenModal}>
+            Manage Team
+          </Button>
+        )}
+      </Group>
+
+      <Table verticalSpacing="sm" striped highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Name</Table.Th>
+            <Table.Th>Email</Table.Th>
+            <Table.Th>Role</Table.Th>
+            <Table.Th>Department</Table.Th>
+            {isAdminOrPM && <Table.Th w={100}></Table.Th>}
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {team.map((member: any) => (
+            <Table.Tr key={member._id}>
+              <Table.Td>
+                <Group gap="sm">
+                  <Avatar color="blue" radius="xl">{member.name?.charAt(0)}</Avatar>
+                  <Text size="sm" fw={600}>{member.name}</Text>
+                </Group>
+              </Table.Td>
+              <Table.Td><Text size="sm">{member.email}</Text></Table.Td>
+              <Table.Td>
+                <Badge variant="light" color="blue">
+                  {member.role?.replace('_', ' ')}
+                </Badge>
+              </Table.Td>
+              <Table.Td>
+                <Badge variant="outline" color="gray">
+                  {member.department || 'N/A'}
+                </Badge>
+              </Table.Td>
+              {isAdminOrPM && (
+                <Table.Td>
+                  <Button size="xs" color="red" variant="subtle" onClick={() => handleRemoveMember(member._id)}>
+                    Remove
+                  </Button>
+                </Table.Td>
+              )}
+            </Table.Tr>
+          ))}
+          {team.length === 0 && (
+            <Table.Tr>
+              <Table.Td colSpan={5} ta="center" py="xl">
+                <Text color="dimmed">No team members assigned to this project.</Text>
+              </Table.Td>
+            </Table.Tr>
+          )}
+        </Table.Tbody>
+      </Table>
+
+      {/* Manage Team Modal */}
+      <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title="Manage Project Team" radius="md">
+        <Stack gap="sm">
+          <Text size="sm">Select team members and team leads to assign to this project.</Text>
+          <MultiSelect
+            label="Project Team"
+            placeholder="Select team members"
+            data={assignableOptions}
+            value={selectedMembers}
+            onChange={setSelectedMembers}
+            searchable
+            clearable
+          />
+          <Button color="blue" onClick={handleSaveTeam} loading={isUpdating}>
+            Save Changes
+          </Button>
+        </Stack>
+      </Modal>
+    </Card>
+  );
+};
 
 const ProjectReleases = ({ projectId }: { projectId: string }) => {
   const { data: releasesData, isLoading } = useGetReleasesQuery({ projectId });
+  const [createRelease, { isLoading: isCreating }] = useCreateReleaseMutation();
+  const [updateRelease, { isLoading: isUpdating }] = useUpdateReleaseMutation();
+  const [deleteRelease] = useDeleteReleaseMutation();
+  const { data: usersData } = useGetUsersQuery();
+  const users = usersData?.data || [];
+
+  const [releaseModalOpened, setReleaseModalOpened] = useState(false);
+  const [editingRelease, setEditingRelease] = useState<any>(null);
+
   const releases = releasesData?.data || [];
+
+  const releaseForm = useForm({
+    initialValues: {
+      department: 'development',
+      teamMember: '',
+      details: '',
+      releaseDate: '',
+      status: 'scheduled',
+    },
+    validate: {
+      details: (val) => (!val ? 'Details are required' : null),
+      releaseDate: (val) => (!val ? 'Release Date is required' : null),
+    }
+  });
+
+  const openCreateModal = () => {
+    setEditingRelease(null);
+    releaseForm.reset();
+    setReleaseModalOpened(true);
+  };
+
+  const openEditModal = (release: any) => {
+    setEditingRelease(release);
+    releaseForm.setValues({
+      department: release.department,
+      teamMember: typeof release.teamMember === 'object' ? release.teamMember?._id : release.teamMember || '',
+      details: release.details,
+      releaseDate: new Date(release.releaseDate).toISOString().split('T')[0],
+      status: release.status,
+    });
+    setReleaseModalOpened(true);
+  };
+
+  const handleDeleteRelease = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this release?')) {
+      try {
+        await deleteRelease(id).unwrap();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const handleSubmit = async (values: typeof releaseForm.values) => {
+    try {
+      const payload = {
+        project: projectId,
+        department: values.department as any,
+        teamMember: values.teamMember || undefined,
+        details: values.details,
+        releaseDate: new Date(values.releaseDate).toISOString(),
+        status: values.status as any,
+      };
+
+      if (editingRelease) {
+        await updateRelease({ _id: editingRelease._id, ...payload }).unwrap();
+      } else {
+        await createRelease(payload).unwrap();
+      }
+      setReleaseModalOpened(false);
+      releaseForm.reset();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <Card withBorder shadow="sm" p="md" radius="md">
       <Group justify="space-between" mb="md">
         <Title order={3}>Project Releases</Title>
-        <Button leftSection={<Plus size={16} />} color="indigo">Add Release</Button>
+        <Button leftSection={<Plus size={16} />} color="blue" onClick={openCreateModal}>Add Release</Button>
       </Group>
 
       <Table verticalSpacing="sm" striped highlightOnHover>
@@ -548,6 +1040,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
             <Table.Th>Team Member</Table.Th>
             <Table.Th>Release Date</Table.Th>
             <Table.Th>Status</Table.Th>
+            <Table.Th w={100}></Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -570,34 +1063,198 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
                   <Text size="sm">{new Date(release.releaseDate).toLocaleDateString()}</Text>
                 </Table.Td>
                 <Table.Td>
-                  <Badge 
+                  <Badge
                     color={release.status === 'released' ? 'green' : release.status === 'in_review' ? 'orange' : release.status === 'scheduled' ? 'blue' : 'gray'}
                     variant="light"
                   >
                     {release.status.replace('_', ' ')}
                   </Badge>
                 </Table.Td>
+                <Table.Td>
+                  <Group gap={4} justify="flex-end" wrap="nowrap">
+                    <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(release)} title="Edit">
+                      <Edit size={16} />
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id)} title="Delete">
+                      <Trash size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Table.Td>
               </Table.Tr>
             );
           })}
           {releases.length === 0 && !isLoading && (
             <Table.Tr>
-              <Table.Td colSpan={5} ta="center" py="xl">
+              <Table.Td colSpan={6} ta="center" py="xl">
                 <Text color="dimmed">No releases found for this project.</Text>
               </Table.Td>
             </Table.Tr>
           )}
         </Table.Tbody>
       </Table>
+
+      {/* Save Release Modal */}
+      <Modal opened={releaseModalOpened} onClose={() => setReleaseModalOpened(false)} title={editingRelease ? "Edit Release" : "Create Release"} radius="md">
+        <form onSubmit={releaseForm.onSubmit(handleSubmit)}>
+          <Stack gap="sm">
+            <Select
+              label="Department"
+              data={[
+                { value: 'design', label: 'Design' },
+                { value: 'development', label: 'Development' },
+                { value: 'seo', label: 'SEO' }
+              ]}
+              {...releaseForm.getInputProps('department')}
+              withAsterisk
+            />
+            <Select
+              label="Team Member (Optional)"
+              placeholder="Assign to..."
+              data={users.map(u => ({ value: u._id, label: u.name || 'Unknown User' }))}
+              {...releaseForm.getInputProps('teamMember')}
+              clearable
+            />
+            <Textarea
+              label="Release Details"
+              placeholder="What is being released?"
+              {...releaseForm.getInputProps('details')}
+              withAsterisk
+              minRows={3}
+            />
+            <TextInput
+              label="Release Date"
+              type="date"
+              {...releaseForm.getInputProps('releaseDate')}
+              withAsterisk
+            />
+            <Select
+              label="Status"
+              data={[
+                { value: 'scheduled', label: 'Scheduled' },
+                { value: 'in_review', label: 'In Review' },
+                { value: 'released', label: 'Released' }
+              ]}
+              {...releaseForm.getInputProps('status')}
+            />
+            <Button type="submit" color="blue" loading={isCreating || isUpdating} mt="md">
+              {editingRelease ? "Update Release" : "Create Release"}
+            </Button>
+          </Stack>
+        </form>
+      </Modal>
     </Card>
   );
 };
 const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projectData: any }) => {
   const { data: invoicesData, isLoading } = useGetInvoicesQuery({ project: projectId });
+  const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceMutation();
+  const [updateInvoice, { isLoading: isUpdating }] = useUpdateInvoiceMutation();
+  const [deleteInvoice] = useDeleteInvoiceMutation();
+
+  const [invoiceModalOpened, setInvoiceModalOpened] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<any>(null);
+
+  // Payment states
+  const [paymentModalOpened, setPaymentModalOpened] = useState(false);
+  const [activeInvoiceForPayment, setActiveInvoiceForPayment] = useState<any>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<string>('bank_transfer');
+  const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
   const invoices = invoicesData?.data || [];
-  
+
+  const invoiceForm = useForm({
+    initialValues: {
+      invoiceNumber: '',
+      issueDate: '',
+      dueDate: '',
+      totalAmount: 0,
+      status: 'draft',
+    },
+    validate: {
+      invoiceNumber: (val) => (!val ? 'Invoice Number is required' : null),
+      issueDate: (val) => (!val ? 'Issue Date is required' : null),
+      dueDate: (val) => (!val ? 'Due Date is required' : null),
+      totalAmount: (val) => (val <= 0 ? 'Amount must be positive' : null),
+    }
+  });
+
+  const openCreateModal = () => {
+    setEditingInvoice(null);
+    invoiceForm.reset();
+    setInvoiceModalOpened(true);
+  };
+
+  const openEditModal = (inv: any) => {
+    setEditingInvoice(inv);
+    invoiceForm.setValues({
+      invoiceNumber: inv.invoiceNumber,
+      issueDate: new Date(inv.issueDate).toISOString().split('T')[0],
+      dueDate: new Date(inv.dueDate).toISOString().split('T')[0],
+      totalAmount: inv.totalAmount,
+      status: inv.status,
+    });
+    setInvoiceModalOpened(true);
+  };
+
+  const handleSubmit = async (values: typeof invoiceForm.values) => {
+    try {
+      const payload = {
+        project: projectId,
+        invoiceNumber: values.invoiceNumber,
+        issueDate: new Date(values.issueDate).toISOString(),
+        dueDate: new Date(values.dueDate).toISOString(),
+        totalAmount: values.totalAmount,
+        status: values.status as any,
+      };
+
+      if (editingInvoice) {
+        await updateInvoice({ _id: editingInvoice._id, ...payload }).unwrap();
+      } else {
+        await createInvoice(payload).unwrap();
+      }
+      setInvoiceModalOpened(false);
+      invoiceForm.reset();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteInvoice = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this invoice?')) {
+      try {
+        await deleteInvoice(id).unwrap();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  const handleRecordPayment = async () => {
+    if (!activeInvoiceForPayment || paymentAmount <= 0) return;
+    try {
+      const existingPayments = activeInvoiceForPayment.paymentDetails || [];
+      const newPayment = {
+        paymentDate: new Date(paymentDate).toISOString(),
+        method: paymentMethod,
+        amount: paymentAmount,
+      };
+
+      await updateInvoice({
+        _id: activeInvoiceForPayment._id,
+        paymentDetails: [...existingPayments, newPayment],
+      }).unwrap();
+
+      setPaymentModalOpened(false);
+      setPaymentAmount(0);
+      setActiveInvoiceForPayment(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'draft': return 'gray';
       case 'sent': return 'blue';
       case 'partially_paid': return 'orange';
@@ -611,7 +1268,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
     <Card withBorder shadow="sm" p="md" radius="md">
       <Group justify="space-between" mb="lg">
         <Title order={3}>Invoices</Title>
-        <Button leftSection={<Plus size={16} />} color="indigo">Add Invoice</Button>
+        <Button leftSection={<Plus size={16} />} color="blue" onClick={openCreateModal}>Add Invoice</Button>
       </Group>
 
       <Group grow mb="xl">
@@ -639,6 +1296,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
             <Table.Th>Received</Table.Th>
             <Table.Th>Pending</Table.Th>
             <Table.Th>Status</Table.Th>
+            <Table.Th w={150}></Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -657,17 +1315,105 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
                   {inv.status.replace('_', ' ')}
                 </Badge>
               </Table.Td>
+              <Table.Td>
+                <Group gap={4} justify="flex-end" wrap="nowrap">
+                  {inv.status !== 'paid' && (
+                    <Button
+                      size="xs"
+                      variant="light"
+                      color="green"
+                      onClick={() => {
+                        setActiveInvoiceForPayment(inv);
+                        setPaymentAmount(inv.pendingAmount);
+                        setPaymentModalOpened(true);
+                      }}
+                    >
+                      + Pay
+                    </Button>
+                  )}
+                  <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(inv)} title="Edit">
+                    <Edit size={16} />
+                  </ActionIcon>
+                  <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteInvoice(inv._id)} title="Delete">
+                    <Trash size={16} />
+                  </ActionIcon>
+                </Group>
+              </Table.Td>
             </Table.Tr>
           ))}
           {invoices.length === 0 && !isLoading && (
             <Table.Tr>
-              <Table.Td colSpan={7} ta="center" py="xl">
+              <Table.Td colSpan={8} ta="center" py="xl">
                 <Text color="dimmed">No invoices found for this project.</Text>
               </Table.Td>
             </Table.Tr>
           )}
         </Table.Tbody>
       </Table>
+
+      {/* Save Invoice Modal */}
+      <Modal opened={invoiceModalOpened} onClose={() => setInvoiceModalOpened(false)} title={editingInvoice ? "Edit Invoice" : "Create Invoice"} radius="md">
+        <form onSubmit={invoiceForm.onSubmit(handleSubmit)}>
+          <Stack gap="sm">
+            <TextInput label="Invoice Number" {...invoiceForm.getInputProps('invoiceNumber')} withAsterisk />
+            <Group grow>
+              <TextInput type="date" label="Issue Date" {...invoiceForm.getInputProps('issueDate')} withAsterisk />
+              <TextInput type="date" label="Due Date" {...invoiceForm.getInputProps('dueDate')} withAsterisk />
+            </Group>
+            <NumberInput label="Total Amount ($)" min={0} {...invoiceForm.getInputProps('totalAmount')} withAsterisk />
+            <Select
+              label="Status"
+              data={[
+                { value: 'draft', label: 'Draft' },
+                { value: 'sent', label: 'Sent' },
+                { value: 'partially_paid', label: 'Partially Paid' },
+                { value: 'paid', label: 'Paid' },
+                { value: 'overdue', label: 'Overdue' }
+              ]}
+              {...invoiceForm.getInputProps('status')}
+            />
+            <Button type="submit" color="blue" loading={isCreating || isUpdating} mt="md">
+              {editingInvoice ? "Update Invoice" : "Save Invoice"}
+            </Button>
+          </Stack>
+        </form>
+      </Modal>
+
+      {/* Record Payment Modal */}
+      <Modal opened={paymentModalOpened} onClose={() => setPaymentModalOpened(false)} title="Record Payment" radius="md">
+        <Stack gap="sm">
+          <Text size="sm">Enter payment details to update the invoice status and totals.</Text>
+          <NumberInput
+            label="Payment Amount ($)"
+            value={paymentAmount}
+            onChange={(val) => setPaymentAmount(Number(val) || 0)}
+            min={0.01}
+            max={activeInvoiceForPayment?.pendingAmount}
+            withAsterisk
+          />
+          <Select
+            label="Payment Method"
+            value={paymentMethod}
+            onChange={(val) => setPaymentMethod(val || 'bank_transfer')}
+            data={[
+              { value: 'bank_transfer', label: 'Bank Transfer' },
+              { value: 'upwork', label: 'Upwork Escrow' },
+              { value: 'stripe', label: 'Stripe' },
+              { value: 'paypal', label: 'PayPal' },
+              { value: 'cash', label: 'Cash' },
+            ]}
+          />
+          <TextInput
+            type="date"
+            label="Payment Date"
+            value={paymentDate}
+            onChange={(e) => setPaymentDate(e.target.value)}
+          />
+          <Button color="green" onClick={handleRecordPayment} loading={isUpdating}>
+            Submit Payment
+          </Button>
+        </Stack>
+      </Modal>
     </Card>
   );
 };

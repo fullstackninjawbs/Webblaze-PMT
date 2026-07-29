@@ -71,3 +71,16 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
     message: 'User fetched'
   });
 });
+
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = (req as any).user.id || (req as any).user._id;
+
+  await authService.changePassword(userId, currentPassword, newPassword);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'Password changed successfully'
+  });
+});

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Container, Title, Text, Card, Group, Table, Badge, Button, Select, Modal, TextInput, Textarea } from '@mantine/core';
-import { Plus } from 'lucide-react';
-import { useGetReleasesQuery, useCreateReleaseMutation } from './release.slice';
+import { Container, Title, Text, Card, Group, Table, Badge, Button, Select, Modal, TextInput, Textarea, ActionIcon } from '@mantine/core';
+import { Plus, Edit, Trash } from 'lucide-react';
+import { useGetReleasesQuery, useCreateReleaseMutation, useUpdateReleaseMutation, useDeleteReleaseMutation } from './release.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetUsersQuery } from '../users/user.slice';
 import { useForm, zodResolver } from '@mantine/form';
@@ -21,8 +21,11 @@ export const ReleasesPage: React.FC = () => {
   const { data: projectsData } = useGetProjectsQuery();
   const { data: usersData } = useGetUsersQuery();
   const [createRelease, { isLoading: isCreating }] = useCreateReleaseMutation();
+  const [updateRelease, { isLoading: isUpdating }] = useUpdateReleaseMutation();
+  const [deleteRelease] = useDeleteReleaseMutation();
 
   const [opened, setOpened] = useState(false);
+  const [editingRelease, setEditingRelease] = useState<any>(null);
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
 
   const releases = releasesData?.data || [];
@@ -45,18 +48,55 @@ export const ReleasesPage: React.FC = () => {
     validate: zodResolver(releaseSchema),
   });
 
+  const openCreateModal = () => {
+    setEditingRelease(null);
+    form.reset();
+    setOpened(true);
+  };
+
+  const openEditModal = (release: any) => {
+    setEditingRelease(release);
+    form.setValues({
+      project: typeof release.project === 'object' ? release.project._id : release.project,
+      department: release.department,
+      teamMember: typeof release.teamMember === 'object' ? release.teamMember?._id : release.teamMember || '',
+      details: release.details,
+      releaseDate: new Date(release.releaseDate).toISOString().split('T')[0],
+      status: release.status,
+    });
+    setOpened(true);
+  };
+
+  const handleDeleteRelease = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this release?')) {
+      try {
+        await deleteRelease(id).unwrap();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
   const handleSubmit = async (values: typeof form.values) => {
     try {
-      await createRelease({
-        ...values,
+      const payload = {
+        project: values.project,
         department: values.department as 'design' | 'development' | 'seo',
+        teamMember: values.teamMember || undefined,
+        details: values.details,
+        releaseDate: new Date(values.releaseDate).toISOString(),
         status: values.status as 'scheduled' | 'in_review' | 'released',
-        releaseDate: new Date(values.releaseDate).toISOString()
-      }).unwrap();
+      };
+
+      if (editingRelease) {
+        await updateRelease({ _id: editingRelease._id, ...payload }).unwrap();
+      } else {
+        await createRelease(payload).unwrap();
+      }
       setOpened(false);
       form.reset();
     } catch (err) {
-      console.error('Failed to create release', err);
+      console.error('Failed to save release', err);
     }
   };
 
@@ -69,7 +109,7 @@ export const ReleasesPage: React.FC = () => {
           </Title>
           <Text color="dimmed" size="sm">Manage and track project deployments and milestones.</Text>
         </div>
-        <Button leftSection={<Plus size={16} />} size="md" color="indigo" onClick={() => setOpened(true)}>
+        <Button leftSection={<Plus size={16} />} size="md" color="blue" onClick={openCreateModal}>
           Add Release
         </Button>
       </Group>
@@ -99,6 +139,7 @@ export const ReleasesPage: React.FC = () => {
               <Table.Th>Details</Table.Th>
               <Table.Th>Release Date</Table.Th>
               <Table.Th>Status</Table.Th>
+              <Table.Th w={100}></Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -133,12 +174,22 @@ export const ReleasesPage: React.FC = () => {
                       {release.status.replace('_', ' ')}
                     </Badge>
                   </Table.Td>
+                  <Table.Td>
+                    <Group gap={4} justify="flex-end" wrap="nowrap">
+                      <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(release)} title="Edit">
+                        <Edit size={16} />
+                      </ActionIcon>
+                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id)} title="Delete">
+                        <Trash size={16} />
+                      </ActionIcon>
+                    </Group>
+                  </Table.Td>
                 </Table.Tr>
               );
             })}
             {filteredReleases.length === 0 && !isLoading && (
               <Table.Tr>
-                <Table.Td colSpan={6} ta="center" py="xl">
+                <Table.Td colSpan={7} ta="center" py="xl">
                   <Text color="dimmed">No releases found matching the criteria.</Text>
                 </Table.Td>
               </Table.Tr>
@@ -147,7 +198,7 @@ export const ReleasesPage: React.FC = () => {
         </Table>
       </Card>
 
-      <Modal opened={opened} onClose={() => setOpened(false)} title="Create New Release" radius="md">
+      <Modal opened={opened} onClose={() => setOpened(false)} title={editingRelease ? "Edit Release" : "Create New Release"} radius="md">
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Select
             label="Project"
@@ -203,10 +254,14 @@ export const ReleasesPage: React.FC = () => {
           />
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setOpened(false)}>Cancel</Button>
-            <Button type="submit" color="indigo" loading={isCreating}>Create Release</Button>
+            <Button type="submit" color="blue" loading={isCreating || isUpdating}>
+              {editingRelease ? "Update Release" : "Create Release"}
+            </Button>
           </Group>
         </form>
       </Modal>
     </Container>
   );
 };
+
+export default ReleasesPage;
