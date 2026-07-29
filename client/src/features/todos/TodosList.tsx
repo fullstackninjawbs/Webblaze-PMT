@@ -96,7 +96,7 @@ export const TodosList = () => {
               fontWeight: 800,
               letterSpacing: '-0.04em',
               lineHeight: 1.2,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}
           >
             Team To-Dos
@@ -104,7 +104,7 @@ export const TodosList = () => {
           <Text
             size="sm"
             mt={6}
-            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+            style={{ color: '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}
           >
             Manage your personal and team tasks
           </Text>
@@ -114,7 +114,7 @@ export const TodosList = () => {
           color="blue"
           onClick={() => handleOpenModal()}
           style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 600,
             boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
           }}

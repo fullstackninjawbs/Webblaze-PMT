@@ -10,12 +10,12 @@ import './index.css';
 
 const theme = createTheme({
   primaryColor: 'blue',
-  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   fontFamilyMonospace: "'JetBrains Mono', 'Fira Code', monospace",
   defaultRadius: 'md',
 
   headings: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontFamily: "'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontWeight: '700',
     sizes: {
       h1: { fontSize: '1.875rem', fontWeight: '800', lineHeight: '1.2' },

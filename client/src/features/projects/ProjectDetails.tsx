@@ -155,7 +155,7 @@ export const ProjectDetails = () => {
         style={{
           paddingLeft: 0,
           color: '#64748b',
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
           fontWeight: 500,
           fontSize: '0.875rem',
           letterSpacing: '-0.01em',

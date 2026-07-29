@@ -143,7 +143,7 @@ export const SettingsPage: React.FC = () => {
                   letterSpacing: '-0.04em',
                   lineHeight: 1.2,
                   color: '#ffffff',
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
                 }}
               >
                 {user?.name}
@@ -154,7 +154,7 @@ export const SettingsPage: React.FC = () => {
                   color: 'rgba(255, 255, 255, 0.75)',
                   marginTop: '4px',
                   marginBottom: '10px',
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
                   letterSpacing: '-0.01em',
                 }}
               >
@@ -168,7 +168,7 @@ export const SettingsPage: React.FC = () => {
                   style={{
                     color: '#3b82f6',
                     fontWeight: 700,
-                    fontFamily: "'Inter', sans-serif",
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
                     fontSize: '0.6875rem',
                   }}
                 >
@@ -181,7 +181,7 @@ export const SettingsPage: React.FC = () => {
                     style={{
                       color: '#ffffff',
                       borderColor: 'rgba(255, 255, 255, 0.4)',
-                      fontFamily: "'Inter', sans-serif",
+                      fontFamily: "'Plus Jakarta Sans', sans-serif",
                       fontSize: '0.6875rem',
                     }}
                   >
@@ -239,7 +239,7 @@ export const SettingsPage: React.FC = () => {
                         style={{
                           fontSize: '0.875rem',
                           color: isActive ? '#1d4ed8' : '#475569',
-                          fontFamily: "'Inter', sans-serif",
+                          fontFamily: "'Plus Jakarta Sans', sans-serif",
                           letterSpacing: '-0.01em',
                           lineHeight: 1.3,
                         }}
@@ -250,7 +250,7 @@ export const SettingsPage: React.FC = () => {
                         style={{
                           fontSize: '0.75rem',
                           color: '#94a3b8',
-                          fontFamily: "'Inter', sans-serif",
+                          fontFamily: "'Plus Jakarta Sans', sans-serif",
                           marginTop: '2px',
                         }}
                       >

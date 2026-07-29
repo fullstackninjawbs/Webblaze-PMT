@@ -112,7 +112,7 @@ export const ReleasesPage: React.FC = () => {
               fontWeight: 800,
               letterSpacing: '-0.04em',
               lineHeight: 1.2,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}
           >
             Releases
@@ -120,7 +120,7 @@ export const ReleasesPage: React.FC = () => {
           <Text
             size="sm"
             mt={6}
-            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+            style={{ color: '#94a3b8', fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}
           >
             Manage and track project deployments and milestones.
           </Text>
@@ -131,7 +131,7 @@ export const ReleasesPage: React.FC = () => {
           color="blue"
           onClick={openCreateModal}
           style={{
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 600,
             boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
           }}
