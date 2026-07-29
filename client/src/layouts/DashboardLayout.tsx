@@ -77,16 +77,14 @@ export const DashboardLayout: React.FC = () => {
             alignItems: 'center',
             padding: '10px 16px',
             borderRadius: '8px',
-            backgroundColor: active ? 'transparent' : 'transparent',
-            backgroundImage: active ? 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)' : 'none',
-            color: active ? '#ffffff' : '#4b5563',
+            backgroundColor: active ? '#EEF2FF' : 'transparent',
+            color: active ? '#4F46E5' : '#4B5563',
             fontWeight: active ? 600 : 500,
             transition: 'all 0.2s ease',
-            boxShadow: active ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none',
             borderLeft: 'none',
           }}
           onMouseEnter={(e) => {
-            if (!active) e.currentTarget.style.backgroundColor = '#f0f9ff';
+            if (!active) e.currentTarget.style.backgroundColor = '#F3F4F6';
           }}
           onMouseLeave={(e) => {
             if (!active) e.currentTarget.style.backgroundColor = 'transparent';
@@ -107,7 +105,7 @@ export const DashboardLayout: React.FC = () => {
       }}
       header={activeTimer ? { height: 60 } : undefined}
       padding="xl"
-      bg="#f8f9fa"
+      bg="#F9FAFB"
     >
       {activeTimer && (
         <AppShell.Header style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', padding: '0 20px' }}>
@@ -120,7 +118,7 @@ export const DashboardLayout: React.FC = () => {
         {/* Branding */}
         <Box p="xl" pb="md">
           <Text fw={800} size="xl" style={{ letterSpacing: '-0.5px', color: '#111827' }}>
-            <span style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>WebBlaze</span> PMS
+            WebBlaze <span style={{ color: '#4F46E5' }}>PMS</span>
           </Text>
         </Box>
 
@@ -147,7 +145,7 @@ export const DashboardLayout: React.FC = () => {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <Group wrap="nowrap" style={{ flex: 1 }}>
-                  <Avatar src={user?.avatarUrl} radius="xl" size="md" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', color: '#fff', fontWeight: 600, border: 'none' }}>
+                  <Avatar src={user?.avatarUrl} radius="xl" size="md" style={{ backgroundColor: '#EEF2FF', color: '#4F46E5', fontWeight: 600, border: 'none' }}>
                     {user?.name?.charAt(0).toUpperCase()}{user?.name?.split(' ')?.[1]?.charAt(0).toUpperCase()}
                   </Avatar>
                   <div style={{ flex: 1, overflow: 'hidden' }}>

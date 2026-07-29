@@ -201,7 +201,6 @@ export const ClientsList: React.FC = () => {
             leftSection={<Plus size={18} />} 
             radius="md" 
             variant="filled" 
-            color="blue"
             onClick={openCreateDrawer}
           >
             Add Client
@@ -210,7 +209,7 @@ export const ClientsList: React.FC = () => {
       </Group>
 
       {/* Filters */}
-      <Card shadow="sm" p="md" radius="md" withBorder mb="lg" style={{ borderColor: '#e5e7eb' }}>
+      <Card shadow="sm" p="md" radius="md" withBorder mb="lg">
         <Group align="flex-end">
           <TextInput
             placeholder="Search clients or companies..."
@@ -240,10 +239,10 @@ export const ClientsList: React.FC = () => {
         </Group>
       </Card>
 
-      <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
+      <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none' }}>
         <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="md" horizontalSpacing="xl" striped>
-            <Table.Thead style={{ backgroundColor: '#F9FAFB' }}>
+          <Table verticalSpacing="md" horizontalSpacing="xl">
+            <Table.Thead>
               <Table.Tr>
                 <Table.Th>Client</Table.Th>
                 <Table.Th>Country</Table.Th>

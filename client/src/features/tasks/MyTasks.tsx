@@ -81,7 +81,7 @@ export const MyTasks = () => {
 
         <Group grow gap="xs">
           {task.status !== 'completed' && (
-            <Button size="xs" variant="light" color="blue" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)}>
+            <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)}>
               Start
             </Button>
           )}

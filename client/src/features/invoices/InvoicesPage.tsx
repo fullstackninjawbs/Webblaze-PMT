@@ -145,7 +145,7 @@ export const InvoicesPage = () => {
           </Title>
           <Text color="dimmed" size="sm">Manage all project invoices and track payments.</Text>
         </div>
-        <Button leftSection={<Plus size={16} />} size="md" color="blue" onClick={openCreateModal}>
+        <Button leftSection={<Plus size={16} />} size="md" onClick={openCreateModal}>
           Create Invoice
         </Button>
       </Group>
@@ -162,7 +162,7 @@ export const InvoicesPage = () => {
       </Group>
 
       <Card shadow="sm" p="lg" radius="lg" withBorder>
-        <Table verticalSpacing="md" striped highlightOnHover>
+        <Table verticalSpacing="md">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Invoice #</Table.Th>
@@ -258,7 +258,7 @@ export const InvoicesPage = () => {
               ]}
               {...form.getInputProps('status')}
             />
-            <Button type="submit" color="blue" loading={isCreating || isUpdating} mt="md">
+            <Button type="submit" loading={isCreating || isUpdating} mt="md">
               {editingInvoice ? "Update Invoice" : "Save Invoice"}
             </Button>
           </Stack>

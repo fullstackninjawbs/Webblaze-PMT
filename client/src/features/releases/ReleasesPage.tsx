@@ -109,12 +109,12 @@ export const ReleasesPage: React.FC = () => {
           </Title>
           <Text color="dimmed" size="sm">Manage and track project deployments and milestones.</Text>
         </div>
-        <Button leftSection={<Plus size={16} />} size="md" color="blue" onClick={openCreateModal}>
+        <Button leftSection={<Plus size={16} />} size="md" onClick={openCreateModal}>
           Add Release
         </Button>
       </Group>
 
-      <Card shadow="sm" p="lg" radius="lg" withBorder style={{ borderColor: '#e5e7eb' }}>
+      <Card shadow="sm" p="lg" radius="lg" withBorder>
         <Group mb="md">
           <Select
             placeholder="Filter by Status"
@@ -130,7 +130,7 @@ export const ReleasesPage: React.FC = () => {
           />
         </Group>
 
-        <Table verticalSpacing="md" striped highlightOnHover>
+        <Table verticalSpacing="md">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Project</Table.Th>
@@ -254,7 +254,7 @@ export const ReleasesPage: React.FC = () => {
           />
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setOpened(false)}>Cancel</Button>
-            <Button type="submit" color="blue" loading={isCreating || isUpdating}>
+            <Button type="submit" loading={isCreating || isUpdating}>
               {editingRelease ? "Update Release" : "Create Release"}
             </Button>
           </Group>

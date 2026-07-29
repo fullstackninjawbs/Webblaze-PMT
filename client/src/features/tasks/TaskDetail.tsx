@@ -252,7 +252,6 @@ export const TaskDetail = () => {
               style={{ flex: 1 }}
             />
             <Button 
-              color="blue" 
               onClick={handleUploadAttachment} 
               loading={isUploadingAttachment} 
               disabled={!newFile}
@@ -273,7 +272,7 @@ export const TaskDetail = () => {
             onChange={(e) => setStatusComment(e.target.value)}
             minRows={3}
           />
-          <Button color="blue" onClick={confirmStatusUpdate}>Confirm Update</Button>
+          <Button onClick={confirmStatusUpdate}>Confirm Update</Button>
         </Stack>
       </Modal>
     </Container>

@@ -59,7 +59,7 @@ export const Login: React.FC = () => {
           flexDirection: 'column', 
           justifyContent: 'center', 
           padding: '4rem',
-          background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
+          background: '#4F46E5',
           color: '#ffffff',
           position: 'relative',
           overflow: 'hidden'
@@ -80,15 +80,15 @@ export const Login: React.FC = () => {
 
           <Flex direction="column" gap="lg">
             <Group wrap="nowrap">
-              <CheckCircle size={24} color="#60a5fa" style={{ flexShrink: 0 }} />
+              <CheckCircle size={24} color="#818CF8" style={{ flexShrink: 0 }} />
               <Text size="md" fw={500}>Role-Based Control & Security</Text>
             </Group>
             <Group wrap="nowrap">
-              <CheckCircle size={24} color="#60a5fa" style={{ flexShrink: 0 }} />
+              <CheckCircle size={24} color="#818CF8" style={{ flexShrink: 0 }} />
               <Text size="md" fw={500}>Comprehensive Time Tracking</Text>
             </Group>
             <Group wrap="nowrap">
-              <CheckCircle size={24} color="#60a5fa" style={{ flexShrink: 0 }} />
+              <CheckCircle size={24} color="#818CF8" style={{ flexShrink: 0 }} />
               <Text size="md" fw={500}>Automated Invoicing & Releases</Text>
             </Group>
           </Flex>
@@ -106,7 +106,7 @@ export const Login: React.FC = () => {
         }}
       >
         <Container size={440} w="100%">
-          <Paper p={40} radius="xl" style={{ border: '1px solid #E5E7EB', boxShadow: '0 20px 40px -12px rgba(0,0,0,0.05)', backgroundColor: '#fff' }}>
+          <Paper p={40} radius="xl" withBorder style={{ backgroundColor: '#fff' }}>
             
             <Title order={2} ta="center" mb={5} style={{ color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px' }}>
               Welcome back
@@ -149,9 +149,8 @@ export const Login: React.FC = () => {
                   label={<Text size="sm" style={{ color: '#4B5563' }}>Remember me</Text>}
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.currentTarget.checked)}
-                  color="blue"
                 />
-                <Anchor href="#" size="sm" fw={500} style={{ color: '#3b82f6' }}>
+                <Anchor href="#" size="sm" fw={500} style={{ color: '#4F46E5' }}>
                   Forgot password?
                 </Anchor>
               </Group>
@@ -162,9 +161,7 @@ export const Login: React.FC = () => {
                 radius="md" 
                 type="submit" 
                 loading={isLoading}
-                color="blue"
                 rightSection={<ArrowRight size={18} />}
-                style={{ fontWeight: 600, boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}
               >
                 Sign In
               </Button>

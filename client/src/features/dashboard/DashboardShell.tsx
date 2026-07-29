@@ -63,21 +63,21 @@ export const DashboardShell: React.FC = () => {
 
     return (
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" mb="xl">
-        <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', color: 'white' }}>
+        <Card shadow="sm" p="xl" radius="lg" withBorder>
           <Group justify="space-between" mb="md">
-            <Activity size={32} color="rgba(255,255,255,0.8)" />
-            <Badge color="rgba(255,255,255,0.2)" variant="filled" size="lg">Team Workload</Badge>
+            <Activity size={32} color="#4F46E5" />
+            <Badge color="indigo" variant="light" size="lg">Team Workload</Badge>
           </Group>
-          <Text fw={800} size="32px">{filteredTodos.length} Open Team Todos</Text>
-          <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>Across all active projects</Text>
+          <Text fw={800} size="32px" color="#111827">{filteredTodos.length} Open Team Todos</Text>
+          <Text size="sm" color="#4B5563">Across all active projects</Text>
         </Card>
-        <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white' }}>
+        <Card shadow="sm" p="xl" radius="lg" withBorder>
           <Group justify="space-between" mb="md">
-            <Clock size={32} color="rgba(255,255,255,0.8)" />
-            <Badge color="rgba(255,255,255,0.2)" variant="filled" size="lg">Deadlines</Badge>
+            <Clock size={32} color="#F59E0B" />
+            <Badge color="orange" variant="light" size="lg">Deadlines</Badge>
           </Group>
-          <Text fw={800} size="32px">{dueThisWeek} Critical</Text>
-          <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>
+          <Text fw={800} size="32px" color="#111827">{dueThisWeek} Critical</Text>
+          <Text size="sm" color="#4B5563">
             {dueThisWeek === 1 ? 'Task due this week' : 'Tasks due this week'}
           </Text>
         </Card>
@@ -87,21 +87,21 @@ export const DashboardShell: React.FC = () => {
 
   const TMHero = () => (
     <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" mb="xl">
-      <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)', color: 'white' }}>
+      <Card shadow="sm" p="xl" radius="lg" withBorder>
         <Group justify="space-between" mb="md">
-          <CheckCircle size={32} color="rgba(255,255,255,0.8)" />
-          <Badge color="rgba(255,255,255,0.2)" variant="filled" size="lg">Personal Workload</Badge>
+          <CheckCircle size={32} color="#0EA5E9" />
+          <Badge color="blue" variant="light" size="lg">Personal Workload</Badge>
         </Group>
-        <Text fw={800} size="32px">{openTasksCount} Open Tasks</Text>
-        <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>Assigned to you</Text>
+        <Text fw={800} size="32px" color="#111827">{openTasksCount} Open Tasks</Text>
+        <Text size="sm" color="#4B5563">Assigned to you</Text>
       </Card>
-      <Card shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)', color: 'white' }}>
+      <Card shadow="sm" p="xl" radius="lg" withBorder>
         <Group justify="space-between" mb="md">
-          <CheckSquare size={32} color="rgba(255,255,255,0.8)" />
-          <Badge color="rgba(255,255,255,0.2)" variant="filled" size="lg">Today's Focus</Badge>
+          <CheckSquare size={32} color="#EC4899" />
+          <Badge color="pink" variant="light" size="lg">Today's Focus</Badge>
         </Group>
-        <Text fw={800} size="32px">{myTodosCount} To-Dos</Text>
-        <Text size="sm" style={{ color: 'rgba(255,255,255,0.8)' }}>Pending for today</Text>
+        <Text fw={800} size="32px" color="#111827">{myTodosCount} To-Dos</Text>
+        <Text size="sm" color="#4B5563">Pending for today</Text>
       </Card>
     </SimpleGrid>
   );

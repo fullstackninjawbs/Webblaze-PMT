@@ -91,7 +91,7 @@ export const TodosList = () => {
           <Title order={2} style={{ color: '#111827' }}>Team To-Dos</Title>
           <Text color="dimmed" size="sm">Manage your personal and team tasks</Text>
         </div>
-        <Button leftSection={<Plus size={16} />} color="blue" onClick={() => handleOpenModal()}>
+        <Button leftSection={<Plus size={16} />} onClick={() => handleOpenModal()}>
           Add To-Do
         </Button>
       </Group>
@@ -198,7 +198,7 @@ export const TodosList = () => {
               {...form.getInputProps('estimatedTime')} 
             />
 
-            <Button type="submit" color="blue" fullWidth>
+            <Button type="submit" fullWidth>
               {editingId ? 'Update To-Do' : 'Create To-Do'}
             </Button>
           </Stack>

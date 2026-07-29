@@ -219,7 +219,6 @@ export const ProjectsList: React.FC = () => {
             leftSection={<Plus size={18} />}
             radius="md"
             variant="filled"
-            color="blue"
             onClick={openCreateModal}
           >
             New Project
@@ -227,7 +226,7 @@ export const ProjectsList: React.FC = () => {
         )}
       </Group>
 
-      <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'all')} color="blue" mb="xl">
+      <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'all')} mb="xl">
         <Tabs.List>
           <Tabs.Tab value="all">All Projects</Tabs.Tab>
           <Tabs.Tab value={ProjectStatus.ACTIVE}>Active</Tabs.Tab>
@@ -237,10 +236,10 @@ export const ProjectsList: React.FC = () => {
         </Tabs.List>
       </Tabs>
 
-      <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
+      <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none' }}>
         <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="md" horizontalSpacing="xl" striped>
-            <Table.Thead style={{ backgroundColor: '#F9FAFB' }}>
+          <Table verticalSpacing="md" horizontalSpacing="xl">
+            <Table.Thead>
               <Table.Tr>
                 <Table.Th>Project</Table.Th>
                 <Table.Th>Status</Table.Th>
@@ -329,7 +328,7 @@ export const ProjectsList: React.FC = () => {
 
               <Group justify="flex-start" mt="xl">
                 <Button variant="light" onClick={() => setModalOpened(false)}>Cancel</Button>
-                <Button type="submit" color="blue" loading={isCreating || isUpdating}>
+                <Button type="submit" loading={isCreating || isUpdating}>
                   {editingProject ? 'Update Project' : 'Create Project'}
                 </Button>
               </Group>
