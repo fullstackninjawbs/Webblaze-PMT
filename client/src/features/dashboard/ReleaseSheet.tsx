@@ -61,7 +61,7 @@ export const ReleaseSheet: React.FC = () => {
   };
 
   return (
-    <Card shadow="sm" p="lg" radius="lg" withBorder style={{ borderColor: '#e5e7eb' }} mb="xl">
+    <Card shadow="sm" p="lg" radius="lg" withBorder mb="xl">
       <Group justify="space-between" mb="md">
         <Text fw={700} size="lg" style={{ color: '#111827' }}>Release Sheet</Text>
         <Group>
@@ -83,7 +83,7 @@ export const ReleaseSheet: React.FC = () => {
         </Group>
       </Group>
 
-      <Table verticalSpacing="sm" striped highlightOnHover>
+      <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Project</Table.Th>

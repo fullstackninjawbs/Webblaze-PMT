@@ -242,7 +242,7 @@ export const ProjectDetails = () => {
       </Card>
 
       {/* Tabbed Navigation */}
-      <Tabs defaultValue="milestones" color="blue" radius="md">
+      <Tabs defaultValue="milestones" radius="md">
         <Tabs.List style={{ borderBottom: '1px solid #e5e7eb' }} mb="xl">
           <Tabs.Tab value="overview" leftSection={<Activity size={16} />}>Overview</Tabs.Tab>
           <Tabs.Tab value="milestones" leftSection={<CheckCircle size={16} />}>Milestones</Tabs.Tab>
@@ -291,7 +291,7 @@ export const ProjectDetails = () => {
         <Tabs.Panel value="milestones">
           <Group justify="space-between" mb="md">
             <Title order={3}>Project Milestones</Title>
-            <Button leftSection={<Plus size={16} />} color="blue" onClick={() => setMilestoneDrawerOpened(true)}>
+            <Button leftSection={<Plus size={16} />} onClick={() => setMilestoneDrawerOpened(true)}>
               Add Milestone
             </Button>
           </Group>
@@ -364,7 +364,7 @@ export const ProjectDetails = () => {
               ]}
               {...milestoneForm.getInputProps('status')}
             />
-            <Button type="submit" color="blue" fullWidth loading={isCreatingMilestone} mt="md">Create Milestone</Button>
+            <Button type="submit" fullWidth loading={isCreatingMilestone} mt="md">Create Milestone</Button>
           </Stack>
         </form>
       </Drawer>
@@ -418,7 +418,7 @@ export const ProjectDetails = () => {
               clearable
             />
 
-            <Button type="submit" color="blue" fullWidth disabled={isOverAllocated} loading={isCreatingTask || isUploadingFile} mt="md">
+            <Button type="submit" fullWidth disabled={isOverAllocated} loading={isCreatingTask || isUploadingFile} mt="md">
               Create Task
             </Button>
           </Stack>
@@ -459,7 +459,7 @@ const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAd
   };
 
   return (
-    <Accordion.Item value={milestone._id} style={{ backgroundColor: 'white', border: '1px solid #E5E7EB', marginBottom: '16px', borderRadius: '8px', overflow: 'hidden' }}>
+    <Accordion.Item value={milestone._id} style={{ backgroundColor: 'white', marginBottom: '16px', borderRadius: '8px', overflow: 'hidden' }}>
       <Accordion.Control>
         <Group justify="space-between" wrap="nowrap">
           <div style={{ flex: 1 }}>
@@ -493,7 +493,7 @@ const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAd
               <Select placeholder="Filter Department" leftSection={<Filter size={14} />} data={['design', 'development', 'seo']} value={deptFilter} onChange={setDeptFilter} clearable size="xs" w={150} />
               <Select placeholder="Filter Status" leftSection={<Filter size={14} />} data={['assigned', 'in_progress', 'in_review', 'completed']} value={statusFilter} onChange={setStatusFilter} clearable size="xs" w={150} />
             </Group>
-            <Button size="xs" leftSection={<Plus size={14} />} color="blue" onClick={() => onAddTask(milestone._id, milestone.estimatedHours, allocatedHours)}>
+            <Button size="xs" leftSection={<Plus size={14} />} onClick={() => onAddTask(milestone._id, milestone.estimatedHours, allocatedHours)}>
               Add Task
             </Button>
           </Group>
@@ -501,7 +501,7 @@ const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAd
           {isLoading ? (
             <Center h={100}><Loader size="sm" /></Center>
           ) : filteredTasks.length > 0 ? (
-            <Table verticalSpacing="sm" bg="white" style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #E5E7EB' }}>
+            <Table verticalSpacing="sm" bg="white" style={{ borderRadius: '8px', overflow: 'hidden' }}>
               <Table.Thead bg="#F3F4F6">
                 <Table.Tr>
                   <Table.Th>Task</Table.Th>
@@ -553,7 +553,7 @@ const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAd
                           {isTimerActive ? (
                             <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
                           ) : (
-                            <Button size="xs" color="blue" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer}>Start</Button>
+                            <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer}>Start</Button>
                           )}
                         </Group>
                       </Table.Td>
@@ -760,7 +760,7 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
         />
       </SimpleGrid>
 
-      <Table verticalSpacing="sm" striped highlightOnHover>
+      <Table verticalSpacing="sm">
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Task</Table.Th>
@@ -820,7 +820,7 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
                     {isTimerActive ? (
                       <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
                     ) : (
-                      <Button size="xs" color="blue" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer || task.status === 'completed'}>Start</Button>
+                      <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer || task.status === 'completed'}>Start</Button>
                     )}
                   </Group>
                 </Table.Td>
@@ -895,7 +895,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
       <Group justify="space-between" mb="lg">
         <Title order={3}>Project Team ({team.length})</Title>
         {isAdminOrPM && (
-          <Button leftSection={<Plus size={16} />} color="blue" onClick={handleOpenModal}>
+          <Button leftSection={<Plus size={16} />} onClick={handleOpenModal}>
             Manage Team
           </Button>
         )}
@@ -963,7 +963,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
             searchable
             clearable
           />
-          <Button color="blue" onClick={handleSaveTeam} loading={isUpdating}>
+          <Button onClick={handleSaveTeam} loading={isUpdating}>
             Save Changes
           </Button>
         </Stack>
@@ -1054,7 +1054,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
     <Card withBorder shadow="sm" p="md" radius="md">
       <Group justify="space-between" mb="md">
         <Title order={3}>Project Releases</Title>
-        <Button leftSection={<Plus size={16} />} color="blue" onClick={openCreateModal}>Add Release</Button>
+        <Button leftSection={<Plus size={16} />} onClick={openCreateModal}>Add Release</Button>
       </Group>
 
       <Table verticalSpacing="sm" striped highlightOnHover>
@@ -1161,7 +1161,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
               ]}
               {...releaseForm.getInputProps('status')}
             />
-            <Button type="submit" color="blue" loading={isCreating || isUpdating} mt="md">
+            <Button type="submit" loading={isCreating || isUpdating} mt="md">
               {editingRelease ? "Update Release" : "Create Release"}
             </Button>
           </Stack>
@@ -1293,7 +1293,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
     <Card withBorder shadow="sm" p="md" radius="md">
       <Group justify="space-between" mb="lg">
         <Title order={3}>Invoices</Title>
-        <Button leftSection={<Plus size={16} />} color="blue" onClick={openCreateModal}>Add Invoice</Button>
+        <Button leftSection={<Plus size={16} />} onClick={openCreateModal}>Add Invoice</Button>
       </Group>
 
       <Group grow mb="xl">
@@ -1397,7 +1397,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
               ]}
               {...invoiceForm.getInputProps('status')}
             />
-            <Button type="submit" color="blue" loading={isCreating || isUpdating} mt="md">
+            <Button type="submit" loading={isCreating || isUpdating} mt="md">
               {editingInvoice ? "Update Invoice" : "Save Invoice"}
             </Button>
           </Stack>

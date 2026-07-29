@@ -28,11 +28,11 @@ export const ClientsList: React.FC = () => {
   const [createClient, { isLoading: isCreating }] = useCreateClientMutation();
   const [updateClient, { isLoading: isUpdating }] = useUpdateClientMutation();
   const [deleteClient] = useDeleteClientMutation();
-  
+
   const [drawerOpened, setDrawerOpened] = useState(false);
   const [viewDrawerOpened, setViewDrawerOpened] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<string | null>(null);
   const [billingFilter, setBillingFilter] = useState<string | null>(null);
@@ -107,12 +107,12 @@ export const ClientsList: React.FC = () => {
   // Filter clients
   const filteredClients = useMemo(() => {
     let result = data?.data || [];
-    
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(c => c.name.toLowerCase().includes(q) || c.companyName?.toLowerCase().includes(q));
     }
-    
+
     if (sourceFilter) {
       result = result.filter(c => c.source === sourceFilter);
     }
@@ -280,8 +280,8 @@ export const ClientsList: React.FC = () => {
         overflow: 'hidden',
       }}>
         <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="md" horizontalSpacing="xl" striped>
-            <Table.Thead style={{ backgroundColor: '#F9FAFB' }}>
+          <Table verticalSpacing="md" horizontalSpacing="xl">
+            <Table.Thead>
               <Table.Tr>
                 <Table.Th>Client</Table.Th>
                 <Table.Th>Country</Table.Th>
@@ -338,14 +338,14 @@ export const ClientsList: React.FC = () => {
               <Text fw={600} size="sm" mb="sm" c="blue">Business</Text>
               <Text size="xs" c="dimmed" mb="sm">Billing type will impact how you invoice this client in the future.</Text>
               <Group grow>
-                <Select 
-                  label="Source" 
-                  data={[{ value: 'upwork', label: 'Upwork' }, { value: 'direct', label: 'Direct' }]} 
+                <Select
+                  label="Source"
+                  data={[{ value: 'upwork', label: 'Upwork' }, { value: 'direct', label: 'Direct' }]}
                   {...form.getInputProps('source')}
                 />
-                <Select 
-                  label="Billing Type" 
-                  data={[{ value: 'hourly', label: 'Hourly' }, { value: 'fixed', label: 'Fixed Price' }]} 
+                <Select
+                  label="Billing Type"
+                  data={[{ value: 'hourly', label: 'Hourly' }, { value: 'fixed', label: 'Fixed Price' }]}
                   {...form.getInputProps('billingType')}
                 />
               </Group>
@@ -395,15 +395,15 @@ export const ClientsList: React.FC = () => {
               {selectedClient.email ? (
                 <Text size="sm" mb={4}><strong>Email:</strong> {selectedClient.email}</Text>
               ) : <Text size="sm" mb={4} c="dimmed">No email provided</Text>}
-              
+
               {selectedClient.contactNumber ? (
                 <Text size="sm" mb={4}><strong>Phone:</strong> {selectedClient.contactNumber}</Text>
               ) : <Text size="sm" mb={4} c="dimmed">No phone provided</Text>}
-              
+
               {selectedClient.country ? (
                 <Text size="sm" mb={4}><strong>Country:</strong> {selectedClient.country}</Text>
               ) : <Text size="sm" mb={4} c="dimmed">No country provided</Text>}
-              
+
               {selectedClient.address ? (
                 <Text size="sm" mb={4}><strong>Address:</strong> {selectedClient.address}</Text>
               ) : <Text size="sm" mb={4} c="dimmed">No address provided</Text>}
@@ -442,10 +442,10 @@ export const ClientsList: React.FC = () => {
                   {getClientProjects(selectedClient._id).map((proj) => (
                     <Paper key={proj._id} withBorder p="xs" radius="md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <Text 
-                          component="span" 
-                          size="sm" 
-                          fw={600} 
+                        <Text
+                          component="span"
+                          size="sm"
+                          fw={600}
                           style={{ cursor: 'pointer', color: '#2563EB', textDecoration: 'underline' }}
                           onClick={() => {
                             setViewDrawerOpened(false);
@@ -456,9 +456,9 @@ export const ClientsList: React.FC = () => {
                         </Text>
                         <Text size="xs" color="dimmed">{proj.type || 'Web App'}</Text>
                       </div>
-                      <Badge 
-                        size="xs" 
-                        variant="light" 
+                      <Badge
+                        size="xs"
+                        variant="light"
                         color={proj.status === 'active' ? 'green' : proj.status === 'on_hold' ? 'orange' : 'blue'}
                       >
                         {proj.status}

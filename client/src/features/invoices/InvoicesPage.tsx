@@ -123,7 +123,7 @@ export const InvoicesPage = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'draft': return 'gray';
       case 'sent': return 'blue';
       case 'partially_paid': return 'orange';
@@ -269,10 +269,10 @@ export const InvoicesPage = () => {
                   <Table.Td>
                     <Group gap={4} justify="flex-end">
                       {inv.status !== 'paid' && (
-                        <Button 
-                          size="xs" 
-                          variant="light" 
-                          color="green" 
+                        <Button
+                          size="xs"
+                          variant="light"
+                          color="green"
                           onClick={() => {
                             setActiveInvoiceForPayment(inv);
                             setPaymentAmount(inv.pendingAmount);
@@ -331,7 +331,7 @@ export const InvoicesPage = () => {
               ]}
               {...form.getInputProps('status')}
             />
-            <Button type="submit" color="blue" loading={isCreating || isUpdating} mt="md">
+            <Button type="submit" loading={isCreating || isUpdating} mt="md">
               {editingInvoice ? "Update Invoice" : "Save Invoice"}
             </Button>
           </Stack>

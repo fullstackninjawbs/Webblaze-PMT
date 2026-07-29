@@ -93,7 +93,7 @@ export const DailyStatus: React.FC = () => {
         </div>
       </Group>
 
-      <Tabs value={activeTab} onChange={setActiveTab} color="blue" radius="md">
+      <Tabs value={activeTab} onChange={setActiveTab} radius="md">
         <Tabs.List style={{ borderBottom: '1px solid #e5e7eb' }} mb="xl">
           <Tabs.Tab value="my-status" leftSection={<Calendar size={16} />}>My Status History</Tabs.Tab>
           <Tabs.Tab value="new-status" leftSection={<ClipboardList size={16} />}>Submit Daily Status</Tabs.Tab>
@@ -194,7 +194,7 @@ export const DailyStatus: React.FC = () => {
                 />
 
                 <Group justify="flex-end" mt="md">
-                  <Button type="submit" color="blue" leftSection={<Send size={16} />} loading={isSubmitting}>
+                  <Button type="submit" leftSection={<Send size={16} />} loading={isSubmitting}>
                     Submit Status
                   </Button>
                 </Group>
@@ -213,7 +213,7 @@ export const DailyStatus: React.FC = () => {
                 <Text c="dimmed">No team logs submitted today.</Text>
               </Card>
             ) : (
-              <Table verticalSpacing="md" striped highlightOnHover>
+              <Table verticalSpacing="md">
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Team Member</Table.Th>

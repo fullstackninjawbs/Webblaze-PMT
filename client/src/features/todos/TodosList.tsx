@@ -10,7 +10,7 @@ import { useState } from 'react';
 export const TodosList = () => {
   const { data: todosData, isLoading } = useGetTodosQuery();
   const { data: projectsData } = useGetProjectsQuery();
-  
+
   const [createTodo] = useCreateTodoMutation();
   const [updateTodo] = useUpdateTodoMutation();
   const [deleteTodo] = useDeleteTodoMutation();
@@ -171,9 +171,9 @@ export const TodosList = () => {
                 <Table.Td>
                   <Menu shadow="sm" width={150}>
                     <Menu.Target>
-                      <Badge 
-                        variant="light" 
-                        color={getStatusColor(todo.status)} 
+                      <Badge
+                        variant="light"
+                        color={getStatusColor(todo.status)}
                         style={{ cursor: 'pointer' }}
                       >
                         {todo.status.replace('_', ' ')}
@@ -218,15 +218,15 @@ export const TodosList = () => {
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack>
             <TextInput required label="Title" placeholder="What needs to be done?" {...form.getInputProps('title')} />
-            
-            <Select 
+
+            <Select
               label="Related Project (Optional)"
               placeholder="Select project"
               data={projects.map(p => ({ value: p._id, label: p.name }))}
               clearable
               {...form.getInputProps('relatedProject')}
             />
-            
+
             <TextInput
               label="Due Date"
               type="date"
@@ -234,14 +234,14 @@ export const TodosList = () => {
               {...form.getInputProps('dueDate')}
             />
 
-            <NumberInput 
-              label="Estimated Time (Hours)" 
+            <NumberInput
+              label="Estimated Time (Hours)"
               placeholder="0"
               min={0}
-              {...form.getInputProps('estimatedTime')} 
+              {...form.getInputProps('estimatedTime')}
             />
 
-            <Button type="submit" color="blue" fullWidth>
+            <Button type="submit" fullWidth>
               {editingId ? 'Update To-Do' : 'Create To-Do'}
             </Button>
           </Stack>

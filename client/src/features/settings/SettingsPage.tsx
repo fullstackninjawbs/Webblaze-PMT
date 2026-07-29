@@ -310,7 +310,7 @@ export const SettingsPage: React.FC = () => {
                     description="Contact Administrator to adjust role settings."
                   />
 
-                  <Button type="submit" color="blue" loading={isUpdatingProfile} mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
+                  <Button type="submit" loading={isUpdatingProfile} mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
                     Save Changes
                   </Button>
                 </Stack>
@@ -365,7 +365,7 @@ export const SettingsPage: React.FC = () => {
                     required
                   />
 
-                  <Button type="submit" color="blue" loading={isChangingPassword} mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
+                  <Button type="submit" loading={isChangingPassword} mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
                     Update Password
                   </Button>
                 </Stack>
@@ -416,7 +416,7 @@ export const SettingsPage: React.FC = () => {
                     leftSection={<Globe size={16} />}
                   />
 
-                  <Button type="submit" color="blue" mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
+                  <Button type="submit" mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
                     Save Preferences
                   </Button>
                 </Stack>

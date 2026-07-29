@@ -20,7 +20,7 @@ export const TeamTodoOverview: React.FC<Props> = ({ todos }) => {
     .sort((a, b) => new Date(a.dueDate || '').getTime() - new Date(b.dueDate || '').getTime());
 
   return (
-    <Card shadow="sm" p="lg" radius="lg" withBorder style={{ borderColor: '#e5e7eb' }} mb="xl">
+    <Card shadow="sm" p="lg" radius="lg" withBorder mb="xl">
       <Group justify="space-between" mb="md">
         <Text fw={700} size="lg" style={{ color: '#111827' }}>Team Todo Overview</Text>
         <Group>
@@ -42,7 +42,7 @@ export const TeamTodoOverview: React.FC<Props> = ({ todos }) => {
         </Group>
       </Group>
 
-      <Table verticalSpacing="sm" striped highlightOnHover>
+      <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Team Member</Table.Th>

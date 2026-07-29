@@ -145,17 +145,16 @@ export const UsersList: React.FC = () => {
           leftSection={<Plus size={18} />} 
           radius="md" 
           variant="filled" 
-          color="blue"
           onClick={() => setModalOpened(true)}
         >
           Invite Member
         </Button>
       </Group>
 
-      <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
+      <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none' }}>
         <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="md" horizontalSpacing="xl" striped>
-            <Table.Thead style={{ backgroundColor: '#F9FAFB' }}>
+          <Table verticalSpacing="md" horizontalSpacing="xl">
+            <Table.Thead>
               <Table.Tr>
                 <Table.Th>User</Table.Th>
                 <Table.Th>Role</Table.Th>
@@ -204,7 +203,7 @@ export const UsersList: React.FC = () => {
 
           <Group justify="flex-end">
             <Button variant="light" onClick={() => setModalOpened(false)}>Cancel</Button>
-            <Button type="submit" color="blue" loading={isRegistering}>Send Invite</Button>
+            <Button type="submit" loading={isRegistering}>Send Invite</Button>
           </Group>
         </form>
       </Modal>
@@ -238,7 +237,7 @@ export const UsersList: React.FC = () => {
 
             <Group justify="flex-end">
               <Button variant="light" onClick={() => setEditModalOpened(false)}>Cancel</Button>
-              <Button type="submit" color="blue" loading={isUpdating}>Save Changes</Button>
+              <Button type="submit" loading={isUpdating}>Save Changes</Button>
             </Group>
           </form>
         )}

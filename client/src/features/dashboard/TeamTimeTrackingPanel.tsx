@@ -44,10 +44,10 @@ export const TeamTimeTrackingPanel: React.FC = () => {
   };
 
   return (
-    <Card shadow="sm" p="lg" radius="lg" withBorder style={{ borderColor: '#e5e7eb' }} mb="xl">
+    <Card shadow="sm" p="lg" radius="lg" withBorder mb="xl">
       <Text fw={700} size="lg" mb="md" style={{ color: '#111827' }}>Team Time Tracking</Text>
       
-      <Table verticalSpacing="sm" striped highlightOnHover>
+      <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Team Member</Table.Th>

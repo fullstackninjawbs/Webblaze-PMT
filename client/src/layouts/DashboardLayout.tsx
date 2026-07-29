@@ -160,7 +160,7 @@ export const DashboardLayout: React.FC = () => {
         flexDirection: 'column',
         boxShadow: '2px 0 20px rgba(0,0,0,0.03)',
       }}>
-        
+
         {/* Branding */}
         <Box px="xl" pt="xl" pb="md">
           {/* Logo Mark */}
@@ -237,17 +237,17 @@ export const DashboardLayout: React.FC = () => {
             {renderNavItems()}
           </Stack>
         </AppShell.Section>
-        
+
         {/* User Profile at Bottom */}
         <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #f1f4f9' }}>
           <Menu position="top-start" shadow="lg" width={230} offset={8}>
             <Menu.Target>
-              <UnstyledButton 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  width: '100%', 
-                  padding: '10px 12px', 
+              <UnstyledButton
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%',
+                  padding: '10px 12px',
                   borderRadius: '12px',
                   transition: 'background-color 0.18s ease',
                   backgroundColor: 'transparent',

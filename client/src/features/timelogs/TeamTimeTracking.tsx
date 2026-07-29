@@ -60,9 +60,9 @@ export const TeamTimeTracking = () => {
       </SimpleGrid>
 
       <Title order={4} mb="md" style={{ color: '#1e293b' }}>Logged Time Summary</Title>
-      <Card shadow="sm" p="0" radius="lg" withBorder style={{ borderColor: '#e5e7eb' }}>
-        <Table verticalSpacing="sm" striped highlightOnHover>
-          <Table.Thead style={{ backgroundColor: '#F9FAFB' }}>
+      <Card shadow="sm" p="0" radius="lg" withBorder>
+        <Table verticalSpacing="sm">
+          <Table.Thead>
             <Table.Tr>
               <Table.Th>Team Member</Table.Th>
               <Table.Th>Project / Task</Table.Th>

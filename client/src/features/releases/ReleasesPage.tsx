@@ -32,7 +32,7 @@ export const ReleasesPage: React.FC = () => {
   const projects = projectsData?.data || [];
   const users = usersData?.data || [];
 
-  const filteredReleases = filterStatus 
+  const filteredReleases = filterStatus
     ? releases.filter(r => r.status === filterStatus)
     : releases;
 
@@ -167,7 +167,7 @@ export const ReleasesPage: React.FC = () => {
           />
         </Group>
 
-        <Table verticalSpacing="md" striped highlightOnHover>
+        <Table verticalSpacing="md">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Project</Table.Th>
@@ -183,7 +183,7 @@ export const ReleasesPage: React.FC = () => {
             {filteredReleases.map((release) => {
               const project = typeof release.project === 'object' ? release.project : null;
               const member = typeof release.teamMember === 'object' ? release.teamMember : null;
-              
+
               return (
                 <Table.Tr key={release._id}>
                   <Table.Td>
@@ -204,7 +204,7 @@ export const ReleasesPage: React.FC = () => {
                     <Text size="sm" fw={500}>{new Date(release.releaseDate).toLocaleDateString()}</Text>
                   </Table.Td>
                   <Table.Td>
-                    <Badge 
+                    <Badge
                       color={release.status === 'released' ? 'green' : release.status === 'in_review' ? 'yellow' : 'gray'}
                       variant="light"
                     >
@@ -291,7 +291,7 @@ export const ReleasesPage: React.FC = () => {
           />
           <Group justify="flex-end">
             <Button variant="default" onClick={() => setOpened(false)}>Cancel</Button>
-            <Button type="submit" color="blue" loading={isCreating || isUpdating}>
+            <Button type="submit" loading={isCreating || isUpdating}>
               {editingRelease ? "Update Release" : "Create Release"}
             </Button>
           </Group>

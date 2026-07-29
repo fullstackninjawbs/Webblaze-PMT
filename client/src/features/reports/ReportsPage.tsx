@@ -225,7 +225,7 @@ export const ReportsPage: React.FC = () => {
           <Users size={20} color="#3b82f6" />
           <Title order={4}>Team Hours Contributed</Title>
         </Group>
-        <Table verticalSpacing="sm" striped highlightOnHover>
+        <Table verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Member</Table.Th>

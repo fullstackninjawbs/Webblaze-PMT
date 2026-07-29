@@ -23,7 +23,7 @@ export const ProjectSummaryCards: React.FC<Props> = ({ projects }) => {
   return (
     <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg" mb="xl">
       {stats.map((stat, idx) => (
-        <Card key={idx} shadow="sm" p="xl" radius="lg" withBorder style={{ borderColor: '#e5e7eb', background: '#fff' }}>
+        <Card key={idx} shadow="sm" p="xl" radius="lg" withBorder>
           <Group justify="space-between" align="flex-start" mb="md">
             <div style={{ padding: '10px', borderRadius: '12px', backgroundColor: stat.bg }}>
               <stat.icon size={24} color={stat.color} />
