@@ -64,7 +64,7 @@
 }
 
 html {
-  font-size: 14px;
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -86,7 +86,7 @@ body {
   font-family: var(--font-primary);
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  line-height: 1.5;
+  line-height: 1.55;
   font-weight: 400;
   letter-spacing: -0.011em;
 }
@@ -204,7 +204,7 @@ h1, h2, h3, h4, h5, h6 {
 .mantine-Select-input,
 .mantine-NumberInput-input {
   font-family: var(--font-primary) !important;
-  font-size: 0.875rem !important;
+  font-size: 0.9375rem !important;
   border-radius: var(--radius-sm) !important;
   border-color: var(--color-border) !important;
   background-color: #fafbff !important;
@@ -229,7 +229,7 @@ h1, h2, h3, h4, h5, h6 {
 .mantine-NumberInput-label,
 .mantine-FileInput-label {
   font-family: var(--font-primary) !important;
-  font-size: 0.8125rem !important;
+  font-size: 0.84375rem !important;
   font-weight: 600 !important;
   color: var(--color-text-primary) !important;
   letter-spacing: -0.01em !important;
@@ -271,27 +271,28 @@ h1, h2, h3, h4, h5, h6 {
 /* ---- TABLES ---- */
 .mantine-Table-table {
   font-family: var(--font-primary) !important;
-  font-size: 0.875rem !important;
+  font-size: 0.9375rem !important;
 }
 
 .mantine-Table-th {
   font-family: var(--font-primary) !important;
-  font-size: 0.75rem !important;
+  font-size: 0.8125rem !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
   color: var(--color-text-muted) !important;
   background-color: #f8fafd !important;
-  padding: 12px 16px !important;
+  padding: 14px 18px !important;
   border-bottom: 1px solid var(--color-border) !important;
 }
 
 .mantine-Table-td {
   font-family: var(--font-primary) !important;
   border-bottom: 1px solid var(--color-border-subtle) !important;
-  padding: 13px 16px !important;
+  padding: 14px 18px !important;
   color: var(--color-text-secondary) !important;
   vertical-align: middle !important;
+  font-size: 0.9375rem !important;
 }
 
 .mantine-Table-tr:last-of-type td {

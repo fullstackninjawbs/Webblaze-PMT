@@ -49,7 +49,7 @@ export const MyTodos: React.FC = () => {
             order={2}
             style={{
               color: '#0f172a',
-              fontSize: '1.5rem',
+              fontSize: '1.625rem',
               fontWeight: 700,
               letterSpacing: '-0.025em',
               lineHeight: 1.25,
