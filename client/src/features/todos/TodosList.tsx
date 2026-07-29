@@ -141,6 +141,7 @@ export const TodosList = () => {
               <Table.Th>Project</Table.Th>
               <Table.Th>Assigned To</Table.Th>
               <Table.Th>Due Date</Table.Th>
+              <Table.Th>Est. Time</Table.Th>
               <Table.Th>Status</Table.Th>
               <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
             </Table.Tr>
@@ -160,6 +161,11 @@ export const TodosList = () => {
                 <Table.Td>
                   <Text size="sm">
                     {todo.dueDate ? new Intl.DateTimeFormat('en-GB').format(new Date(todo.dueDate)) : '-'}
+                  </Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" fw={600} style={{ color: todo.estimatedTime ? '#3b82f6' : '#94a3b8' }}>
+                    {todo.estimatedTime ? `${todo.estimatedTime}h` : '-'}
                   </Text>
                 </Table.Td>
                 <Table.Td>
