@@ -188,21 +188,47 @@ export const ClientsList: React.FC = () => {
   ));
 
   return (
-    <div style={{ animation: 'fade-in 0.4s ease-out' }}>
-      <Group justify="space-between" mb="xl">
+    <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+          <Title
+            order={2}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.875rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.2,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
             Clients
           </Title>
-          <Text color="dimmed" size="sm">Manage your clients and their billing details.</Text>
+          <Text
+            size="sm"
+            mt={6}
+            style={{
+              color: '#94a3b8',
+              fontFamily: "'Inter', sans-serif",
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Manage your clients and their billing details.
+          </Text>
         </div>
         {isAdminOrPM && (
-          <Button 
-            leftSection={<Plus size={18} />} 
-            radius="md" 
-            variant="filled" 
+          <Button
+            leftSection={<Plus size={16} />}
+            radius="md"
+            variant="filled"
             color="blue"
             onClick={openCreateDrawer}
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 600,
+              letterSpacing: '-0.01em',
+              boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+            }}
           >
             Add Client
           </Button>
@@ -210,18 +236,25 @@ export const ClientsList: React.FC = () => {
       </Group>
 
       {/* Filters */}
-      <Card shadow="sm" p="md" radius="md" withBorder mb="lg" style={{ borderColor: '#e5e7eb' }}>
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid #e8ecf4',
+        borderRadius: '14px',
+        padding: '14px 18px',
+        marginBottom: '20px',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
+      }}>
         <Group align="flex-end">
           <TextInput
             placeholder="Search clients or companies..."
-            leftSection={<Search size={16} color="gray" />}
+            leftSection={<Search size={15} color="#94a3b8" />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.currentTarget.value)}
             style={{ flex: 1, minWidth: '200px' }}
           />
           <Select
             placeholder="Filter Source"
-            leftSection={<Filter size={16} color="gray" />}
+            leftSection={<Filter size={15} color="#94a3b8" />}
             data={[{ value: 'upwork', label: 'Upwork' }, { value: 'direct', label: 'Direct' }]}
             value={sourceFilter}
             onChange={setSourceFilter}
@@ -230,7 +263,7 @@ export const ClientsList: React.FC = () => {
           />
           <Select
             placeholder="Filter Billing"
-            leftSection={<Filter size={16} color="gray" />}
+            leftSection={<Filter size={15} color="#94a3b8" />}
             data={[{ value: 'hourly', label: 'Hourly' }, { value: 'fixed', label: 'Fixed Price' }]}
             value={billingFilter}
             onChange={setBillingFilter}
@@ -238,9 +271,14 @@ export const ClientsList: React.FC = () => {
             style={{ width: '150px' }}
           />
         </Group>
-      </Card>
+      </div>
 
-      <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
+      <Card shadow="sm" p="0" radius="xl" withBorder style={{
+        border: '1px solid #e8ecf4',
+        boxShadow: '0 2px 16px rgba(0, 0, 0, 0.05)',
+        borderRadius: '16px',
+        overflow: 'hidden',
+      }}>
         <Table.ScrollContainer minWidth={800}>
           <Table verticalSpacing="md" horizontalSpacing="xl" striped>
             <Table.Thead style={{ backgroundColor: '#F9FAFB' }}>

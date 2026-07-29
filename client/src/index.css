@@ -1,6 +1,526 @@
+/* =====================================================
+   WebBlaze PMS — Premium Design System
+   Font: Inter | Colors: Blue-Indigo Gradient Theme
+   ===================================================== */
+
+/* --- Google Fonts are loaded via index.html --- */
+
+/* CSS Custom Properties */
+:root {
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* Brand Colors */
+  --color-brand-from: #3b82f6;
+  --color-brand-to: #6366f1;
+  --color-brand-gradient: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+
+  /* Neutrals */
+  --color-bg: #f4f6fb;
+  --color-surface: #ffffff;
+  --color-border: #e8ecf4;
+  --color-border-subtle: #f1f4f9;
+
+  /* Text */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
+
+  /* Sidebar */
+  --sidebar-width: 264px;
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #eef0f8;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
+  --shadow-brand: 0 6px 20px rgba(59, 130, 246, 0.25);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
+
+  /* Spacing */
+  --page-padding: 28px;
+}
+
+/* =====================================================
+   Base Reset & Global Typography
+   ===================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f8f9fa;
-  color: #212529;
+  font-family: var(--font-primary);
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-primary);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =====================================================
+   Animations & Keyframes
+   ===================================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+}
+
+/* Page Entry Animations */
+.fade-in {
+  animation: fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* =====================================================
+   Mantine Component Overrides — Premium Polish
+   ===================================================== */
+
+/* AppShell Background */
+.mantine-AppShell-main {
+  background-color: var(--color-bg) !important;
+}
+
+/* ---- NAVBAR SIDEBAR ---- */
+.mantine-AppShell-navbar {
+  border-right: 1px solid var(--sidebar-border) !important;
+  background: var(--sidebar-bg) !important;
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* ---- CARDS ---- */
+.mantine-Card-root {
+  transition: box-shadow var(--transition-normal), transform var(--transition-normal) !important;
+  font-family: var(--font-primary) !important;
+}
+
+.mantine-Card-root:hover {
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ---- INPUTS ---- */
+.mantine-Input-input,
+.mantine-TextInput-input,
+.mantine-Textarea-input,
+.mantine-Select-input,
+.mantine-NumberInput-input {
+  font-family: var(--font-primary) !important;
+  font-size: 0.875rem !important;
+  border-radius: var(--radius-sm) !important;
+  border-color: var(--color-border) !important;
+  background-color: #fafbff !important;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+  letter-spacing: -0.01em;
+}
+
+.mantine-Input-input:focus,
+.mantine-TextInput-input:focus,
+.mantine-Textarea-input:focus,
+.mantine-Select-input:focus,
+.mantine-NumberInput-input:focus {
+  border-color: var(--color-brand-from) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Input Labels */
+.mantine-InputWrapper-label,
+.mantine-TextInput-label,
+.mantine-Textarea-label,
+.mantine-Select-label,
+.mantine-NumberInput-label,
+.mantine-FileInput-label {
+  font-family: var(--font-primary) !important;
+  font-size: 0.8125rem !important;
+  font-weight: 600 !important;
+  color: var(--color-text-primary) !important;
+  letter-spacing: -0.01em !important;
+  margin-bottom: 5px !important;
+}
+
+/* ---- BUTTONS ---- */
+.mantine-Button-root {
+  font-family: var(--font-primary) !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  border-radius: var(--radius-sm) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.mantine-Button-root:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.mantine-Button-root:active {
+  transform: translateY(0) !important;
+}
+
+/* ---- BADGES ---- */
+.mantine-Badge-root {
+  font-family: var(--font-primary) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  border-radius: 6px !important;
+}
+
+/* ---- TEXT ---- */
+.mantine-Text-root,
+.mantine-Title-root {
+  font-family: var(--font-primary) !important;
+}
+
+/* ---- TABLES ---- */
+.mantine-Table-table {
+  font-family: var(--font-primary) !important;
+  font-size: 0.875rem !important;
+}
+
+.mantine-Table-th {
+  font-family: var(--font-primary) !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--color-text-muted) !important;
+  background-color: #f8fafd !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.mantine-Table-td {
+  font-family: var(--font-primary) !important;
+  border-bottom: 1px solid var(--color-border-subtle) !important;
+  padding: 13px 16px !important;
+  color: var(--color-text-secondary) !important;
+  vertical-align: middle !important;
+}
+
+.mantine-Table-tr:last-of-type td {
+  border-bottom: none !important;
+}
+
+.mantine-Table-tr:hover td {
+  background-color: #f8faff !important;
+  transition: background-color var(--transition-fast) !important;
+}
+
+/* ---- TABS ---- */
+.mantine-Tabs-tab {
+  font-family: var(--font-primary) !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  color: var(--color-text-muted) !important;
+  padding: 10px 16px !important;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0 !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.mantine-Tabs-tab:hover {
+  color: var(--color-text-secondary) !important;
+  background-color: #f0f4ff !important;
+}
+
+.mantine-Tabs-tab[data-active] {
+  color: var(--color-brand-from) !important;
+  font-weight: 700 !important;
+}
+
+/* ---- ACCORDION ---- */
+.mantine-Accordion-item {
+  border-radius: var(--radius-md) !important;
+  border: 1px solid var(--color-border) !important;
+  overflow: hidden !important;
+  margin-bottom: 12px !important;
+  transition: box-shadow var(--transition-normal) !important;
+}
+
+.mantine-Accordion-item:hover {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.mantine-Accordion-control {
+  padding: 16px 20px !important;
+  font-family: var(--font-primary) !important;
+  background: var(--color-surface) !important;
+}
+
+.mantine-Accordion-control:hover {
+  background-color: #fafbff !important;
+}
+
+/* ---- DRAWER ---- */
+.mantine-Drawer-content {
+  font-family: var(--font-primary) !important;
+}
+
+.mantine-Drawer-title {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 1rem !important;
+  color: var(--color-text-primary) !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ---- MODAL ---- */
+.mantine-Modal-content {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.mantine-Modal-title {
+  font-family: var(--font-primary) !important;
+  font-weight: 700 !important;
+  font-size: 1.0625rem !important;
+  color: var(--color-text-primary) !important;
+  letter-spacing: -0.02em !important;
+}
+
+/* ---- AVATAR ---- */
+.mantine-Avatar-root {
+  transition: transform var(--transition-fast) !important;
+}
+
+/* ---- MENU ---- */
+.mantine-Menu-dropdown {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--color-border) !important;
+  padding: 6px !important;
+}
+
+.mantine-Menu-item {
+  font-family: var(--font-primary) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 8px 12px !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ---- TOOLTIP ---- */
+.mantine-Tooltip-tooltip {
+  font-family: var(--font-primary) !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ---- ACTION ICON ---- */
+.mantine-ActionIcon-root {
+  border-radius: var(--radius-sm) !important;
+  transition: all var(--transition-fast) !important;
+}
+
+.mantine-ActionIcon-root:hover {
+  transform: translateY(-1px) !important;
+}
+
+/* ---- PROGRESS ---- */
+.mantine-Progress-root {
+  border-radius: 99px !important;
+  background-color: #eef2ff !important;
+}
+
+.mantine-Progress-section {
+  border-radius: 99px !important;
+}
+
+/* ---- ALERT ---- */
+.mantine-Alert-root {
+  font-family: var(--font-primary) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* ---- PAPER ---- */
+.mantine-Paper-root {
+  font-family: var(--font-primary) !important;
+}
+
+/* ---- DIVIDER ---- */
+.mantine-Divider-root {
+  border-color: var(--color-border) !important;
+}
+
+/* ---- SELECT DROPDOWN ---- */
+.mantine-Select-dropdown,
+.mantine-Combobox-dropdown {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--color-border) !important;
+  font-family: var(--font-primary) !important;
+}
+
+.mantine-Combobox-option {
+  font-family: var(--font-primary) !important;
+  font-size: 0.875rem !important;
+  border-radius: var(--radius-sm) !important;
+  margin: 2px 4px !important;
+}
+
+/* =====================================================
+   Utility Classes
+   ===================================================== */
+
+/* Premium Page Header */
+.page-header {
+  margin-bottom: 28px;
+}
+
+.page-header h1,
+.page-header h2 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+
+.page-header p {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+/* Stat Card */
+.stat-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-normal);
+}
+
+.stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* Glass Card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-lg);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: var(--color-brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hover Lift Effect */
+.hover-lift {
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Section Divider */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  padding: 0 8px;
 }

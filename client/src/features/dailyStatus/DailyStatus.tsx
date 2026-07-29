@@ -67,13 +67,29 @@ export const DailyStatus: React.FC = () => {
   };
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.4s ease-out' }}>
-      <Group justify="space-between" mb="xl">
+    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+          <Title
+            order={2}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.875rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.2,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
             Daily Work Status
           </Title>
-          <Text color="dimmed" size="sm">Log your daily progress and keep the team updated on milestones.</Text>
+          <Text
+            size="sm"
+            mt={6}
+            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+          >
+            Log your daily progress and keep the team updated on milestones.
+          </Text>
         </div>
       </Group>
 

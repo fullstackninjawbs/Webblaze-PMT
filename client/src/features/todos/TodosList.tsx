@@ -86,17 +86,54 @@ export const TodosList = () => {
 
   return (
     <Container size="xl" py="xl">
-      <Group justify="space-between" mb="xl">
+      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={2} style={{ color: '#111827' }}>Team To-Dos</Title>
-          <Text color="dimmed" size="sm">Manage your personal and team tasks</Text>
+          <Title
+            order={2}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.875rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.2,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Team To-Dos
+          </Title>
+          <Text
+            size="sm"
+            mt={6}
+            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+          >
+            Manage your personal and team tasks
+          </Text>
         </div>
-        <Button leftSection={<Plus size={16} />} color="blue" onClick={() => handleOpenModal()}>
+        <Button
+          leftSection={<Plus size={16} />}
+          color="blue"
+          onClick={() => handleOpenModal()}
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 600,
+            boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+          }}
+        >
           Add To-Do
         </Button>
       </Group>
 
-      <Card shadow="sm" radius="md" withBorder>
+      <Card
+        shadow="sm"
+        radius="xl"
+        withBorder
+        style={{
+          border: '1px solid #e8ecf4',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+          overflow: 'hidden',
+          padding: 0,
+        }}
+      >
         <Table verticalSpacing="sm">
           <Table.Thead>
             <Table.Tr>

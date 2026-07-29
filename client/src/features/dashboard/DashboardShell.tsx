@@ -107,25 +107,65 @@ export const DashboardShell: React.FC = () => {
   );
 
   return (
-    <div style={{ animation: 'fade-in 0.4s ease-out', paddingBottom: '40px' }}>
-      <Group justify="space-between" align="flex-start" mb="xl">
+    <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)', paddingBottom: '48px' }}>
+      <Group justify="space-between" align="flex-start" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={1} style={{ color: '#111827', fontSize: '30px', fontWeight: 700, letterSpacing: '-0.5px' }}>
+          <Title
+            order={1}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.875rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.2,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
             Command Center
           </Title>
-          <Text color="dimmed" size="sm" mt={4}>
+          <Text
+            size="sm"
+            mt={6}
+            style={{
+              color: '#94a3b8',
+              fontSize: '0.9rem',
+              fontWeight: 400,
+              fontFamily: "'Inter', sans-serif",
+              letterSpacing: '-0.01em',
+            }}
+          >
             Good afternoon, {user?.name?.split(' ')[0]}. Here is your high-level view.
           </Text>
         </div>
-        <Group>
-          <Text size="sm" c="dimmed" mr="md">{formattedDate}</Text>
-          <TextInput 
-            placeholder="Search dashboard..." 
-            rightSection={<Search size={16} color="#9ca3af" />}
+        <Group gap="md" align="center">
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: '#ffffff',
+            border: '1px solid #e8ecf4',
+            borderRadius: '10px',
+            padding: '7px 14px',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+          }}>
+            <span style={{ fontSize: '0.8125rem', color: '#64748b', fontWeight: 500, fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}>{formattedDate}</span>
+          </div>
+          <TextInput
+            placeholder="Search dashboard..."
+            rightSection={<Search size={15} color="#94a3b8" />}
             radius="md"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            styles={{ input: { backgroundColor: '#fff', border: '1px solid #e5e7eb', width: '250px' } }}
+            styles={{
+              input: {
+                backgroundColor: '#ffffff',
+                border: '1px solid #e8ecf4',
+                width: '240px',
+                fontSize: '0.875rem',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                fontFamily: "'Inter', sans-serif",
+              }
+            }}
           />
         </Group>
       </Group>
