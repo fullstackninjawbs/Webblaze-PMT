@@ -9,18 +9,40 @@ import '@mantine/core/styles.css';
 import './index.css';
 
 const theme = createTheme({
-  primaryColor: 'indigo',
-  fontFamily: 'Inter, sans-serif',
+  primaryColor: 'blue',
+  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  fontFamilyMonospace: "'JetBrains Mono', 'Fira Code', monospace",
   defaultRadius: 'md',
+
   headings: {
-    fontFamily: 'Inter, sans-serif',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     fontWeight: '700',
     sizes: {
-      h1: { fontSize: '2rem' },
-      h2: { fontSize: '1.5rem' },
-      h3: { fontSize: '1.25rem' },
-    }
+      h1: { fontSize: '1.875rem', fontWeight: '800', lineHeight: '1.2' },
+      h2: { fontSize: '1.5rem', fontWeight: '800', lineHeight: '1.25' },
+      h3: { fontSize: '1.25rem', fontWeight: '700', lineHeight: '1.3' },
+      h4: { fontSize: '1.0625rem', fontWeight: '700', lineHeight: '1.35' },
+      h5: { fontSize: '0.9375rem', fontWeight: '600', lineHeight: '1.4' },
+      h6: { fontSize: '0.875rem', fontWeight: '600', lineHeight: '1.4' },
+    },
   },
+
+  fontSizes: {
+    xs: '0.75rem',
+    sm: '0.875rem',
+    md: '0.9375rem',
+    lg: '1.0625rem',
+    xl: '1.25rem',
+  },
+
+  lineHeights: {
+    xs: '1.4',
+    sm: '1.5',
+    md: '1.6',
+    lg: '1.65',
+    xl: '1.7',
+  },
+
   components: {
     Container: {
       defaultProps: {
@@ -33,108 +55,41 @@ const theme = createTheme({
         },
       },
     },
-    Button: Button.extend({
+    Button: {
       defaultProps: {
         radius: 'md',
-        fw: 500,
       },
-      styles: (theme, params) => ({
-        root: {
-          transition: 'all 0.2s ease',
-          boxShadow: params.variant === 'filled' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-          '&:hover': {
-            transform: 'translateY(-1px)',
-            boxShadow: params.variant === 'filled' ? '0 4px 6px rgba(0,0,0,0.1)' : 'none',
-          }
-        }
-      })
-    }),
-    Card: Card.extend({
+    },
+    Card: {
       defaultProps: {
         radius: 'lg',
-        shadow: 'xs',
-        withBorder: true,
       },
-      styles: {
-        root: {
-          borderColor: '#E5E7EB',
-          transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-        }
-      }
-    }),
-    Modal: Modal.extend({
+    },
+    TextInput: {
       defaultProps: {
         radius: 'md',
-        padding: 'xl',
-        shadow: 'xl',
       },
-      styles: {
-        title: {
-          fontWeight: 600,
-          fontSize: '1.25rem',
-          color: '#111827',
-        },
-        header: {
-          borderBottom: '1px solid #E5E7EB',
-          paddingBottom: '1rem',
-          marginBottom: '1rem',
-        }
-      }
-    }),
-    Drawer: Drawer.extend({
+    },
+    Select: {
       defaultProps: {
-        padding: 'xl',
-        position: 'right',
+        radius: 'md',
       },
-      styles: {
-        title: {
-          fontWeight: 600,
-          fontSize: '1.25rem',
-          color: '#111827',
-        },
-        header: {
-          borderBottom: '1px solid #E5E7EB',
-          paddingBottom: '1rem',
-          marginBottom: '1rem',
-        }
-      }
-    }),
-    TextInput: TextInput.extend({ defaultProps: { radius: 'md' } }),
-    Select: Select.extend({ defaultProps: { radius: 'md' } }),
-    PasswordInput: PasswordInput.extend({ defaultProps: { radius: 'md' } }),
-    NumberInput: NumberInput.extend({ defaultProps: { radius: 'md' } }),
-    Textarea: Textarea.extend({ defaultProps: { radius: 'md' } }),
-    Table: Table.extend({
+    },
+    Textarea: {
       defaultProps: {
-        striped: false,
-        highlightOnHover: true,
-        verticalSpacing: 'md',
+        radius: 'md',
       },
-      styles: {
-        th: {
-          textTransform: 'uppercase',
-          fontSize: '0.75rem',
-          fontWeight: 600,
-          color: '#6B7280',
-          letterSpacing: '0.05em',
-          borderBottom: '1px solid #E5E7EB',
-        },
-        td: {
-          borderBottom: '1px solid #F3F4F6',
-          fontSize: '0.875rem',
-          color: '#374151',
-        },
-        tr: {
-          transition: 'background-color 0.15s ease',
-        }
-      }
-    }),
-    Badge: Badge.extend({
+    },
+    Badge: {
       defaultProps: {
         radius: 'sm',
-        fw: 600,
-      }
-    }),
+      },
+    },
+    Modal: {
+      defaultProps: {
+        radius: 'lg',
+      },
+    },
   },
 });
 

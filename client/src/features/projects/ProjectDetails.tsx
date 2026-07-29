@@ -145,13 +145,38 @@ export const ProjectDetails = () => {
   if (!project) return <Container mt="xl"><Title>Project not found</Title></Container>;
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.4s ease-out' }}>
-      <Button variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />} onClick={() => navigate('/projects')} mb="md" style={{ paddingLeft: 0 }}>
+    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Button
+        variant="subtle"
+        color="gray"
+        leftSection={<ArrowLeft size={15} />}
+        onClick={() => navigate('/projects')}
+        mb="lg"
+        style={{
+          paddingLeft: 0,
+          color: '#64748b',
+          fontFamily: "'Inter', sans-serif",
+          fontWeight: 500,
+          fontSize: '0.875rem',
+          letterSpacing: '-0.01em',
+        }}
+      >
         Back to Projects
       </Button>
 
       {/* Header Section */}
-      <Card shadow="sm" p="xl" radius="lg" withBorder mb="xl" style={{ borderColor: '#e5e7eb', background: '#ffffff' }}>
+      <Card
+        shadow="sm"
+        p="xl"
+        radius="xl"
+        withBorder
+        mb="xl"
+        style={{
+          border: '1px solid #e8ecf4',
+          background: '#ffffff',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+        }}
+      >
         <Group justify="space-between" align="flex-start">
           {/* Left: Project Info */}
           <div style={{ flex: 1 }}>

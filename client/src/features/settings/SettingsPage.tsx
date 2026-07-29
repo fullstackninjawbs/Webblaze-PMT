@@ -98,53 +98,106 @@ export const SettingsPage: React.FC = () => {
   ];
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.4s ease-out' }}>
+    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       {/* Banner / Header Card */}
-      <Card 
-        radius="lg" 
-        mb="xl" 
-        p="xl" 
-        style={{ 
-          background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)', 
+      <Card
+        radius="xl"
+        mb="xl"
+        p={0}
+        style={{
+          background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
           color: '#ffffff',
-          boxShadow: '0 10px 20px -5px rgba(59, 130, 246, 0.3)'
+          boxShadow: '0 12px 32px rgba(59, 130, 246, 0.3)',
+          overflow: 'hidden',
+          position: 'relative',
         }}
       >
-        <Group align="center" gap="xl" wrap="nowrap">
-          <Avatar 
-            size={74} 
-            src={user?.avatarUrl} 
-            color="white" 
-            radius="100%" 
-            style={{ border: '3px solid rgba(255, 255, 255, 0.3)' }}
-          >
-            {user?.name?.charAt(0).toUpperCase()}
-          </Avatar>
-          <div>
-            <Title order={3} style={{ fontWeight: 800, fontSize: '24px', letterSpacing: '-0.5px' }}>
-              {user?.name}
-            </Title>
-            <Text size="sm" style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '8px' }}>
-              {user?.email}
-            </Text>
-            <Group gap="xs">
-              <Badge color="white" variant="white" size="sm" style={{ color: '#3b82f6', fontWeight: 700 }}>
-                {user?.role.replace('_', ' ')}
-              </Badge>
-              {user?.department && (
-                <Badge variant="outline" size="sm" style={{ color: '#ffffff', borderColor: 'rgba(255, 255, 255, 0.5)' }}>
-                  {user?.department}
+        {/* Decorative circles */}
+        <div style={{
+          position: 'absolute', top: '-40px', right: '-40px',
+          width: '200px', height: '200px', borderRadius: '50%',
+          background: 'rgba(255,255,255,0.06)',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-60px', right: '120px',
+          width: '160px', height: '160px', borderRadius: '50%',
+          background: 'rgba(255,255,255,0.04)',
+        }} />
+        <div style={{ padding: '28px 32px', position: 'relative', zIndex: 1 }}>
+          <Group align="center" gap="xl" wrap="nowrap">
+            <Avatar
+              size={72}
+              src={user?.avatarUrl}
+              color="white"
+              radius="100%"
+              style={{ border: '3px solid rgba(255, 255, 255, 0.35)', flexShrink: 0 }}
+            >
+              {user?.name?.charAt(0).toUpperCase()}
+            </Avatar>
+            <div>
+              <Title
+                order={3}
+                style={{
+                  fontWeight: 800,
+                  fontSize: '1.5rem',
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1.2,
+                  color: '#ffffff',
+                  fontFamily: "'Inter', sans-serif",
+                }}
+              >
+                {user?.name}
+              </Title>
+              <Text
+                size="sm"
+                style={{
+                  color: 'rgba(255, 255, 255, 0.75)',
+                  marginTop: '4px',
+                  marginBottom: '10px',
+                  fontFamily: "'Inter', sans-serif",
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {user?.email}
+              </Text>
+              <Group gap="xs">
+                <Badge
+                  color="white"
+                  variant="white"
+                  size="sm"
+                  style={{
+                    color: '#3b82f6',
+                    fontWeight: 700,
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: '0.6875rem',
+                  }}
+                >
+                  {user?.role.replace('_', ' ')}
                 </Badge>
-              )}
-            </Group>
-          </div>
-        </Group>
+                {user?.department && (
+                  <Badge
+                    variant="outline"
+                    size="sm"
+                    style={{
+                      color: '#ffffff',
+                      borderColor: 'rgba(255, 255, 255, 0.4)',
+                      fontFamily: "'Inter', sans-serif",
+                      fontSize: '0.6875rem',
+                    }}
+                  >
+                    {user?.department}
+                  </Badge>
+                )}
+              </Group>
+            </div>
+          </Group>
+        </div>
       </Card>
 
       <Grid gutter="xl">
         {/* Left Navigation Sidebar */}
         <Grid.Col span={{ base: 12, md: 4 }}>
-          <Stack gap="sm">
+          <Stack gap="xs">
             {sidebarItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -155,32 +208,52 @@ export const SettingsPage: React.FC = () => {
                   style={{
                     display: 'block',
                     width: '100%',
-                    padding: '16px',
+                    padding: '14px 16px',
                     borderRadius: '12px',
-                    backgroundColor: isActive ? '#f0f9ff' : 'transparent',
-                    borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
-                    transition: 'all 0.2s ease',
+                    backgroundColor: isActive ? '#eff6ff' : 'transparent',
+                    borderLeft: isActive ? '3px solid #3b82f6' : '3px solid transparent',
+                    transition: 'all 0.18s ease',
+                    border: isActive ? '1px solid #dbeafe' : '1px solid transparent',
+                    borderLeftWidth: isActive ? '3px' : '1px',
                   }}
                 >
                   <Group gap="md" wrap="nowrap">
                     <div style={{
                       width: '36px',
                       height: '36px',
-                      borderRadius: '8px',
-                      backgroundColor: isActive ? '#3b82f6' : '#e5e7eb',
-                      color: isActive ? '#ffffff' : '#4b5563',
+                      borderRadius: '10px',
+                      backgroundColor: isActive ? '#3b82f6' : '#f1f5f9',
+                      color: isActive ? '#ffffff' : '#64748b',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transition: 'all 0.2s ease',
+                      transition: 'all 0.18s ease',
+                      flexShrink: 0,
+                      boxShadow: isActive ? '0 4px 10px rgba(59,130,246,0.3)' : 'none',
                     }}>
-                      <Icon size={18} />
+                      <Icon size={17} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <Text fw={isActive ? 700 : 500} size="sm" c={isActive ? '#1d4ed8' : '#4b5563'}>
+                      <Text
+                        fw={isActive ? 700 : 500}
+                        style={{
+                          fontSize: '0.875rem',
+                          color: isActive ? '#1d4ed8' : '#475569',
+                          fontFamily: "'Inter', sans-serif",
+                          letterSpacing: '-0.01em',
+                          lineHeight: 1.3,
+                        }}
+                      >
                         {item.label}
                       </Text>
-                      <Text size="xs" c="dimmed">
+                      <Text
+                        style={{
+                          fontSize: '0.75rem',
+                          color: '#94a3b8',
+                          fontFamily: "'Inter', sans-serif",
+                          marginTop: '2px',
+                        }}
+                      >
                         {item.desc}
                       </Text>
                     </div>

@@ -123,7 +123,7 @@ export const InvoicesPage = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'draft': return 'gray';
       case 'sent': return 'blue';
       case 'partially_paid': return 'orange';
@@ -137,32 +137,105 @@ export const InvoicesPage = () => {
   const totalReceived = invoices.reduce((sum, inv) => sum + (inv.receivedAmount || 0), 0);
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.4s ease-out' }}>
-      <Group justify="space-between" mb="xl">
+    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+          <Title
+            order={2}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.875rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.2,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
             Financial Overview
           </Title>
-          <Text color="dimmed" size="sm">Manage all project invoices and track payments.</Text>
+          <Text
+            size="sm"
+            mt={6}
+            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+          >
+            Manage all project invoices and track payments.
+          </Text>
         </div>
-        <Button leftSection={<Plus size={16} />} size="md" onClick={openCreateModal}>
+        <Button
+          leftSection={<Plus size={16} />}
+          size="md"
+          color="blue"
+          onClick={openCreateModal}
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 600,
+            boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+          }}
+        >
           Create Invoice
         </Button>
       </Group>
 
       <Group grow mb="xl">
-        <Card shadow="sm" p="md" radius="md" withBorder>
-          <Text size="sm" c="dimmed" fw={600} tt="uppercase">Total Received</Text>
-          <Text size="xl" fw={700} c="green">${totalReceived.toLocaleString()}</Text>
-        </Card>
-        <Card shadow="sm" p="md" radius="md" withBorder>
-          <Text size="sm" c="dimmed" fw={600} tt="uppercase">Total Pending</Text>
-          <Text size="xl" fw={700} c="orange">${totalPending.toLocaleString()}</Text>
-        </Card>
+        <div style={{
+          background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
+          border: '1px solid #a7f3d0',
+          borderRadius: '14px',
+          padding: '20px 24px',
+          boxShadow: '0 2px 8px rgba(16,185,129,0.08)',
+        }}>
+          <Text
+            size="xs"
+            fw={700}
+            tt="uppercase"
+            style={{ color: '#059669', letterSpacing: '0.08em', fontFamily: "'Inter', sans-serif", fontSize: '0.7rem' }}
+          >
+            Total Received
+          </Text>
+          <Text
+            fw={800}
+            style={{ fontSize: '1.75rem', color: '#065f46', letterSpacing: '-0.04em', fontFamily: "'Inter', sans-serif", lineHeight: 1.2, marginTop: '4px' }}
+          >
+            ${totalReceived.toLocaleString()}
+          </Text>
+        </div>
+        <div style={{
+          background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
+          border: '1px solid #fed7aa',
+          borderRadius: '14px',
+          padding: '20px 24px',
+          boxShadow: '0 2px 8px rgba(245,158,11,0.08)',
+        }}>
+          <Text
+            size="xs"
+            fw={700}
+            tt="uppercase"
+            style={{ color: '#d97706', letterSpacing: '0.08em', fontFamily: "'Inter', sans-serif", fontSize: '0.7rem' }}
+          >
+            Total Pending
+          </Text>
+          <Text
+            fw={800}
+            style={{ fontSize: '1.75rem', color: '#92400e', letterSpacing: '-0.04em', fontFamily: "'Inter', sans-serif", lineHeight: 1.2, marginTop: '4px' }}
+          >
+            ${totalPending.toLocaleString()}
+          </Text>
+        </div>
       </Group>
 
-      <Card shadow="sm" p="lg" radius="lg" withBorder>
-        <Table verticalSpacing="md">
+      <Card
+        shadow="sm"
+        p="lg"
+        radius="lg"
+        withBorder
+        style={{
+          border: '1px solid #e8ecf4',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+          borderRadius: '16px',
+          overflow: 'hidden',
+        }}
+      >
+        <Table verticalSpacing="md" striped highlightOnHover>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Invoice #</Table.Th>
@@ -196,10 +269,10 @@ export const InvoicesPage = () => {
                   <Table.Td>
                     <Group gap={4} justify="flex-end">
                       {inv.status !== 'paid' && (
-                        <Button 
-                          size="xs" 
-                          variant="light" 
-                          color="green" 
+                        <Button
+                          size="xs"
+                          variant="light"
+                          color="green"
                           onClick={() => {
                             setActiveInvoiceForPayment(inv);
                             setPaymentAmount(inv.pendingAmount);

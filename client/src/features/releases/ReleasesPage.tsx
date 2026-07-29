@@ -32,7 +32,7 @@ export const ReleasesPage: React.FC = () => {
   const projects = projectsData?.data || [];
   const users = usersData?.data || [];
 
-  const filteredReleases = filterStatus 
+  const filteredReleases = filterStatus
     ? releases.filter(r => r.status === filterStatus)
     : releases;
 
@@ -101,20 +101,57 @@ export const ReleasesPage: React.FC = () => {
   };
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.4s ease-out' }}>
-      <Group justify="space-between" mb="xl">
+    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+          <Title
+            order={2}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.875rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.2,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
             Releases
           </Title>
-          <Text color="dimmed" size="sm">Manage and track project deployments and milestones.</Text>
+          <Text
+            size="sm"
+            mt={6}
+            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+          >
+            Manage and track project deployments and milestones.
+          </Text>
         </div>
-        <Button leftSection={<Plus size={16} />} size="md" onClick={openCreateModal}>
+        <Button
+          leftSection={<Plus size={16} />}
+          size="md"
+          color="blue"
+          onClick={openCreateModal}
+          style={{
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: 600,
+            boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+          }}
+        >
           Add Release
         </Button>
       </Group>
 
-      <Card shadow="sm" p="lg" radius="lg" withBorder>
+      <Card
+        shadow="sm"
+        p="lg"
+        radius="lg"
+        withBorder
+        style={{
+          border: '1px solid #e8ecf4',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+          borderRadius: '16px',
+          overflow: 'hidden',
+        }}
+      >
         <Group mb="md">
           <Select
             placeholder="Filter by Status"
@@ -146,7 +183,7 @@ export const ReleasesPage: React.FC = () => {
             {filteredReleases.map((release) => {
               const project = typeof release.project === 'object' ? release.project : null;
               const member = typeof release.teamMember === 'object' ? release.teamMember : null;
-              
+
               return (
                 <Table.Tr key={release._id}>
                   <Table.Td>
@@ -167,7 +204,7 @@ export const ReleasesPage: React.FC = () => {
                     <Text size="sm" fw={500}>{new Date(release.releaseDate).toLocaleDateString()}</Text>
                   </Table.Td>
                   <Table.Td>
-                    <Badge 
+                    <Badge
                       color={release.status === 'released' ? 'green' : release.status === 'in_review' ? 'yellow' : 'gray'}
                       variant="light"
                     >
