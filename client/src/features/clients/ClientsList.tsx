@@ -199,7 +199,7 @@ export const ClientsList: React.FC = () => {
               fontWeight: 800,
               letterSpacing: '-0.04em',
               lineHeight: 1.2,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}
           >
             Clients
@@ -209,7 +209,7 @@ export const ClientsList: React.FC = () => {
             mt={6}
             style={{
               color: '#94a3b8',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
               letterSpacing: '-0.01em',
             }}
           >
@@ -224,7 +224,7 @@ export const ClientsList: React.FC = () => {
             color="blue"
             onClick={openCreateDrawer}
             style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontWeight: 600,
               letterSpacing: '-0.01em',
               boxShadow: '0 4px 14px rgba(59,130,246,0.3)',

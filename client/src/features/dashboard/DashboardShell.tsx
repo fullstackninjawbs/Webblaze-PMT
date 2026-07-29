@@ -118,7 +118,7 @@ export const DashboardShell: React.FC = () => {
               fontWeight: 800,
               letterSpacing: '-0.04em',
               lineHeight: 1.2,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}
           >
             Command Center
@@ -130,7 +130,7 @@ export const DashboardShell: React.FC = () => {
               color: '#94a3b8',
               fontSize: '0.9rem',
               fontWeight: 400,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
               letterSpacing: '-0.01em',
             }}
           >
@@ -148,7 +148,7 @@ export const DashboardShell: React.FC = () => {
             padding: '7px 14px',
             boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
           }}>
-            <span style={{ fontSize: '0.8125rem', color: '#64748b', fontWeight: 500, fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}>{formattedDate}</span>
+            <span style={{ fontSize: '0.8125rem', color: '#64748b', fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{formattedDate}</span>
           </div>
           <TextInput
             placeholder="Search dashboard..."
@@ -163,7 +163,7 @@ export const DashboardShell: React.FC = () => {
                 width: '240px',
                 fontSize: '0.875rem',
                 boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
               }
             }}
           />
