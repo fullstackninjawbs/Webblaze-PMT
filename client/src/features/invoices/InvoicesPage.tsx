@@ -137,7 +137,7 @@ export const InvoicesPage = () => {
   const totalReceived = invoices.reduce((sum, inv) => sum + (inv.receivedAmount || 0), 0);
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+    <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
           <Title

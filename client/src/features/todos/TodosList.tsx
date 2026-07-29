@@ -85,7 +85,7 @@ export const TodosList = () => {
   };
 
   return (
-    <Container size="xl" py="xl">
+    <Container size="xl">
       <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
           <Title

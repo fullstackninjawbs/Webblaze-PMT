@@ -206,20 +206,41 @@ export const ProjectsList: React.FC = () => {
   ));
 
   return (
-    <div style={{ animation: 'fade-in 0.4s ease-out' }}>
-      <Group justify="space-between" mb="xl">
+    <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+          <Title
+            order={2}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.875rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.2,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
             Projects
           </Title>
-          <Text color="dimmed" size="sm">Track and manage all your active engagements.</Text>
+          <Text
+            size="sm"
+            mt={6}
+            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+          >
+            Track and manage all your active engagements.
+          </Text>
         </div>
         {isAdminOrPM && (
           <Button
-            leftSection={<Plus size={18} />}
+            leftSection={<Plus size={16} />}
             radius="md"
             variant="filled"
             onClick={openCreateModal}
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 600,
+              boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+            }}
           >
             New Project
           </Button>
@@ -236,7 +257,17 @@ export const ProjectsList: React.FC = () => {
         </Tabs.List>
       </Tabs>
 
-      <Card shadow="sm" p="0" radius="xl" withBorder style={{ border: 'none' }}>
+      <Card
+        shadow="sm"
+        p="0"
+        radius="xl"
+        withBorder
+        style={{
+          border: '1px solid #e8ecf4',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+          overflow: 'hidden',
+        }}
+      >
         <Table.ScrollContainer minWidth={800}>
           <Table verticalSpacing="md" horizontalSpacing="xl">
             <Table.Thead>

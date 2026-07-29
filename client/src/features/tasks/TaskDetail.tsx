@@ -96,7 +96,7 @@ export const TaskDetail = () => {
   };
 
   return (
-    <Container size="md" py="xl" style={{ animation: 'fade-in 0.4s ease-out' }}>
+    <Container size="md" style={{ animation: 'fade-in 0.4s ease-out' }}>
       <Button variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />} onClick={() => navigate(-1)} mb="md" style={{ paddingLeft: 0 }}>
         Back
       </Button>

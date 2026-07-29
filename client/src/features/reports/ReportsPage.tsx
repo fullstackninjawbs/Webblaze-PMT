@@ -74,12 +74,28 @@ export const ReportsPage: React.FC = () => {
   });
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.4s ease-out' }}>
-      <div style={{ marginBottom: '30px' }}>
-        <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+    <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <div style={{ marginBottom: '28px' }}>
+        <Title
+          order={2}
+          style={{
+            color: '#0f172a',
+            fontSize: '1.875rem',
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            lineHeight: 1.2,
+            fontFamily: "'Inter', sans-serif",
+          }}
+        >
           Reports & Analytics
         </Title>
-        <Text color="dimmed" size="sm">Consolidated workspace performance and financial highlights.</Text>
+        <Text
+          size="sm"
+          mt={6}
+          style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+        >
+          Consolidated workspace performance and financial highlights.
+        </Text>
       </div>
 
       {/* KPI Section */}

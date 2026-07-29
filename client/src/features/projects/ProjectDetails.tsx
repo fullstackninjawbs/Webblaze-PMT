@@ -145,7 +145,7 @@ export const ProjectDetails = () => {
   if (!project) return <Container mt="xl"><Title>Project not found</Title></Container>;
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+    <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <Button
         variant="subtle"
         color="gray"

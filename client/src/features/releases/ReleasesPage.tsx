@@ -101,7 +101,7 @@ export const ReleasesPage: React.FC = () => {
   };
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+    <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
           <Title

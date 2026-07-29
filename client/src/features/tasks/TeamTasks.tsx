@@ -44,11 +44,29 @@ export const TeamTasks = () => {
   if (isTasksLoading || isUsersLoading) return <Center h={400}><Loader color="blue" /></Center>;
 
   return (
-    <Container size="xl" py="xl" style={{ animation: 'fade-in 0.4s ease-out' }}>
-      <Group justify="space-between" mb="xl">
+    <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800 }}>Team Tasks</Title>
-          <Text color="dimmed" size="sm">Manage and assign tasks across all your projects.</Text>
+          <Title
+            order={2}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.875rem',
+              fontWeight: 800,
+              letterSpacing: '-0.04em',
+              lineHeight: 1.2,
+              fontFamily: "'Inter', sans-serif",
+            }}
+          >
+            Team Tasks
+          </Title>
+          <Text
+            size="sm"
+            mt={6}
+            style={{ color: '#94a3b8', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}
+          >
+            Manage and assign tasks across all your projects.
+          </Text>
         </div>
         <Select
           placeholder="Filter by Department"

@@ -137,7 +137,7 @@ export const DashboardLayout: React.FC = () => {
         breakpoint: 'sm',
       }}
       header={activeTimer ? { height: 56 } : undefined}
-      padding="xl"
+      padding={0}
       bg="#f4f6fb"
     >
       {activeTimer && (
@@ -328,7 +328,7 @@ export const DashboardLayout: React.FC = () => {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <div style={{ maxWidth: '1920px', margin: '0 auto', padding: '8px 4px' }}>
+        <div style={{ maxWidth: '1920px', width: '100%', margin: '0 auto', padding: '40px 28px' }}>
           <Outlet />
         </div>
       </AppShell.Main>
