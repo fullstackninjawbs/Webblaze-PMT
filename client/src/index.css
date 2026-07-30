@@ -27,18 +27,6 @@
   --color-text-secondary: #475569;
   --color-text-muted: #64748b;
 
-  /* Layout Containers */
-}
-
-/* Global Tab Container Max-Width Overrides (1920px & centered) */
-.mantine-Container-root[data-size="xl"],
-.mantine-Container-root:not([data-size]) {
-  max-width: 1920px !important;
-  width: 100% !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
   /* Sidebar */
   --sidebar-width: 264px;
   --sidebar-bg: #ffffff;
@@ -49,7 +37,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
-  --shadow-brand: 0 6px 20px rgba(255, 107, 0, 0.3);
+  --shadow-brand: 0 6px 20px rgba(59, 130, 246, 0.3);
 
   /* Radii */
   --radius-sm: 8px;
@@ -64,6 +52,15 @@
 
   /* Spacing */
   --page-padding: 28px;
+}
+
+/* Global Tab Container Max-Width Overrides (1920px & centered) */
+.mantine-Container-root[data-size="xl"],
+.mantine-Container-root:not([data-size]) {
+  max-width: 1920px !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 /* =====================================================

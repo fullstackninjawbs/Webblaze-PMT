@@ -15,6 +15,7 @@ import { useGetUsersQuery } from '../users/user.slice';
 import { useGetReleasesQuery, useCreateReleaseMutation, useUpdateReleaseMutation, useDeleteReleaseMutation } from '../releases/release.slice';
 import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from '../invoices/invoice.slice';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { useUploadFileMutation } from '../uploads/upload.slice';
 
 const milestoneSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -1029,8 +1030,17 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
     setReleaseModalOpened(true);
   };
 
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
   const handleDeleteRelease = (id: string, details: string) => {
-    setDeleteTarget({ id, name: details, type: 'release' });
+    setDeleteTarget({ id, name: details });
+  };
+
+  const confirmDeleteRelease = async () => {
+    if (deleteTarget) {
+      await deleteRelease(deleteTarget.id).unwrap();
+      setDeleteTarget(null);
+    }
   };
 
   const handleSubmit = async (values: typeof releaseForm.values) => {
@@ -1173,9 +1183,18 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
           </Stack>
         </form>
       </Modal>
+
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteRelease}
+        title="Delete Release"
+        itemName={deleteTarget?.name}
+      />
     </Card>
   );
 };
+
 const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projectData: any }) => {
   const { data: invoicesData, isLoading } = useGetInvoicesQuery({ project: projectId });
   const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceMutation();
@@ -1191,6 +1210,8 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('bank_transfer');
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const invoices = invoicesData?.data || [];
 
@@ -1252,7 +1273,14 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
   };
 
   const handleDeleteInvoice = (id: string, invoiceNumber: string) => {
-    setDeleteTarget({ id, name: invoiceNumber, type: 'invoice' });
+    setDeleteTarget({ id, name: invoiceNumber });
+  };
+
+  const confirmDeleteInvoice = async () => {
+    if (deleteTarget) {
+      await deleteInvoice(deleteTarget.id).unwrap();
+      setDeleteTarget(null);
+    }
   };
 
   const handleRecordPayment = async () => {
@@ -1444,8 +1472,8 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
       <DeleteConfirmModal
         opened={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={confirmDeleteAction}
-        title={deleteTarget?.type === 'member' ? 'Remove Team Member' : deleteTarget?.type === 'release' ? 'Delete Release' : 'Delete Invoice'}
+        onConfirm={confirmDeleteInvoice}
+        title="Delete Invoice"
         itemName={deleteTarget?.name}
       />
     </Card>
