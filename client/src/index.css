@@ -394,20 +394,14 @@ h1, h2, h3, h4, h5, h6 {
   color: #0369a1 !important;
 }
 
-/* ---- WHITE FLOATING CARDS (on top of dark main canvas) ---- */
+/* ---- WHITE FLOATING CARDS & PAPERS (Flat, Crisp Clean System) ---- */
 .mantine-Card-root,
 .mantine-Paper-root {
-  background-color: #ffffff !important;
-  border: 1px solid #e8ecf4 !important;
-  color: #0f172a !important;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25) !important;
-  border-radius: 16px !important;
-  transition: box-shadow var(--transition-normal), transform var(--transition-normal) !important;
-  font-family: var(--font-primary) !important;
-}
-
-.mantine-Card-root:hover {
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35) !important;
+  background-color: #ffffff;
+  border: 1px solid #e8ecf4;
+  color: #0f172a;
+  box-shadow: none !important;
+  font-family: var(--font-primary);
 }
 
 /* ---- INPUTS ---- */

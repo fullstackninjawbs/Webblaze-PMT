@@ -193,9 +193,9 @@ export const ProjectsList: React.FC = () => {
     <Table.Tr key={project._id}>
       <Table.Td>
         <Group gap="sm">
-          <Paper p={6} radius="md" bg="#eff6ff">
+          <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Briefcase size={18} color="#2563eb" />
-          </Paper>
+          </div>
           <div>
             <Text
               size="sm"

@@ -190,22 +190,22 @@ export const ClientsList: React.FC = () => {
     <Table.Tr key={client._id}>
       <Table.Td>
         <Group gap="sm">
-          <Paper
-            p={6}
-            radius="md"
-            bg="#eff6ff"
+          <div
             style={{
               width: 36,
               height: 36,
+              borderRadius: '10px',
+              backgroundColor: '#eff6ff',
               display: 'flex',
               alignItems: 'center',
-              justify: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             <Text fw={700} style={{ color: '#2563eb' }}>
               {client.name.charAt(0).toUpperCase()}
             </Text>
-          </Paper>
+          </div>
           <div>
             <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
               {client.name}

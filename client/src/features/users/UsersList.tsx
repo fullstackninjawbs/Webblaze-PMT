@@ -152,22 +152,22 @@ export const UsersList: React.FC = () => {
     <Table.Tr key={user._id}>
       <Table.Td>
         <Group gap="sm">
-          <Paper
-            p={6}
-            radius="md"
-            bg="#f3e8ff"
+          <div
             style={{
               width: 36,
               height: 36,
+              borderRadius: '10px',
+              backgroundColor: '#f3e8ff',
               display: 'flex',
               alignItems: 'center',
-              justify: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             <Text fw={700} style={{ color: '#9333ea' }}>
               {(user.name || 'U').charAt(0).toUpperCase()}
             </Text>
-          </Paper>
+          </div>
           <div>
             <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
               {user.name || 'Unknown User'}
