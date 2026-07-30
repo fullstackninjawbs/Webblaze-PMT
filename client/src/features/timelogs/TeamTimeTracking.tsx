@@ -1,5 +1,5 @@
-
-import { Container, Title, Text, Card, Table, Badge, Group, Avatar, SimpleGrid } from '@mantine/core';
+import { Container, Title, Text, Card, Table, Badge, Group, SimpleGrid } from '@mantine/core';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTeamTimeLogsQuery } from './timeLog.slice';
 
 export const TeamTimeTracking = () => {
@@ -53,9 +53,7 @@ export const TeamTimeTracking = () => {
             <Card key={log._id} shadow="sm" p="md" radius="md" withBorder style={{ borderColor: '#3b82f6' }}>
               <Group justify="space-between" mb="sm">
                 <Group gap="sm">
-                  <Avatar src={user?.avatarUrl} radius="xl" size="sm" color="blue">
-                    {user?.name?.charAt(0) || 'U'}
-                  </Avatar>
+                  <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} size="sm" />
                   <Text size="sm" fw={600}>{user?.name || 'Unknown User'}</Text>
                 </Group>
                 <Badge color="blue" variant="filled" className="pulsing-badge">Running</Badge>
@@ -96,9 +94,7 @@ export const TeamTimeTracking = () => {
                 <Table.Tr key={log._id}>
                   <Table.Td>
                     <Group gap="sm">
-                      <Avatar src={user?.avatarUrl} radius="xl" size="sm">
-                        {user?.name?.charAt(0) || 'U'}
-                      </Avatar>
+                      <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} size="sm" />
                       <Text size="sm" fw={500}>{user?.name || 'Unknown User'}</Text>
                     </Group>
                   </Table.Td>

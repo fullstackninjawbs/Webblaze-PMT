@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, Text, Group, Table, Badge, Avatar, Progress } from '@mantine/core';
+import { Card, Text, Group, Table, Badge, Progress } from '@mantine/core';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTeamTimeLogsQuery } from '../timelogs/timeLog.slice';
 
 export const TeamTimeTrackingPanel: React.FC = () => {
@@ -71,9 +72,7 @@ export const TeamTimeTrackingPanel: React.FC = () => {
               <Table.Tr key={member.user._id}>
                 <Table.Td>
                   <Group gap="sm">
-                    <Avatar src={member.user.avatarUrl} radius="xl" size="sm" color="blue">
-                      {member.user.name?.charAt(0)}
-                    </Avatar>
+                    <UserAvatar name={member.user.name} avatarUrl={member.user.avatarUrl} size="sm" />
                     <div>
                       <Text size="sm" fw={500}>{member.user.name}</Text>
                       <Text size="xs" c="dimmed">{member.user.role?.replace('_', ' ')}</Text>

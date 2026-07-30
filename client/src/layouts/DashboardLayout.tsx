@@ -6,9 +6,10 @@ import { RootState } from '../app/store';
 import { useLogoutMutation } from '../features/auth/auth.slice';
 import { LayoutDashboard, CheckSquare, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity } from 'lucide-react';
 import { Role } from '../types';
-import { AppShell, Stack, Avatar, Text, UnstyledButton, Group, Box, Menu, Badge } from '@mantine/core';
+import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge } from '@mantine/core';
 import { useGetActiveTimerQuery } from '../features/timelogs/timeLog.slice';
 import { BlazeLogo } from '../components/common/BlazeLogo';
+import { UserAvatar } from '../components/common/UserAvatar';
 
 interface NavItem {
   name: string;
@@ -249,14 +250,12 @@ export const DashboardLayout: React.FC = () => {
             <Menu.Target>
               <UnstyledButton className="user-menu-btn">
                 <Group wrap="nowrap" style={{ flex: 1, gap: '10px' }}>
-                  <Avatar
-                    src={user?.avatarUrl}
-                    radius="xl"
+                  <UserAvatar
+                    name={user?.name}
+                    avatarUrl={user?.avatarUrl}
+                    email={user?.email}
                     size={38}
-                    className="user-avatar-badge"
-                  >
-                    {user?.name?.charAt(0).toUpperCase()}{(user?.name?.split(' ')?.[1] || user?.name?.charAt(1) || '').charAt(0).toUpperCase()}
-                  </Avatar>
+                  />
                   <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                     <Text
                       size="sm"

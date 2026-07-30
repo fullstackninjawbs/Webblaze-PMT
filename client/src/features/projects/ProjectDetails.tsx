@@ -4,7 +4,7 @@ import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation } from '../milestones/milestone.slice';
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Accordion, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Avatar, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper } from '@mantine/core';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Accordion, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
@@ -16,6 +16,7 @@ import { useGetUsersQuery } from '../users/user.slice';
 import { useGetReleasesQuery, useCreateReleaseMutation, useUpdateReleaseMutation, useDeleteReleaseMutation } from '../releases/release.slice';
 import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from '../invoices/invoice.slice';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { useUploadFileMutation } from '../uploads/upload.slice';
 
 const milestoneSchema = z.object({
@@ -273,7 +274,7 @@ export const ProjectDetails = () => {
                 <Stack gap="sm">
                   {project.team.slice(0, 3).map((member: any) => (
                     <Group key={member._id} gap="sm">
-                      <Avatar color="blue" radius="xl">{member.name.charAt(0)}</Avatar>
+                      <UserAvatar name={member.name} email={member.email} avatarUrl={member.avatarUrl} size="sm" />
                       <div>
                         <Text size="sm" fw={500}>{member.name}</Text>
                         <Text size="xs" c="dimmed">{member.role.replace('_', ' ')}</Text>
@@ -572,7 +573,7 @@ const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAd
                         {task.assignedTo ? (
                           <Tooltip label={task.assignedTo.role?.replace('_', ' ')} withArrow>
                             <Group gap="xs" wrap="nowrap">
-                              <Avatar size="sm" radius="xl" color="blue">{task.assignedTo.name.charAt(0)}</Avatar>
+                              <UserAvatar name={task.assignedTo.name} avatarUrl={task.assignedTo.avatarUrl} size="sm" />
                               <Text size="sm">{task.assignedTo.name}</Text>
                             </Group>
                           </Tooltip>
@@ -836,7 +837,7 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
                 <Table.Td>
                   {assignee ? (
                     <Group gap="xs" wrap="nowrap">
-                      <Avatar size="sm" radius="xl" color="blue">{assignee.name?.charAt(0)}</Avatar>
+                      <UserAvatar name={assignee.name} email={assignee.email} avatarUrl={assignee.avatarUrl} size="sm" />
                       <Text size="sm">{assignee.name}</Text>
                     </Group>
                   ) : (
@@ -964,7 +965,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
             <Table.Tr key={member._id}>
               <Table.Td>
                 <Group gap="sm">
-                  <Avatar color="blue" radius="xl">{member.name?.charAt(0)}</Avatar>
+                  <UserAvatar name={member.name} email={member.email} avatarUrl={member.avatarUrl} size="sm" />
                   <Text size="sm" fw={600}>{member.name}</Text>
                 </Group>
               </Table.Td>

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Container, Title, Text, Card, Group, SimpleGrid, Badge, Progress, RingProgress, Table, Avatar, Paper, Stack, Loader, Center, Box } from '@mantine/core';
+import { Container, Title, Text, Card, Group, SimpleGrid, Badge, Progress, RingProgress, Table, Paper, Stack, Loader, Center, Box } from '@mantine/core';
 import { TrendingUp, DollarSign, Clock, CheckCircle2, Briefcase, Users, PieChart } from 'lucide-react';
 import { useGetProjectsQuery } from '../projects/project.slice';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetAllTasksQuery } from '../tasks/task.slice';
 import { useGetTeamTimeLogsQuery } from '../timelogs/timeLog.slice';
 import { useGetUsersQuery } from '../users/user.slice';
@@ -445,18 +446,7 @@ export const ReportsPage: React.FC = () => {
               <Table.Tr key={u._id}>
                 <Table.Td>
                   <Group gap="xs">
-                    <Avatar
-                      src={u.avatarUrl}
-                      size="sm"
-                      radius="xl"
-                      style={{
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                        color: '#fff',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {u.name?.charAt(0).toUpperCase()}
-                    </Avatar>
+                    <UserAvatar name={u.name} avatarUrl={u.avatarUrl} size="sm" />
                     <Text size="sm" fw={600} style={{ color: '#0f172a' }}>{u.name}</Text>
                   </Group>
                 </Table.Td>

@@ -21,6 +21,7 @@ import {
   Paper,
   SimpleGrid,
   Stack,
+  Alert,
 } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
@@ -34,7 +35,9 @@ import {
   ShieldCheck,
   UserCheck,
   Filter,
+  CheckCircle2,
 } from 'lucide-react';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { Role } from '../../types';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
@@ -77,10 +80,17 @@ export const UsersList: React.FC = () => {
     },
   });
 
+  const [invitedUserSuccess, setInvitedUserSuccess] = useState<{ email: string; name: string } | null>(null);
+
   const onSubmit = async (values: typeof form.values) => {
     try {
-      await registerUser(values as any).unwrap();
+      const payload = {
+        ...values,
+        department: values.department || undefined,
+      };
+      await registerUser(payload as any).unwrap();
       setModalOpened(false);
+      setInvitedUserSuccess({ email: values.email, name: values.name });
       form.reset();
     } catch (error) {
       console.error('Failed to register user', error);
@@ -152,22 +162,12 @@ export const UsersList: React.FC = () => {
     <Table.Tr key={user._id}>
       <Table.Td>
         <Group gap="sm">
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: '10px',
-              backgroundColor: '#f3e8ff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Text fw={700} style={{ color: '#9333ea' }}>
-              {(user.name || 'U').charAt(0).toUpperCase()}
-            </Text>
-          </div>
+          <UserAvatar
+            name={user.name}
+            email={user.email}
+            avatarUrl={user.avatarUrl}
+            size={36}
+          />
           <div>
             <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
               {user.name || 'Unknown User'}
@@ -563,6 +563,28 @@ export const UsersList: React.FC = () => {
         title="Remove User"
         itemName={deleteTarget?.name}
       />
+
+      {/* Invitation Success Modal */}
+      <Modal
+        opened={!!invitedUserSuccess}
+        onClose={() => setInvitedUserSuccess(null)}
+        title={<Group gap="xs"><CheckCircle2 color="#10b981" size={20} /><Text fw={700}>Invitation Dispatched</Text></Group>}
+        radius="lg"
+      >
+        <Stack gap="md">
+          <Alert color="green" variant="light" radius="md">
+            Team member <strong>{invitedUserSuccess?.name}</strong> ({invitedUserSuccess?.email}) was successfully registered and invited!
+          </Alert>
+
+          <Text size="xs" c="dimmed">
+            If your real SMTP details (e.g. Gmail/SendGrid) are configured in <code>server/.env</code>, an email was sent directly to their inbox.
+          </Text>
+
+          <Button color="blue" radius="md" onClick={() => setInvitedUserSuccess(null)}>
+            Done
+          </Button>
+        </Stack>
+      </Modal>
     </div>
   );
 };

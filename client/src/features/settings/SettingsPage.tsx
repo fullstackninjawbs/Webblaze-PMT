@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
-import { Container, Title, Text, Card, Group, Stack, TextInput, Button, Avatar, Select, Alert, Badge, Grid, UnstyledButton } from '@mantine/core';
+import { Container, Title, Text, Card, Group, Stack, TextInput, Button, Select, Alert, Badge, Grid, UnstyledButton } from '@mantine/core';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { User as UserIcon, Lock, Settings as SettingsIcon, AlertCircle, Check, Shield, Globe, Coins } from 'lucide-react';
 import { useUpdateUserMutation } from '../users/user.slice';
 import { useChangePasswordMutation, setUser } from '../auth/auth.slice';
@@ -125,15 +126,13 @@ export const SettingsPage: React.FC = () => {
         }} />
         <div style={{ padding: '28px 32px', position: 'relative', zIndex: 1 }}>
           <Group align="center" gap="xl" wrap="nowrap">
-            <Avatar
+            <UserAvatar
               size={72}
-              src={user?.avatarUrl}
-              color="white"
-              radius="100%"
+              name={user?.name}
+              email={user?.email}
+              avatarUrl={user?.avatarUrl}
               style={{ border: '3px solid rgba(255, 255, 255, 0.35)', flexShrink: 0 }}
-            >
-              {user?.name?.charAt(0).toUpperCase()}
-            </Avatar>
+            />
             <div>
               <Title
                 order={3}

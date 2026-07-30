@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Card, Text, Group, Table, Avatar, Badge, ActionIcon, Select, TextInput } from '@mantine/core';
+import { Card, Text, Group, Table, Badge, ActionIcon, Select, TextInput } from '@mantine/core';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { Search, ExternalLink } from 'lucide-react';
 import { Todo } from '../todos/todo.slice';
 import { useNavigate } from 'react-router-dom';
@@ -63,9 +64,7 @@ export const TeamTodoOverview: React.FC<Props> = ({ todos }) => {
               <Table.Tr key={todo._id}>
                 <Table.Td>
                   <Group gap="sm">
-                    <Avatar src={user?.avatarUrl} radius="xl" size="sm" color="blue">
-                      {user?.name?.charAt(0)}
-                    </Avatar>
+                    <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} size="sm" />
                     <div>
                       <Text size="sm" fw={500}>{user?.name || 'Unassigned'}</Text>
                       <Text size="xs" c="dimmed">{user?.role?.replace('_', ' ')}</Text>
