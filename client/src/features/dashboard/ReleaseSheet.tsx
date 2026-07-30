@@ -77,7 +77,16 @@ export const ReleaseSheet: React.FC = () => {
             clearable
             styles={{ input: { width: 140 } }}
           />
-          <Button leftSection={<Plus size={16} />} size="sm" onClick={() => setOpened(true)}>
+          <Button
+            leftSection={<Plus size={16} />}
+            size="sm"
+            onClick={() => setOpened(true)}
+            style={{
+              background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+              boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
+              fontWeight: 600,
+            }}
+          >
             Add Release
           </Button>
         </Group>

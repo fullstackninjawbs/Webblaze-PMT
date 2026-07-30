@@ -2,14 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
-import { MantineProvider, createTheme, Button, Card, Modal, Drawer, TextInput, Select, PasswordInput, NumberInput, Textarea, Table, Badge } from '@mantine/core';
+import { MantineProvider, createTheme } from '@mantine/core';
 import { store } from './app/store';
 import App from './App';
 import '@mantine/core/styles.css';
 import './index.css';
 
 const theme = createTheme({
-  primaryColor: 'blue',
+  primaryColor: 'orange',
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   fontFamilyMonospace: "'JetBrains Mono', 'Fira Code', monospace",
   defaultRadius: 'md',

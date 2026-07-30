@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { Plus, Mail, Edit, Trash } from 'lucide-react';
 import { Role } from '../../types';
 
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+
 const registerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email'),
@@ -78,9 +80,16 @@ export const UsersList: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to remove this user?')) {
-      await deleteUser(id).unwrap();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDelete = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteUser(deleteTarget.id).unwrap();
+      setDeleteTarget(null);
     }
   };
 
@@ -124,7 +133,7 @@ export const UsersList: React.FC = () => {
           <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(user)} title="Edit Role">
             <Edit size={16} />
           </ActionIcon>
-          <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(user._id)} title="Remove User">
+          <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(user._id, user.name)} title="Remove User">
             <Trash size={16} />
           </ActionIcon>
         </Group>
@@ -271,6 +280,15 @@ export const UsersList: React.FC = () => {
           </form>
         )}
       </Modal>
+
+      {/* Custom Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Remove User"
+        itemName={deleteTarget?.name}
+      />
     </div>
   );
 };

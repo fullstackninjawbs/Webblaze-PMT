@@ -8,44 +8,115 @@ import { LayoutDashboard, CheckSquare, Briefcase, Rocket, Users, BarChart3, Cloc
 import { Role } from '../types';
 import { AppShell, Stack, Avatar, Text, UnstyledButton, Group, Box, Menu, Badge } from '@mantine/core';
 import { useGetActiveTimerQuery } from '../features/timelogs/timeLog.slice';
+import { BlazeLogo } from '../components/common/BlazeLogo';
 
-// Distinct sidebars based on user role as specified in Phase 1 requirements
-const sidebarNavigation = {
+interface NavItem {
+  name: string;
+  href: string;
+  icon: any;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+// Categorized sidebar navigation divided into clear module sections
+const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
   [Role.ADMIN]: [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'All Projects', href: '/projects', icon: Briefcase },
-    { name: 'Clients', href: '/clients', icon: Users },
-    { name: 'Team', href: '/team', icon: Users },
-    { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
-    { name: 'Daily Status', href: '/daily-status', icon: Activity },
-    { name: 'Releases', href: '/releases', icon: Rocket },
-    { name: 'Time Tracking', href: '/team-time', icon: Clock },
-    { name: 'Invoices', href: '/invoices', icon: DollarSign },
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    {
+      title: 'MANAGEMENT',
+      items: [
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'All Projects', href: '/projects', icon: Briefcase },
+      ],
+    },
+    {
+      title: 'EXECUTION & TASKS',
+      items: [
+        { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
+        { name: 'Daily Status', href: '/daily-status', icon: Activity },
+        { name: 'Releases', href: '/releases', icon: Rocket },
+        { name: 'Time Tracking', href: '/team-time', icon: Clock },
+      ],
+    },
+    {
+      title: 'PEOPLE & CLIENTS',
+      items: [
+        { name: 'Clients', href: '/clients', icon: Users },
+        { name: 'Team Directory', href: '/team', icon: Users },
+      ],
+    },
+    {
+      title: 'FINANCE & REPORTS',
+      items: [
+        { name: 'Invoices', href: '/invoices', icon: DollarSign },
+        { name: 'Reports & Analytics', href: '/reports', icon: BarChart3 },
+      ],
+    },
   ],
   [Role.PM]: [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Projects', href: '/projects', icon: Briefcase },
-    { name: 'Clients', href: '/clients', icon: Users },
-    { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
-    { name: 'Daily Status', href: '/daily-status', icon: Activity },
-    { name: 'Releases', href: '/releases', icon: Rocket },
-    { name: 'Time Tracking', href: '/team-time', icon: Clock },
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
+    {
+      title: 'MANAGEMENT',
+      items: [
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Projects', href: '/projects', icon: Briefcase },
+      ],
+    },
+    {
+      title: 'EXECUTION & TASKS',
+      items: [
+        { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
+        { name: 'Daily Status', href: '/daily-status', icon: Activity },
+        { name: 'Releases', href: '/releases', icon: Rocket },
+        { name: 'Time Tracking', href: '/team-time', icon: Clock },
+      ],
+    },
+    {
+      title: 'PEOPLE & CLIENTS',
+      items: [
+        { name: 'Clients', href: '/clients', icon: Users },
+      ],
+    },
+    {
+      title: 'ANALYTICS',
+      items: [
+        { name: 'Reports & Analytics', href: '/reports', icon: BarChart3 },
+      ],
+    },
   ],
   [Role.TEAM_LEAD]: [
-    { name: 'My Projects', href: '/projects', icon: Briefcase },
-    { name: 'Team Tasks', href: '/team-tasks', icon: ListTodo },
-    { name: 'Team Todos', href: '/todos/team', icon: CheckSquare },
-    { name: 'Daily Status', href: '/daily-status', icon: Activity },
-    { name: 'Releases', href: '/releases', icon: Rocket },
+    {
+      title: 'MANAGEMENT',
+      items: [
+        { name: 'My Projects', href: '/projects', icon: Briefcase },
+      ],
+    },
+    {
+      title: 'EXECUTION & TASKS',
+      items: [
+        { name: 'Team Tasks', href: '/team-tasks', icon: ListTodo },
+        { name: 'Team Todos', href: '/todos/team', icon: CheckSquare },
+        { name: 'Daily Status', href: '/daily-status', icon: Activity },
+        { name: 'Releases', href: '/releases', icon: Rocket },
+      ],
+    },
   ],
   [Role.TEAM_MEMBER]: [
-    { name: 'My Tasks', href: '/my-tasks', icon: ListTodo },
-    { name: 'My Todos', href: '/todos/me', icon: CheckSquare },
-    { name: 'Daily Status', href: '/daily-status', icon: Activity },
-  ]
+    {
+      title: 'MY WORK',
+      items: [
+        { name: 'My Tasks', href: '/my-tasks', icon: ListTodo },
+        { name: 'My Todos', href: '/todos/me', icon: CheckSquare },
+      ],
+    },
+    {
+      title: 'DAILY ACTIVITY',
+      items: [
+        { name: 'Daily Status', href: '/daily-status', icon: Activity },
+      ],
+    },
+  ],
 };
 
 export const DashboardLayout: React.FC = () => {
@@ -61,44 +132,68 @@ export const DashboardLayout: React.FC = () => {
     navigate('/login');
   };
 
-  const navItems = user?.role ? sidebarNavigation[user.role] : [];
+  const navSections = user?.role ? categorizedSidebarNavigation[user.role] : [];
 
-  const renderNavItems = () => {
-    return navItems.map((item) => {
-      const active = location.pathname === item.href || location.pathname.startsWith(`${item.href}/`);
-      return (
-        <UnstyledButton
-          key={item.name}
-          onClick={() => navigate(item.href)}
-          className={`nav-item ${active ? 'active' : ''}`}
+  const renderSectionedNavItems = () => {
+    return navSections.map((section, idx) => (
+      <Box key={section.title || idx} mb="md">
+        <Text
+          style={{
+            fontSize: '0.6875rem',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.09em',
+            color: '#94a3b8',
+            padding: '6px 14px 6px',
+          }}
         >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            backgroundColor: active ? 'rgba(255,255,255,0.2)' : 'transparent',
-            marginRight: '10px',
-            flexShrink: 0,
-            transition: 'all 0.18s ease',
-          }}>
-            <item.icon size={17} strokeWidth={active ? 2.5 : 2} />
-          </div>
-          <Text
-            size="sm"
-            style={{
-                fontWeight: active ? 600 : 500,
-              fontSize: '0.875rem',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            {item.name}
-          </Text>
-        </UnstyledButton>
-      );
-    });
+          {section.title}
+        </Text>
+        <Stack gap={3}>
+          {section.items.map((item) => {
+            const isExactMatch = location.pathname === item.href;
+            const isSubRouteMatch = item.href !== '/' && item.href !== '/dashboard' && location.pathname.startsWith(`${item.href}/`);
+            const active = isExactMatch || isSubRouteMatch;
+
+            return (
+              <UnstyledButton
+                key={item.name}
+                onClick={() => navigate(item.href)}
+                className={`sidebar-nav-btn ${active ? 'active' : ''}`}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: active ? 'rgba(255,255,255,0.22)' : 'transparent',
+                    marginRight: '10px',
+                    flexShrink: 0,
+                    transition: 'all 0.18s ease',
+                  }}
+                >
+                  <item.icon size={17} strokeWidth={active ? 2.5 : 2} color={active ? '#ffffff' : 'currentColor'} />
+                </div>
+                <Text
+                  size="sm"
+                  style={{
+                    fontWeight: active ? 600 : 500,
+                    fontSize: '0.875rem',
+                    letterSpacing: '-0.01em',
+                    color: 'inherit',
+                  }}
+                >
+                  {item.name}
+                </Text>
+              </UnstyledButton>
+            );
+          })}
+        </Stack>
+      </Box>
+    ));
   };
 
   return (
@@ -109,118 +204,72 @@ export const DashboardLayout: React.FC = () => {
       }}
       header={activeTimer ? { height: 56 } : undefined}
       padding={0}
-      bg="#f4f6fb"
+      bg="transparent"
     >
       {activeTimer && (
-        <AppShell.Header style={{
-          borderBottom: '1px solid #e8ecf4',
-          backgroundColor: '#eff6ff',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 24px',
-          boxShadow: '0 2px 8px rgba(59,130,246,0.08)',
-        }}>
+        <AppShell.Header
+          style={{
+            borderBottom: '1px solid #bae6fd',
+            backgroundColor: '#f0f9ff',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 24px',
+            boxShadow: '0 2px 8px rgba(14,165,233,0.08)',
+          }}
+        >
           <ActiveTimerBadge />
         </AppShell.Header>
       )}
 
-      <AppShell.Navbar style={{
-        borderRight: '1px solid #eef0f8',
-        backgroundColor: '#ffffff',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '2px 0 20px rgba(0,0,0,0.03)',
-      }}>
-
-        {/* Branding */}
-        <Box px="xl" pt="xl" pb="md">
-          {/* Logo Mark */}
-          <Group gap="sm" mb={4}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(59,130,246,0.35)',
-              flexShrink: 0,
-            }}>
-              <Rocket size={18} color="#fff" strokeWidth={2.5} />
-            </div>
-            <div>
-              <Text
-                fw={800}
-                style={{
-                  fontSize: '1.0625rem',
-                  letterSpacing: '-0.04em',
-                  lineHeight: 1.2,
-                        color: '#0f172a',
-                }}
-              >
-                <span style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}>
-                  WebBlaze
-                </span>
-                <span style={{ color: '#0f172a' }}> PMS</span>
-              </Text>
-              <Text
-                size="xs"
-                style={{
-                  color: '#94a3b8',
-                  fontSize: '0.6875rem',
-                  fontWeight: 500,
-                  letterSpacing: '0.03em',
-                      }}
-              >
-                Project Management
-              </Text>
-            </div>
-          </Group>
+      <AppShell.Navbar
+        style={{
+          borderRight: '1px solid #eef0f8',
+          backgroundColor: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '2px 0 20px rgba(0,0,0,0.04)',
+        }}
+      >
+        {/* Blaze Softtech Branding Header — Flushed to left screen edge */}
+        <Box pl={0} pr="md" pt="md" pb="xs">
+          <BlazeLogo variant="light" size="md" />
         </Box>
 
         {/* Separator */}
-        <div style={{ height: '1px', background: '#f1f4f9', margin: '0 20px 12px' }} />
+        <div style={{ height: '1px', background: '#f1f4f9', margin: '8px 20px 12px' }} />
 
-        {/* Nav Items */}
+        {/* Nav Items grouped by Section */}
         <AppShell.Section grow px="md" pb="md" style={{ overflowY: 'auto' }}>
-          {/* Section label */}
-          <Text
-            style={{
-              fontSize: '0.6875rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              color: '#94a3b8',
-              padding: '8px 14px 4px',
-              }}
-          >
-            Main Menu
-          </Text>
-          <Stack gap={3}>
-            {renderNavItems()}
-          </Stack>
+          {renderSectionedNavItems()}
         </AppShell.Section>
 
         {/* User Profile at Bottom */}
         <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #f1f4f9' }}>
           <Menu position="top-start" shadow="lg" width={230} offset={8}>
             <Menu.Target>
-              <UnstyledButton className="user-menu-btn">
+              <UnstyledButton
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  transition: 'background-color 0.18s ease',
+                  backgroundColor: 'transparent',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fff7ed')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
                 <Group wrap="nowrap" style={{ flex: 1, gap: '10px' }}>
                   <Avatar
                     src={user?.avatarUrl}
                     radius="xl"
                     size={38}
                     style={{
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                      background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
                       color: '#fff',
                       fontWeight: 700,
-                      border: '2px solid #e8ecf4',
+                      border: '2px solid #e0f2fe',
                       fontSize: '0.875rem',
                       flexShrink: 0,
                     }}
@@ -236,7 +285,7 @@ export const DashboardLayout: React.FC = () => {
                         color: '#0f172a',
                         fontSize: '0.875rem',
                         letterSpacing: '-0.015em',
-                                    lineHeight: 1.3,
+                        lineHeight: 1.3,
                       }}
                     >
                       {user?.name}
@@ -244,13 +293,13 @@ export const DashboardLayout: React.FC = () => {
                     <Badge
                       size="xs"
                       variant="light"
-                      color="blue"
+                      color="cyan"
                       mt={3}
                       style={{
                         fontSize: '0.625rem',
                         fontWeight: 700,
                         letterSpacing: '0.02em',
-                                  }}
+                      }}
                     >
                       {user?.role === Role.ADMIN ? 'Admin' : user?.role?.replace('_', ' ')}
                     </Badge>
@@ -282,7 +331,7 @@ export const DashboardLayout: React.FC = () => {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <div style={{ maxWidth: '1920px', width: '100%', margin: '0 auto', padding: '40px 28px' }}>
+        <div style={{ width: '100%', padding: '36px 32px' }}>
           <Outlet />
         </div>
       </AppShell.Main>

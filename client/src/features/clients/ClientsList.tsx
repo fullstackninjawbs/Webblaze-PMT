@@ -10,6 +10,8 @@ import { RootState } from '../../app/store';
 import { Role } from '../../types';
 import { useGetProjectsQuery } from '../projects/project.slice';
 
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+
 const clientSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email').or(z.literal('')),
@@ -80,13 +82,16 @@ export const ClientsList: React.FC = () => {
     setViewDrawerOpened(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this client?')) {
-      try {
-        await deleteClient(id).unwrap();
-      } catch (error) {
-        console.error('Failed to delete client', error);
-      }
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDelete = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteClient(deleteTarget.id).unwrap();
+      setDeleteTarget(null);
     }
   };
 
@@ -177,7 +182,7 @@ export const ClientsList: React.FC = () => {
               <ActionIcon variant="subtle" color="blue" onClick={() => openEditDrawer(client)} title="Edit">
                 <Edit size={16} />
               </ActionIcon>
-              <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(client._id)} title="Delete">
+              <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(client._id, client.name)} title="Delete">
                 <Trash size={16} />
               </ActionIcon>
             </>
@@ -472,6 +477,15 @@ export const ClientsList: React.FC = () => {
           </Stack>
         )}
       </Drawer>
+
+      {/* Custom Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Client"
+        itemName={deleteTarget?.name}
+      />
     </div>
   );
 };

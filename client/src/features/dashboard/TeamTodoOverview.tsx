@@ -99,7 +99,7 @@ export const TeamTodoOverview: React.FC<Props> = ({ todos }) => {
                   </Badge>
                 </Table.Td>
                 <Table.Td>
-                  <ActionIcon variant="light" color="blue" onClick={() => navigate('/todos')}>
+                  <ActionIcon variant="light" color="blue" onClick={() => navigate('/todos/team')}>
                     <ExternalLink size={16} />
                   </ActionIcon>
                 </Table.Td>

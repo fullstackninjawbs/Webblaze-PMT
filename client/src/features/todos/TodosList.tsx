@@ -6,6 +6,7 @@ import { useForm } from '@mantine/form';
 import { Plus, Edit2, Trash, CheckCircle } from 'lucide-react';
 
 import { useState } from 'react';
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
 export const TodosList = () => {
   const { data: todosData, isLoading } = useGetTodosQuery();
@@ -17,6 +18,7 @@ export const TodosList = () => {
 
   const [opened, { open, close }] = useDisclosure(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
 
   const form = useForm({
     initialValues: {
@@ -70,9 +72,14 @@ export const TodosList = () => {
     await updateTodo({ id, data: { status } });
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this to-do?')) {
-      await deleteTodo(id);
+  const handleDelete = (id: string, title: string) => {
+    setDeleteTarget({ id, title });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteTodo(deleteTarget.id);
+      setDeleteTarget(null);
     }
   };
 
@@ -194,7 +201,7 @@ export const TodosList = () => {
                     <ActionIcon variant="subtle" color="blue" onClick={() => handleOpenModal(todo)} title="Edit">
                       <Edit2 size={16} />
                     </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(todo._id)} title="Delete">
+                    <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(todo._id, todo.title)} title="Delete">
                       <Trash size={16} />
                     </ActionIcon>
                   </Group>
@@ -245,6 +252,15 @@ export const TodosList = () => {
           </Stack>
         </form>
       </Modal>
+
+      {/* Custom Delete Confirm Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete To-Do"
+        itemName={deleteTarget?.title}
+      />
     </Container>
   );
 };

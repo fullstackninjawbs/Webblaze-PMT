@@ -10,21 +10,22 @@
   --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Brand Colors */
-  --color-brand-from: #3b82f6;
-  --color-brand-to: #6366f1;
-  --color-brand-gradient: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  /* Brand Colors - Warm Orange Theme */
+  --color-brand-from: #ff6b00;
+  --color-brand-to: #ff3b00;
+  --color-brand-gradient: linear-gradient(135deg, #ff6b00 0%, #ff3b00 100%);
 
-  /* Neutrals */
-  --color-bg: #f4f6fb;
+  /* Clean Light Theme Neutrals for App Panels */
+  --color-bg: #f4f6fa;
   --color-surface: #ffffff;
+  --color-surface-hover: #f8fafc;
   --color-border: #e8ecf4;
   --color-border-subtle: #f1f4f9;
 
   /* Text */
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
+  --color-text-muted: #64748b;
 
   /* Sidebar */
   --sidebar-width: 264px;
@@ -36,7 +37,7 @@
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
-  --shadow-brand: 0 6px 20px rgba(59, 130, 246, 0.25);
+  --shadow-brand: 0 6px 20px rgba(255, 107, 0, 0.3);
 
   /* Radii */
   --radius-sm: 8px;
@@ -81,14 +82,94 @@ html {
   margin-right: 0 !important;
 }
 
+/* body reset */
 body {
   margin: 0;
   font-family: var(--font-primary);
-  background-color: var(--color-bg);
+  background-color: #f8fafc;
+  background-image: none;
   color: var(--color-text-primary);
   line-height: 1.55;
   font-weight: 400;
   letter-spacing: -0.011em;
+}
+
+/* Outer Canvas Wrapper matching reference image */
+.app-canvas-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #14161f;
+  background-image: 
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1440' height='900' viewBox='0 0 1440 900' fill='none'%3E%3Cpath d='M-100 220 C 300 420, 700 20, 1540 200' stroke='%23ff6b00' stroke-width='4' stroke-opacity='0.9' fill='none'/%3E%3Cpath d='M-100 680 C 400 480, 900 820, 1540 620' stroke='%23ff5500' stroke-width='3' stroke-opacity='0.7' fill='none'/%3E%3Cpath d='M 180 -40 C 480 320, 1080 120, 1480 420' stroke='%23ff8c00' stroke-width='2' stroke-dasharray='8 8' stroke-opacity='0.55' fill='none'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse at 85% 15%, rgba(255, 107, 0, 0.18) 0%, transparent 50%),
+    radial-gradient(ellipse at 15% 85%, rgba(255, 59, 0, 0.12) 0%, transparent 45%);
+  background-size: cover, cover, cover;
+  background-attachment: fixed;
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* Outer Top Bar */
+.app-outer-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 14px 12px;
+  color: #ffffff;
+}
+
+.app-outer-brand {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.orange-asterisk-icon {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ff6b00;
+  line-height: 1;
+  text-shadow: 0 0 16px rgba(255, 107, 0, 0.6);
+}
+
+.topbar-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.topbar-value {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Floating App Window Container */
+.app-floating-window {
+  flex: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background-color: #f4f6fa;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Headings */
@@ -97,7 +178,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.25;
-  color: var(--color-text-primary);
+  color: #0f172a;
 }
 
 /* Scrollbar Styling */
@@ -190,29 +271,118 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* =====================================================
-   Mantine Component Overrides — Premium Polish
+   Mantine Component Overrides — Blaze Softtech Brand Theme
    ===================================================== */
 
-/* AppShell Background */
+/* AppShell Root Background */
+.mantine-AppShell-root {
+  background-color: #f8fafc !important;
+  background-image: none !important;
+}
+
+/* AppShell Main Background: Uses user's exact uploaded pure white brick wall background image */
 .mantine-AppShell-main {
-  background-color: var(--color-bg) !important;
+  background-color: #f8fafc !important;
+  background-image: none !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+  width: 100% !important;
+  min-height: 100vh;
 }
 
 /* ---- NAVBAR SIDEBAR ---- */
 .mantine-AppShell-navbar {
-  border-right: 1px solid var(--sidebar-border) !important;
-  background: var(--sidebar-bg) !important;
-  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.03) !important;
+  border-right: 1px solid #eef0f8 !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.04) !important;
 }
 
-/* ---- CARDS ---- */
-.mantine-Card-root {
+/* Sidebar Navigation Item Styles */
+.sidebar-nav-btn {
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 9px 14px !important;
+  border-radius: 10px !important;
+  background-image: none !important;
+  background-color: transparent !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  letter-spacing: -0.01em !important;
+  transition: all 0.18s ease !important;
+  box-shadow: none !important;
+}
+
+.sidebar-nav-btn:hover {
+  background-color: #f0f9ff !important;
+  color: #0284c7 !important;
+  box-shadow: none !important;
+}
+
+.sidebar-nav-btn.active {
+  background-image: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important;
+  background-color: transparent !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35) !important;
+}
+
+.sidebar-nav-btn.active:hover {
+  background-image: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35) !important;
+}
+
+/* =====================================================
+   UNIFIED BRAND BUTTON STYLING (Electric Cyan to Royal Blue)
+   ===================================================== */
+.mantine-Button-root[data-variant="filled"],
+.mantine-Button-root:not([data-variant]) {
+  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35) !important;
+  border: none !important;
+  font-weight: 600 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.mantine-Button-root[data-variant="filled"]:hover,
+.mantine-Button-root:not([data-variant]):hover {
+  background: linear-gradient(135deg, #0284c7 0%, #1d4ed8 100%) !important;
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.45) !important;
+  transform: translateY(-1px) !important;
+}
+
+.mantine-Button-root[data-variant="light"] {
+  background: rgba(14, 165, 233, 0.12) !important;
+  color: #0284c7 !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(14, 165, 233, 0.2) !important;
+}
+
+.mantine-Button-root[data-variant="light"]:hover {
+  background: rgba(14, 165, 233, 0.22) !important;
+  color: #0369a1 !important;
+}
+
+/* ---- WHITE FLOATING CARDS (on top of dark main canvas) ---- */
+.mantine-Card-root,
+.mantine-Paper-root {
+  background-color: #ffffff !important;
+  border: 1px solid #e8ecf4 !important;
+  color: #0f172a !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25) !important;
+  border-radius: 16px !important;
   transition: box-shadow var(--transition-normal), transform var(--transition-normal) !important;
   font-family: var(--font-primary) !important;
 }
 
 .mantine-Card-root:hover {
-  box-shadow: var(--shadow-md) !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35) !important;
 }
 
 /* ---- INPUTS ---- */
@@ -226,6 +396,7 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-sm) !important;
   border-color: var(--color-border) !important;
   background-color: #fafbff !important;
+  color: #0f172a !important;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
   letter-spacing: -0.01em;
 }
@@ -236,7 +407,7 @@ h1, h2, h3, h4, h5, h6 {
 .mantine-Select-input:focus,
 .mantine-NumberInput-input:focus {
   border-color: var(--color-brand-from) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.15) !important;
 }
 
 /* Input Labels */
@@ -249,7 +420,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-primary) !important;
   font-size: 0.84375rem !important;
   font-weight: 600 !important;
-  color: var(--color-text-primary) !important;
+  color: #0f172a !important;
   letter-spacing: -0.01em !important;
   margin-bottom: 5px !important;
 }
@@ -374,15 +545,15 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .nav-item:hover {
-  background-color: #f0f5ff !important;
-  color: #3b82f6 !important;
+  background-color: #fff7ed !important;
+  color: #ea580c !important;
 }
 
 .nav-item.active {
-  background-image: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  background-image: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(255, 107, 0, 0.35) !important;
 }
 
 .nav-item.active:hover {

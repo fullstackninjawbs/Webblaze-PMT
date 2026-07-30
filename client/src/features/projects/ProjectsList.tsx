@@ -12,6 +12,8 @@ import { RootState } from '../../app/store';
 import { Role, ProjectStatus } from '../../types';
 import { useNavigate } from 'react-router-dom';
 
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+
 const projectSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   client: z.string().min(1, 'Client is required'),
@@ -91,13 +93,15 @@ export const ProjectsList: React.FC = () => {
     }
   };
 
-  const handleDeleteProject = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      try {
-        await deleteProject(id).unwrap();
-      } catch (e) {
-        console.error('Failed to delete project', e);
-      }
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteProject = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteProject(deleteTarget.id).unwrap();
     }
   };
 
@@ -195,7 +199,7 @@ export const ProjectsList: React.FC = () => {
               <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(project)} title="Edit">
                 <Edit size={16} />
               </ActionIcon>
-              <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteProject(project._id)} title="Delete">
+              <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteProject(project._id, project.name)} title="Delete">
                 <Trash size={16} />
               </ActionIcon>
             </>
@@ -414,6 +418,15 @@ export const ProjectsList: React.FC = () => {
           </Grid>
         </form>
       </Modal>
+
+      {/* Custom Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Project"
+        itemName={deleteTarget?.name}
+      />
     </div>
   );
 };

@@ -6,6 +6,8 @@ import { useGetProjectsQuery } from '../projects/project.slice';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+
 const invoiceSchema = z.object({
   project: z.string().min(1, 'Project is required'),
   invoiceNumber: z.string().min(1, 'Invoice Number is required'),
@@ -89,13 +91,16 @@ export const InvoicesPage = () => {
     }
   };
 
-  const handleDeleteInvoice = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this invoice?')) {
-      try {
-        await deleteInvoice(id).unwrap();
-      } catch (err) {
-        console.error(err);
-      }
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteInvoice = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteInvoice(deleteTarget.id).unwrap();
+      setDeleteTarget(null);
     }
   };
 
@@ -283,7 +288,7 @@ export const InvoicesPage = () => {
                       <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(inv)} title="Edit">
                         <Edit size={16} />
                       </ActionIcon>
-                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteInvoice(inv._id)} title="Delete">
+                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteInvoice(inv._id, inv.invoiceNumber)} title="Delete">
                         <Trash size={16} />
                       </ActionIcon>
                     </Group>
@@ -371,6 +376,15 @@ export const InvoicesPage = () => {
           </Button>
         </Stack>
       </Modal>
+
+      {/* Custom Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Invoice"
+        itemName={deleteTarget?.name}
+      />
     </Container>
   );
 };

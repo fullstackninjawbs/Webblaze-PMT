@@ -14,9 +14,9 @@ export const ProjectSummaryCards: React.FC<Props> = ({ projects }) => {
   const maintenance = projects.filter((p) => p.status === 'maintenance').length;
 
   const stats = [
-    { label: 'Total Projects', value: total, icon: Briefcase, color: '#3b82f6', bg: '#eff6ff' },
-    { label: 'Active Projects', value: active, icon: Activity, color: '#10b981', bg: '#ecfdf5' },
-    { label: 'On-Hold Projects', value: onHold, icon: Clock, color: '#f59e0b', bg: '#fffbeb' },
+    { label: 'Total Projects', value: total, icon: Briefcase, color: '#0ea5e9', bg: '#f0f9ff' },
+    { label: 'Active Projects', value: active, icon: Activity, color: '#eab308', bg: '#fefce8' },
+    { label: 'On-Hold Projects', value: onHold, icon: Clock, color: '#f43f5e', bg: '#fff1f2' },
     { label: 'Maintenance', value: maintenance, icon: Server, color: '#6366f1', bg: '#eef2ff' },
   ];
 

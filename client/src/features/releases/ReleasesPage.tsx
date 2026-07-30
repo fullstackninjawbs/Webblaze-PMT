@@ -7,6 +7,8 @@ import { useGetUsersQuery } from '../users/user.slice';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+
 const releaseSchema = z.object({
   project: z.string().min(1, 'Project is required'),
   department: z.enum(['design', 'development', 'seo']),
@@ -67,13 +69,16 @@ export const ReleasesPage: React.FC = () => {
     setOpened(true);
   };
 
-  const handleDeleteRelease = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this release?')) {
-      try {
-        await deleteRelease(id).unwrap();
-      } catch (err) {
-        console.error(err);
-      }
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteRelease = (id: string, name: string) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteRelease(deleteTarget.id).unwrap();
+      setDeleteTarget(null);
     }
   };
 
@@ -214,7 +219,7 @@ export const ReleasesPage: React.FC = () => {
                       <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(release)} title="Edit">
                         <Edit size={16} />
                       </ActionIcon>
-                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id)} title="Delete">
+                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id, release.details)} title="Delete">
                         <Trash size={16} />
                       </ActionIcon>
                     </Group>
@@ -295,6 +300,15 @@ export const ReleasesPage: React.FC = () => {
           </Group>
         </form>
       </Modal>
+
+      {/* Custom Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Release"
+        itemName={deleteTarget?.name}
+      />
     </Container>
   );
 };

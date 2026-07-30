@@ -14,7 +14,7 @@ import { Role, ProjectStatus } from '../../types';
 import { useGetUsersQuery } from '../users/user.slice';
 import { useGetReleasesQuery, useCreateReleaseMutation, useUpdateReleaseMutation, useDeleteReleaseMutation } from '../releases/release.slice';
 import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from '../invoices/invoice.slice';
-import { useUploadFileMutation } from '../uploads/upload.slice';
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
 const milestoneSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -875,17 +875,30 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
     }
   };
 
-  const handleRemoveMember = async (userId: string) => {
-    if (window.confirm('Are you sure you want to remove this member from the project?')) {
-      try {
-        const updatedTeamIds = team.filter((t: any) => t._id !== userId).map((t: any) => t._id);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; type: 'member' | 'release' | 'invoice' } | null>(null);
+
+  const handleRemoveMember = (userId: string, memberName: string) => {
+    setDeleteTarget({ id: userId, name: memberName, type: 'member' });
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!deleteTarget) return;
+    try {
+      if (deleteTarget.type === 'member') {
+        const updatedTeamIds = team.filter((t: any) => t._id !== deleteTarget.id).map((t: any) => t._id);
         await updateProject({
           id: projectId,
           data: { team: updatedTeamIds }
         }).unwrap();
-      } catch (err) {
-        console.error(err);
+      } else if (deleteTarget.type === 'release') {
+        await deleteRelease(deleteTarget.id).unwrap();
+      } else if (deleteTarget.type === 'invoice') {
+        await deleteInvoice(deleteTarget.id).unwrap();
       }
+    } catch (err) {
+      console.error('Delete action failed', err);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -932,7 +945,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
               </Table.Td>
               {isAdminOrPM && (
                 <Table.Td>
-                  <Button size="xs" color="red" variant="subtle" onClick={() => handleRemoveMember(member._id)}>
+                  <Button size="xs" color="red" variant="subtle" onClick={() => handleRemoveMember(member._id, member.name)}>
                     Remove
                   </Button>
                 </Table.Td>
@@ -1016,14 +1029,8 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
     setReleaseModalOpened(true);
   };
 
-  const handleDeleteRelease = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this release?')) {
-      try {
-        await deleteRelease(id).unwrap();
-      } catch (err) {
-        console.error(err);
-      }
-    }
+  const handleDeleteRelease = (id: string, details: string) => {
+    setDeleteTarget({ id, name: details, type: 'release' });
   };
 
   const handleSubmit = async (values: typeof releaseForm.values) => {
@@ -1099,7 +1106,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
                     <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(release)} title="Edit">
                       <Edit size={16} />
                     </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id)} title="Delete">
+                    <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id, release.details)} title="Delete">
                       <Trash size={16} />
                     </ActionIcon>
                   </Group>
@@ -1244,14 +1251,8 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
     }
   };
 
-  const handleDeleteInvoice = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this invoice?')) {
-      try {
-        await deleteInvoice(id).unwrap();
-      } catch (err) {
-        console.error(err);
-      }
-    }
+  const handleDeleteInvoice = (id: string, invoiceNumber: string) => {
+    setDeleteTarget({ id, name: invoiceNumber, type: 'invoice' });
   };
 
   const handleRecordPayment = async () => {
@@ -1358,7 +1359,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
                   <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(inv)} title="Edit">
                     <Edit size={16} />
                   </ActionIcon>
-                  <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteInvoice(inv._id)} title="Delete">
+                  <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteInvoice(inv._id, inv.invoiceNumber)} title="Delete">
                     <Trash size={16} />
                   </ActionIcon>
                 </Group>
@@ -1438,6 +1439,15 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
           </Button>
         </Stack>
       </Modal>
+
+      {/* Custom Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteAction}
+        title={deleteTarget?.type === 'member' ? 'Remove Team Member' : deleteTarget?.type === 'release' ? 'Delete Release' : 'Delete Invoice'}
+        itemName={deleteTarget?.name}
+      />
     </Card>
   );
 };
