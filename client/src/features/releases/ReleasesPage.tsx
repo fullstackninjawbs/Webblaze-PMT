@@ -17,6 +17,7 @@ import {
   SimpleGrid,
   Stack,
 } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import {
   Plus,
   Edit,
@@ -458,12 +459,17 @@ export const ReleasesPage: React.FC = () => {
               {...form.getInputProps('details')}
             />
             <Group grow gap="md">
-              <TextInput
+              <DatePickerInput
                 label="Release Date"
-                type="date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
                 withAsterisk
                 radius="md"
-                {...form.getInputProps('releaseDate')}
+                value={form.values.releaseDate ? new Date(form.values.releaseDate) : null}
+                onChange={(val) =>
+                  form.setFieldValue('releaseDate', val ? val.toISOString().split('T')[0] : '')
+                }
+                clearable
               />
               <Select
                 label="Status"

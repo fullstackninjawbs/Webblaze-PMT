@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Text, Group, Table, Badge, Button, Select, Modal, TextInput, Textarea } from '@mantine/core';
-import { Plus } from 'lucide-react';
+import { DatePickerInput } from '@mantine/dates';
+import { Plus, Calendar } from 'lucide-react';
 import { useGetReleasesQuery, useCreateReleaseMutation } from '../releases/release.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetUsersQuery } from '../users/user.slice';
@@ -184,12 +185,18 @@ export const ReleaseSheet: React.FC = () => {
             mb="sm"
             withAsterisk
           />
-          <TextInput
+          <DatePickerInput
             label="Release Date"
-            type="date"
-            {...form.getInputProps('releaseDate')}
+            placeholder="Select date"
+            leftSection={<Calendar size={16} color="#64748b" />}
+            value={form.values.releaseDate ? new Date(form.values.releaseDate) : null}
+            onChange={(val) =>
+              form.setFieldValue('releaseDate', val ? val.toISOString().split('T')[0] : '')
+            }
             mb="sm"
             withAsterisk
+            radius="md"
+            clearable
           />
           <Select
             label="Status"

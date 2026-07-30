@@ -146,7 +146,7 @@ export const ProjectsList: React.FC = () => {
   const teamOptions =
     usersData?.data
       .filter((u) => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER)
-      .map((u) => ({ value: u._id, label: `${u.name} (${u.role.replace('_', ' ')})` })) || [];
+      .map((u) => ({ value: u._id, label: `${u.name} (${u.role ? u.role.replace('_', ' ') : 'Member'})` })) || [];
 
   const getClientName = (id: string) =>
     clientOptions.find((c) => c.value === id)?.label || 'Unknown Client';
@@ -226,7 +226,7 @@ export const ProjectsList: React.FC = () => {
               : 'gray'
           }
         >
-          {project.status.replace('_', ' ')}
+          {project.status ? project.status.replace('_', ' ') : '-'}
         </Badge>
       </Table.Td>
       <Table.Td>
@@ -635,7 +635,7 @@ export const ProjectsList: React.FC = () => {
                       radius="sm"
                       color={form.values.status === ProjectStatus.ACTIVE ? 'green' : 'orange'}
                     >
-                      {form.values.status.replace('_', ' ')}
+                      {form.values.status ? form.values.status.replace('_', ' ') : '-'}
                     </Badge>
                   </Group>
 

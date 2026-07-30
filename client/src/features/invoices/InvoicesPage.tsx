@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Container, Title, Text, Card, Group, Table, Badge, Button, Modal, TextInput, Select, NumberInput, Stack, ActionIcon, SimpleGrid, Paper } from '@mantine/core';
-import { Plus, Edit, Trash, DollarSign, ArrowUpRight, Clock, CheckCircle2, Search, Filter } from 'lucide-react';
+import { DatePickerInput } from '@mantine/dates';
+import { Plus, Edit, Trash, DollarSign, ArrowUpRight, Clock, CheckCircle2, Search, Filter, Calendar } from 'lucide-react';
 import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from './invoice.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useForm, zodResolver } from '@mantine/form';
@@ -439,8 +440,30 @@ export const InvoicesPage = () => {
             />
             <TextInput label="Invoice Number" placeholder="INV-2026-001" {...form.getInputProps('invoiceNumber')} radius="md" withAsterisk />
             <Group grow gap="md">
-              <TextInput type="date" label="Issue Date" {...form.getInputProps('issueDate')} radius="md" withAsterisk />
-              <TextInput type="date" label="Due Date" {...form.getInputProps('dueDate')} radius="md" withAsterisk />
+              <DatePickerInput
+                label="Issue Date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
+                radius="md"
+                withAsterisk
+                value={form.values.issueDate ? new Date(form.values.issueDate) : null}
+                onChange={(val) =>
+                  form.setFieldValue('issueDate', val ? val.toISOString().split('T')[0] : '')
+                }
+                clearable
+              />
+              <DatePickerInput
+                label="Due Date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
+                radius="md"
+                withAsterisk
+                value={form.values.dueDate ? new Date(form.values.dueDate) : null}
+                onChange={(val) =>
+                  form.setFieldValue('dueDate', val ? val.toISOString().split('T')[0] : '')
+                }
+                clearable
+              />
             </Group>
             <NumberInput label="Total Amount ($)" min={0} {...form.getInputProps('totalAmount')} radius="md" withAsterisk />
             <Select
@@ -499,12 +522,14 @@ export const InvoicesPage = () => {
             ]}
             radius="md"
           />
-          <TextInput
-            type="date"
+          <DatePickerInput
             label="Payment Date"
-            value={paymentDate}
-            onChange={(e) => setPaymentDate(e.target.value)}
+            placeholder="Select date"
+            leftSection={<Calendar size={16} color="#64748b" />}
+            value={paymentDate ? new Date(paymentDate) : null}
+            onChange={(val) => setPaymentDate(val ? val.toISOString().split('T')[0] : '')}
             radius="md"
+            clearable
           />
           <Button 
             color="green" 

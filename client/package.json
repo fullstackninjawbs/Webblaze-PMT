@@ -13,9 +13,11 @@
   "dependencies": {
     "@hookform/resolvers": "^5.5.7",
     "@mantine/core": "^7.17.8",
+    "@mantine/dates": "^7.17.8",
     "@mantine/form": "^7.17.8",
     "@mantine/hooks": "^7.17.8",
     "@reduxjs/toolkit": "^2.1.0",
+    "dayjs": "^1.11.21",
     "lucide-react": "^1.27.0",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",

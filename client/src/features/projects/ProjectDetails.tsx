@@ -5,6 +5,7 @@ import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation } from '../m
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
 import { Container, Title, Text, Button, Group, Card, Badge, Stack, Accordion, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Avatar, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper } from '@mantine/core';
+import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock } from 'lucide-react';
@@ -359,8 +360,24 @@ export const ProjectDetails = () => {
               {...milestoneForm.getInputProps('estimatedHours')}
             />
             <Group grow>
-              <TextInput type="date" label="Start Date" {...milestoneForm.getInputProps('startDate')} />
-              <TextInput type="date" label="End Date" {...milestoneForm.getInputProps('endDate')} />
+              <DatePickerInput
+                label="Start Date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={milestoneForm.values.startDate ? new Date(milestoneForm.values.startDate) : null}
+                onChange={(val) => milestoneForm.setFieldValue('startDate', val ? val.toISOString().split('T')[0] : '')}
+                clearable
+                radius="md"
+              />
+              <DatePickerInput
+                label="End Date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={milestoneForm.values.endDate ? new Date(milestoneForm.values.endDate) : null}
+                onChange={(val) => milestoneForm.setFieldValue('endDate', val ? val.toISOString().split('T')[0] : '')}
+                clearable
+                radius="md"
+              />
             </Group>
             <Select
               label="Status"
@@ -412,8 +429,24 @@ export const ProjectDetails = () => {
               <NumberInput required label="Estimated Hours" min={0.5} step={0.5} {...taskForm.getInputProps('estimatedHours')} />
             </Group>
             <Group grow>
-              <TextInput type="date" label="Start Date" {...taskForm.getInputProps('startDate')} />
-              <TextInput type="date" label="End Date" {...taskForm.getInputProps('endDate')} />
+              <DatePickerInput
+                label="Start Date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={taskForm.values.startDate ? new Date(taskForm.values.startDate) : null}
+                onChange={(val) => taskForm.setFieldValue('startDate', val ? val.toISOString().split('T')[0] : '')}
+                clearable
+                radius="md"
+              />
+              <DatePickerInput
+                label="End Date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={taskForm.values.endDate ? new Date(taskForm.values.endDate) : null}
+                onChange={(val) => taskForm.setFieldValue('endDate', val ? val.toISOString().split('T')[0] : '')}
+                clearable
+                radius="md"
+              />
             </Group>
             <Select label="Assign To" placeholder="Leave empty for unassigned" data={teamOptions} searchable clearable {...taskForm.getInputProps('assignedTo')} />
 
@@ -1170,11 +1203,15 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
               withAsterisk
               minRows={3}
             />
-            <TextInput
+            <DatePickerInput
               label="Release Date"
-              type="date"
-              {...releaseForm.getInputProps('releaseDate')}
+              placeholder="Select date"
+              leftSection={<Calendar size={16} color="#64748b" />}
+              value={releaseForm.values.releaseDate ? new Date(releaseForm.values.releaseDate) : null}
+              onChange={(val) => releaseForm.setFieldValue('releaseDate', val ? val.toISOString().split('T')[0] : '')}
+              clearable
               withAsterisk
+              radius="md"
             />
             <Select
               label="Status"
@@ -1418,8 +1455,26 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
           <Stack gap="sm">
             <TextInput label="Invoice Number" {...invoiceForm.getInputProps('invoiceNumber')} withAsterisk />
             <Group grow>
-              <TextInput type="date" label="Issue Date" {...invoiceForm.getInputProps('issueDate')} withAsterisk />
-              <TextInput type="date" label="Due Date" {...invoiceForm.getInputProps('dueDate')} withAsterisk />
+              <DatePickerInput
+                label="Issue Date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={invoiceForm.values.issueDate ? new Date(invoiceForm.values.issueDate) : null}
+                onChange={(val) => invoiceForm.setFieldValue('issueDate', val ? val.toISOString().split('T')[0] : '')}
+                clearable
+                withAsterisk
+                radius="md"
+              />
+              <DatePickerInput
+                label="Due Date"
+                placeholder="Select date"
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={invoiceForm.values.dueDate ? new Date(invoiceForm.values.dueDate) : null}
+                onChange={(val) => invoiceForm.setFieldValue('dueDate', val ? val.toISOString().split('T')[0] : '')}
+                clearable
+                withAsterisk
+                radius="md"
+              />
             </Group>
             <NumberInput label="Total Amount ($)" min={0} {...invoiceForm.getInputProps('totalAmount')} withAsterisk />
             <Select
@@ -1464,11 +1519,14 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
               { value: 'cash', label: 'Cash' },
             ]}
           />
-          <TextInput
-            type="date"
+          <DatePickerInput
             label="Payment Date"
-            value={paymentDate}
-            onChange={(e) => setPaymentDate(e.target.value)}
+            placeholder="Select date"
+            leftSection={<Calendar size={16} color="#64748b" />}
+            value={paymentDate ? new Date(paymentDate) : null}
+            onChange={(val) => setPaymentDate(val ? val.toISOString().split('T')[0] : '')}
+            clearable
+            radius="md"
           />
           <Button color="green" onClick={handleRecordPayment} loading={isUpdating}>
             Submit Payment

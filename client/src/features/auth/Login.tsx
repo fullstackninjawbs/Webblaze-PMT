@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux';
 import { useLoginMutation, setCredentials } from './auth.slice';
 import { Lock, Mail, AlertCircle, CheckCircle, ArrowRight, Rocket, ShieldCheck, Clock, FileText } from 'lucide-react';
 import { Container, Title, Text, TextInput, PasswordInput, Button, Alert, Box, Checkbox, Group, Anchor, Paper, Flex } from '@mantine/core';
+import { BlazeLogo } from '../../components/common/BlazeLogo';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),

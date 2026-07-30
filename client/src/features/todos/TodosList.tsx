@@ -27,6 +27,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
+import { DatePickerInput } from '@mantine/dates';
 import {
   Plus,
   Edit2,
@@ -37,6 +38,7 @@ import {
   ListTodo,
   Search,
   Filter,
+  Calendar,
 } from 'lucide-react';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
@@ -428,12 +430,16 @@ export const TodosList: React.FC = () => {
             />
 
             <Group grow gap="md">
-              <TextInput
+              <DatePickerInput
                 label="Due Date"
-                type="date"
                 placeholder="Select due date"
+                leftSection={<Calendar size={16} color="#64748b" />}
                 radius="md"
-                {...form.getInputProps('dueDate')}
+                value={form.values.dueDate ? new Date(form.values.dueDate) : null}
+                onChange={(val) =>
+                  form.setFieldValue('dueDate', val ? val.toISOString().split('T')[0] : '')
+                }
+                clearable
               />
               <NumberInput
                 label="Estimated Hours"
