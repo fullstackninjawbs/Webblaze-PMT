@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useGetAllTasksQuery, useUpdateTaskMutation } from './task.slice';
 import { useGetUsersQuery } from '../users/user.slice';
-import { Container, Title, Card, Text, Group, Badge, Avatar, Select, Loader, Center, Grid, Stack, Tooltip } from '@mantine/core';
+import { Container, Title, Card, Text, Group, Badge, Select, Loader, Center, Grid, Stack, Tooltip } from '@mantine/core';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { Role } from '../../types';
 
 export const TeamTasks = () => {
@@ -157,7 +158,7 @@ export const TeamTasks = () => {
                         withArrow 
                         position="top"
                       >
-                        <Avatar size="sm" radius="xl" color="blue">{task.assignedTo.name.charAt(0)}</Avatar>
+                        <UserAvatar name={task.assignedTo.name} avatarUrl={task.assignedTo.avatarUrl} size="sm" />
                       </Tooltip>
                     </Group>
 

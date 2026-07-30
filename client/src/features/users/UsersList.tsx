@@ -37,6 +37,7 @@ import {
   Filter,
   CheckCircle2,
 } from 'lucide-react';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { Role } from '../../types';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
@@ -161,22 +162,12 @@ export const UsersList: React.FC = () => {
     <Table.Tr key={user._id}>
       <Table.Td>
         <Group gap="sm">
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: '10px',
-              backgroundColor: '#f3e8ff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Text fw={700} style={{ color: '#9333ea' }}>
-              {(user.name || 'U').charAt(0).toUpperCase()}
-            </Text>
-          </div>
+          <UserAvatar
+            name={user.name}
+            email={user.email}
+            avatarUrl={user.avatarUrl}
+            size={36}
+          />
           <div>
             <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
               {user.name || 'Unknown User'}

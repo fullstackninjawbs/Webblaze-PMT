@@ -15,12 +15,12 @@ import {
   Stack,
   Loader,
   Center,
-  Avatar,
   Badge,
   Paper,
   SimpleGrid,
   TextInput,
 } from '@mantine/core';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import {
   ClipboardList,
   Calendar,
@@ -533,9 +533,7 @@ export const DailyStatus: React.FC = () => {
                     >
                       <Group justify="space-between" align="center" mb="lg">
                         <Group gap="md">
-                          <Avatar src={log.user?.avatarUrl} size="md" radius="xl" color="blue">
-                            {memberName.charAt(0)}
-                          </Avatar>
+                          <UserAvatar name={memberName} avatarUrl={log.user?.avatarUrl} size="md" />
                           <div>
                             <Group gap="xs">
                               <Text size="sm" fw={700} style={{ color: '#0f172a' }}>

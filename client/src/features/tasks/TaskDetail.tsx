@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Avatar, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper } from '@mantine/core';
+import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper } from '@mantine/core';
 import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip } from 'lucide-react';
 import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
+import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
 import { useUploadFileMutation } from '../uploads/upload.slice';
 
@@ -189,7 +190,7 @@ export const TaskDetail = () => {
                 }
               >
                 <Group gap="xs" mt={8}>
-                  <Avatar src={(log.user as any)?.avatarUrl} size="sm" radius="xl" color="blue">{(log.user as any)?.name?.charAt(0)}</Avatar>
+                  <UserAvatar name={(log.user as any)?.name} avatarUrl={(log.user as any)?.avatarUrl} size="sm" />
                   <Text size="sm" color="dimmed">by {(log.user as any)?.name}</Text>
                 </Group>
                 {log.description && (
