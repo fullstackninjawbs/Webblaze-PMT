@@ -90,6 +90,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'MANAGEMENT',
       items: [
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'My Projects', href: '/projects', icon: Briefcase },
       ],
     },
@@ -104,6 +105,12 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     },
   ],
   [Role.TEAM_MEMBER]: [
+    {
+      title: 'OVERVIEW',
+      items: [
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      ],
+    },
     {
       title: 'MY WORK',
       items: [
