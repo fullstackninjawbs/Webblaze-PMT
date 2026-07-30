@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { useLoginMutation, setCredentials } from './auth.slice';
-import { Lock, Mail, AlertCircle, CheckCircle, ArrowRight, Rocket, ShieldCheck, Clock, FileText } from 'lucide-react';
-import { Container, Title, Text, TextInput, PasswordInput, Button, Alert, Box, Checkbox, Group, Anchor, Paper, Flex } from '@mantine/core';
+import { useLoginMutation, useAcceptInviteMutation, setCredentials } from './auth.slice';
+import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Clock, FileText } from 'lucide-react';
+import { Container, Title, Text, TextInput, PasswordInput, Button, Alert, Box, Checkbox, Group, Anchor, Paper, Flex, Loader } from '@mantine/core';
 import { BlazeLogo } from '../../components/common/BlazeLogo';
 
 const loginSchema = z.object({
@@ -18,8 +18,10 @@ export const Login: React.FC = () => {
   const location = useLocation();
   const dispatch = useDispatch();
   const [login, { isLoading, error }] = useLoginMutation();
+  const [acceptInvite, { isLoading: isAccepting }] = useAcceptInviteMutation();
 
   const [rememberMe, setRememberMe] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -30,6 +32,28 @@ export const Login: React.FC = () => {
     },
     validate: zodResolver(loginSchema),
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const inviteToken = params.get('inviteToken');
+    const prefillEmail = params.get('email');
+
+    if (prefillEmail) {
+      form.setFieldValue('email', prefillEmail);
+    }
+
+    if (inviteToken) {
+      (async () => {
+        try {
+          const res = await acceptInvite({ inviteToken }).unwrap();
+          dispatch(setCredentials({ user: res.data.user, accessToken: res.data.accessToken }));
+          navigate('/dashboard', { replace: true });
+        } catch (err: any) {
+          setInviteError(err?.data?.error?.message || 'Failed to authenticate invitation link. Please log in with temporary credentials.');
+        }
+      })();
+    }
+  }, [location.search]);
 
   const onSubmit = async (values: typeof form.values) => {
     try {
@@ -205,6 +229,18 @@ export const Login: React.FC = () => {
             <Text size="sm" ta="center" mb={32} style={{ color: '#64748b' }}>
               Sign in to your WebBlaze account to continue
             </Text>
+
+            {isAccepting && (
+              <Alert icon={<Loader size={16} color="blue" />} title="Validating Invitation" color="blue" mb="xl" variant="light" radius="md">
+                Logging you into WebBlaze PMS automatically...
+              </Alert>
+            )}
+
+            {inviteError && (
+              <Alert icon={<AlertCircle size={16} />} title="Invitation Notice" color="orange" mb="xl" variant="light" radius="md">
+                {inviteError}
+              </Alert>
+            )}
 
             {errorMessage && (
               <Alert icon={<AlertCircle size={16} />} title="Authentication Failed" color="red" mb="xl" variant="light" radius="md">

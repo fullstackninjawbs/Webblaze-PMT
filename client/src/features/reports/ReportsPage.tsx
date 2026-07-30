@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Title, Text, Card, Group, SimpleGrid, Badge, Progress, RingProgress, Table, Avatar, Paper, Stack, Loader, Center, Box } from '@mantine/core';
-import { TrendingUp, DollarSign, Clock, CheckCircle2, Briefcase, Users, PieChart, BarChart3, Activity } from 'lucide-react';
+import { TrendingUp, DollarSign, Clock, CheckCircle2, Briefcase, Users, PieChart } from 'lucide-react';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetAllTasksQuery } from '../tasks/task.slice';
 import { useGetTeamTimeLogsQuery } from '../timelogs/timeLog.slice';
@@ -294,8 +294,8 @@ export const ReportsPage: React.FC = () => {
                     </Text>
                   </Group>
                   <Progress.Root size="md" radius="xl" style={{ backgroundColor: '#f1f5f9' }}>
-                    <Progress.Section value={paidPercent} color="teal" />
-                    <Progress.Section value={pendingPercent} color="orange" />
+                    <Progress.Section value={paidPercent} color="#10b981" />
+                    <Progress.Section value={pendingPercent} color="#6366f1" />
                   </Progress.Root>
                   <Group justify="space-between" mt={8}>
                     <Group gap={6}>
@@ -305,8 +305,8 @@ export const ReportsPage: React.FC = () => {
                       </Text>
                     </Group>
                     <Group gap={6}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f59e0b' }} />
-                      <Text size="xs" fw={600} style={{ color: '#d97706' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#6366f1' }} />
+                      <Text size="xs" fw={600} style={{ color: '#4f46e5' }}>
                         Pending: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)
                       </Text>
                     </Group>

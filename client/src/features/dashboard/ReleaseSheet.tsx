@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Text, Group, Table, Badge, Button, Select, Modal, TextInput, Textarea } from '@mantine/core';
+import { Card, Text, Group, Table, Badge, Button, Select, Modal, Textarea } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { Plus, Calendar } from 'lucide-react';
 import { useGetReleasesQuery, useCreateReleaseMutation } from '../releases/release.slice';

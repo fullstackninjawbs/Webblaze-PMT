@@ -30,7 +30,24 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   res.status(201).json({
     success: true,
     data: { user },
-    message: 'User registered successfully'
+    message: 'User registered successfully. Invitation email sent.',
+  });
+});
+
+export const acceptInvite = asyncHandler(async (req: Request, res: Response) => {
+  const { inviteToken } = req.body;
+  if (!inviteToken) {
+    res.status(400).json({ success: false, error: { message: 'Invitation token is required' } });
+    return;
+  }
+
+  const { user, tokens } = await authService.acceptInviteToken(inviteToken);
+  setRefreshCookie(res, tokens.refreshToken);
+
+  res.status(200).json({
+    success: true,
+    data: { user, accessToken: tokens.accessToken },
+    message: 'Invitation accepted successfully',
   });
 });
 

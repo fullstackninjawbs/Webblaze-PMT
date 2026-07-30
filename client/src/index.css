@@ -7,8 +7,8 @@
 
 /* CSS Custom Properties */
 :root {
-  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
   /* Brand Colors - Blue-Indigo Gradient Theme */
   --color-brand-from: #3b82f6;
@@ -22,9 +22,9 @@
   --color-border: #e8ecf4;
   --color-border-subtle: #f1f4f9;
 
-  /* Text */
+  /* Text - High Contrast & Crisp Definition */
   --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
+  --color-text-secondary: #334155;
   --color-text-muted: #64748b;
 
   /* Sidebar */

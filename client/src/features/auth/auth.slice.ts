@@ -94,7 +94,14 @@ export const authApi = baseApi.injectEndpoints({
         body,
       }),
     }),
+    acceptInvite: builder.mutation<{ success: boolean; data: { user: User; accessToken: string } }, { inviteToken: string }>({
+      query: (body) => ({
+        url: '/auth/accept-invite',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useLoginMutation, useLogoutMutation, useGetMeQuery, useChangePasswordMutation } = authApi;
+export const { useLoginMutation, useLogoutMutation, useGetMeQuery, useChangePasswordMutation, useAcceptInviteMutation } = authApi;

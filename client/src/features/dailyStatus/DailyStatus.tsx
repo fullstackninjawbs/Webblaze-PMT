@@ -7,7 +7,6 @@ import {
   Container,
   Title,
   Text,
-  Card,
   Group,
   Tabs,
   Textarea,

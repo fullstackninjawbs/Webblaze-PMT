@@ -36,7 +36,6 @@ import {
   Users,
   Globe,
   Clock,
-  DollarSign,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';

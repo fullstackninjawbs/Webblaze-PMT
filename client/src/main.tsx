@@ -11,7 +11,7 @@ import './index.css';
 
 const theme = createTheme({
   primaryColor: 'indigo',
-  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+  fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   fontFamilyMonospace: "'JetBrains Mono', 'Fira Code', monospace",
   defaultRadius: 'md',
 
@@ -24,7 +24,7 @@ const theme = createTheme({
   },
 
   headings: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     fontWeight: '700',
     sizes: {
       h1: { fontSize: '2rem', fontWeight: '800', lineHeight: '1.2' },

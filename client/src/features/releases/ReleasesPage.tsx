@@ -25,7 +25,6 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  AlertCircle,
   Search,
   Filter,
   Layers,

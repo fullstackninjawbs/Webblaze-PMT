@@ -675,16 +675,16 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
       <Card shadow="xs" p="xl" radius="lg" withBorder>
         <Title order={4} mb="md">Budget Invoicing Progress</Title>
         <Progress.Root size="lg" radius="xl" mb="md" style={{ backgroundColor: '#f1f5f9' }}>
-          <Progress.Section value={paidPercent} color="teal" />
-          <Progress.Section value={pendingPercent} color="orange" />
+          <Progress.Section value={paidPercent} color="#10b981" />
+          <Progress.Section value={pendingPercent} color="#6366f1" />
         </Progress.Root>
         <Group justify="space-between">
           <Group gap="xs">
-            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#0ca678' }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981' }} />
             <Text size="xs" color="dimmed" fw={500}>Paid Budget: ${received.toLocaleString()} ({Math.round(paidPercent)}%)</Text>
           </Group>
           <Group gap="xs">
-            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f76707' }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#6366f1' }} />
             <Text size="xs" color="dimmed" fw={500}>Pending Budget: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)</Text>
           </Group>
         </Group>
@@ -917,26 +917,20 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
     }
   };
 
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; type: 'member' | 'release' | 'invoice' } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const handleRemoveMember = (userId: string, memberName: string) => {
-    setDeleteTarget({ id: userId, name: memberName, type: 'member' });
+    setDeleteTarget({ id: userId, name: memberName });
   };
 
   const confirmDeleteAction = async () => {
     if (!deleteTarget) return;
     try {
-      if (deleteTarget.type === 'member') {
-        const updatedTeamIds = team.filter((t: any) => t._id !== deleteTarget.id).map((t: any) => t._id);
-        await updateProject({
-          id: projectId,
-          data: { team: updatedTeamIds }
-        }).unwrap();
-      } else if (deleteTarget.type === 'release') {
-        await deleteRelease(deleteTarget.id).unwrap();
-      } else if (deleteTarget.type === 'invoice') {
-        await deleteInvoice(deleteTarget.id).unwrap();
-      }
+      const updatedTeamIds = team.filter((t: any) => t._id !== deleteTarget.id).map((t: any) => t._id);
+      await updateProject({
+        id: projectId,
+        data: { team: updatedTeamIds },
+      }).unwrap();
     } catch (err) {
       console.error('Delete action failed', err);
     } finally {
@@ -1022,6 +1016,15 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
           </Button>
         </Stack>
       </Modal>
+
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteAction}
+        title="Remove Team Member"
+        itemName={deleteTarget?.name}
+        description={`Are you sure you want to remove ${deleteTarget?.name} from this project?`}
+      />
     </Card>
   );
 };
