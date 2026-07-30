@@ -216,7 +216,7 @@ export const ProjectDetails = () => {
               <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
                 <Group gap="xs" mb={4}>
                   <DollarSign size={16} color="#3b82f6" />
-                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Budget</Text>
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Total Amount</Text>
                 </Group>
                 <Text fw={800} style={{ fontSize: '1.25rem', color: '#0f172a' }}>{project.totalBudget ? `$${project.totalBudget.toLocaleString()}` : 'N/A'}</Text>
               </Paper>
@@ -648,7 +648,7 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
             <DollarSign size={18} color="#10b981" />
           </Group>
           <Text size="lg" fw={800} color="teal">${received.toLocaleString()} Received</Text>
-          <Text size="xs" c="dimmed" mt={4}>Of total ${budget.toLocaleString()} budget</Text>
+          <Text size="xs" c="dimmed" mt={4}>Of total ${budget.toLocaleString()} amount</Text>
           <Progress value={paidPercent} color="teal" size="sm" mt="md" radius="xl" />
         </Card>
 
@@ -674,7 +674,7 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
       </SimpleGrid>
 
       <Card shadow="xs" p="xl" radius="lg" withBorder>
-        <Title order={4} mb="md">Budget Invoicing Progress</Title>
+        <Title order={4} mb="md">Total Amount Invoicing Progress</Title>
         <Progress.Root size="lg" radius="xl" mb="md" style={{ backgroundColor: '#f1f5f9' }}>
           <Progress.Section value={paidPercent} color="#10b981" />
           <Progress.Section value={pendingPercent} color="#6366f1" />
@@ -682,11 +682,11 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
         <Group justify="space-between">
           <Group gap="xs">
             <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981' }} />
-            <Text size="xs" color="dimmed" fw={500}>Paid Budget: ${received.toLocaleString()} ({Math.round(paidPercent)}%)</Text>
+            <Text size="xs" color="dimmed" fw={500}>Paid Amount: ${received.toLocaleString()} ({Math.round(paidPercent)}%)</Text>
           </Group>
           <Group gap="xs">
             <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#6366f1' }} />
-            <Text size="xs" color="dimmed" fw={500}>Pending Budget: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)</Text>
+            <Text size="xs" color="dimmed" fw={500}>Pending Amount: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)</Text>
           </Group>
         </Group>
       </Card>
@@ -1375,7 +1375,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
 
       <Group grow mb="xl">
         <Card withBorder p="sm" radius="sm">
-          <Text size="xs" color="dimmed" tt="uppercase" fw={600}>Total Budget</Text>
+          <Text size="xs" color="dimmed" tt="uppercase" fw={600}>Total Amount</Text>
           <Text size="lg" fw={700}>${projectData.totalBudget?.toLocaleString() || 0}</Text>
         </Card>
         <Card withBorder p="sm" radius="sm">

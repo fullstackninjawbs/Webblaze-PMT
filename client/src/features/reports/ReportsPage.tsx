@@ -114,7 +114,7 @@ export const ReportsPage: React.FC = () => {
         >
           <Group justify="space-between" mb="xs">
             <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-              Portfolio Budget
+              Portfolio Total Amount
             </Text>
             <div style={{
               width: 36,
@@ -275,7 +275,7 @@ export const ReportsPage: React.FC = () => {
                 Financial Breakdown by Project
               </Title>
             </Group>
-            <Badge variant="light" color="blue" radius="md">Budget Progress</Badge>
+            <Badge variant="light" color="blue" radius="md">Total Amount Progress</Badge>
           </Group>
 
           <Stack gap="lg">
@@ -291,7 +291,7 @@ export const ReportsPage: React.FC = () => {
                   <Group justify="space-between" mb={8}>
                     <Text size="sm" fw={700} style={{ color: '#0f172a' }}>{proj.name}</Text>
                     <Text size="xs" fw={700} style={{ color: '#64748b' }}>
-                      Budget: ${budget.toLocaleString()}
+                      Total Amount: ${budget.toLocaleString()}
                     </Text>
                   </Group>
                   <Progress.Root size="md" radius="xl" style={{ backgroundColor: '#f1f5f9' }}>

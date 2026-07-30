@@ -318,7 +318,7 @@ export const ProjectsList: React.FC = () => {
             Projects Directory
           </Title>
           <Text size="sm" mt={4} style={{ color: '#64748b' }}>
-            Manage client deliverables, milestone schedules, team assignments, and budgets.
+            Manage client deliverables, milestone schedules, team assignments, and total amounts.
           </Text>
         </div>
         {isAdminOrPM && (
@@ -368,7 +368,7 @@ export const ProjectsList: React.FC = () => {
           >
             <Group justify="space-between" mb="xs">
               <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-                Total Portfolio Budget
+                Total Portfolio Amount
               </Text>
               <Paper p={8} radius="md" bg="#f0fdf4">
                 <DollarSign size={18} color="#10b981" />
@@ -465,7 +465,7 @@ export const ProjectsList: React.FC = () => {
                 <Table.Th>Release Date</Table.Th>
                 {isAdminOrPM && (
                   <>
-                    <Table.Th>Budget</Table.Th>
+                    <Table.Th>Total Amount</Table.Th>
                     <Table.Th>Received</Table.Th>
                     <Table.Th>Pending</Table.Th>
                   </>
@@ -546,7 +546,7 @@ export const ProjectsList: React.FC = () => {
                 </Group>
 
                 <NumberInput
-                  label="Total Budget ($)"
+                  label="Total Amount ($)"
                   placeholder="0.00"
                   leftSection={<DollarSign size={16} color="gray" />}
                   thousandSeparator=","
@@ -649,7 +649,7 @@ export const ProjectsList: React.FC = () => {
 
                   <Group justify="space-between">
                     <Text size="xs" style={{ color: '#64748b' }}>
-                      Budget
+                      Total Amount
                     </Text>
                     <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
                       {form.values.totalBudget ? `$${form.values.totalBudget.toLocaleString()}` : '-'}
