@@ -1,6 +1,6 @@
 import React from 'react';
-import { Container, Title, Text, Card, Group, SimpleGrid, Badge, Progress, RingProgress, Table, Avatar, Paper, Stack, Loader, Center } from '@mantine/core';
-import { TrendingUp, DollarSign, Clock, CheckCircle, Briefcase, Users, PieChart } from 'lucide-react';
+import { Container, Title, Text, Card, Group, SimpleGrid, Badge, Progress, RingProgress, Table, Avatar, Paper, Stack, Loader, Center, Box } from '@mantine/core';
+import { TrendingUp, DollarSign, Clock, CheckCircle2, Briefcase, Users, PieChart, BarChart3, Activity } from 'lucide-react';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetAllTasksQuery } from '../tasks/task.slice';
 import { useGetTeamTimeLogsQuery } from '../timelogs/timeLog.slice';
@@ -75,6 +75,7 @@ export const ReportsPage: React.FC = () => {
 
   return (
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
+      {/* Header Bar */}
       <div style={{ marginBottom: '28px' }}>
         <Title
           order={2}
@@ -86,71 +87,196 @@ export const ReportsPage: React.FC = () => {
             lineHeight: 1.25,
           }}
         >
-          Reports & Analytics
+          Reports & Analytics Workspace
         </Title>
         <Text
           size="sm"
           mt={4}
           style={{ color: '#64748b', letterSpacing: '-0.01em' }}
         >
-          Consolidated workspace performance and financial highlights.
+          Consolidated performance metrics, team velocity, and project financial analytics.
         </Text>
       </div>
 
-      {/* KPI Section */}
+      {/* Top 4 KPI Summary Grid */}
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg" mb="xl">
         {/* Total Budget */}
-        <Card shadow="sm" p="lg" radius="lg" withBorder>
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+            background: '#ffffff',
+          }}
+        >
           <Group justify="space-between" mb="xs">
-            <Text size="xs" fw={700} color="dimmed" tt="uppercase">Total Budget</Text>
-            <DollarSign size={20} color="#3b82f6" />
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Portfolio Budget
+            </Text>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              background: '#f0f5ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <DollarSign size={20} color="#3b82f6" />
+            </div>
           </Group>
-          <Text size="xl" fw={800}>${totalBudget.toLocaleString()}</Text>
-          <Text size="xs" c="dimmed" mt={4}>Across {projects.length} active engagements</Text>
-        </Card>
+          <Text fw={800} style={{ fontSize: '1.625rem', color: '#0f172a', letterSpacing: '-0.03em' }}>
+            ${totalBudget.toLocaleString()}
+          </Text>
+          <Text size="xs" mt={4} style={{ color: '#64748b' }}>
+            Across {projects.length} active engagements
+          </Text>
+        </Paper>
 
         {/* Total Received */}
-        <Card shadow="sm" p="lg" radius="lg" withBorder>
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+            background: '#ffffff',
+          }}
+        >
           <Group justify="space-between" mb="xs">
-            <Text size="xs" fw={700} color="dimmed" tt="uppercase">Invoiced & Paid</Text>
-            <TrendingUp size={20} color="#10b981" />
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Invoiced & Collected
+            </Text>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              background: '#ecfdf5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <TrendingUp size={20} color="#10b981" />
+            </div>
           </Group>
-          <Text size="xl" fw={800} color="green">${totalReceived.toLocaleString()}</Text>
-          <Group gap="xs" mt={4}>
-            <Progress value={totalBudget > 0 ? (totalReceived / totalBudget) * 100 : 0} color="green" size="xs" style={{ flex: 1 }} />
-            <Text size="xs" fw={600} color="green">{totalBudget > 0 ? Math.round((totalReceived / totalBudget) * 100) : 0}%</Text>
+          <Text fw={800} style={{ fontSize: '1.625rem', color: '#059669', letterSpacing: '-0.03em' }}>
+            ${totalReceived.toLocaleString()}
+          </Text>
+          <Group gap="xs" mt={6}>
+            <Progress value={totalBudget > 0 ? (totalReceived / totalBudget) * 100 : 0} color="teal" size="xs" style={{ flex: 1 }} radius="xl" />
+            <Text size="xs" fw={700} style={{ color: '#059669' }}>
+              {totalBudget > 0 ? Math.round((totalReceived / totalBudget) * 100) : 0}%
+            </Text>
           </Group>
-        </Card>
+        </Paper>
 
         {/* Logged Hours */}
-        <Card shadow="sm" p="lg" radius="lg" withBorder>
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+            background: '#ffffff',
+          }}
+        >
           <Group justify="space-between" mb="xs">
-            <Text size="xs" fw={700} color="dimmed" tt="uppercase">Logged Hours</Text>
-            <Clock size={20} color="#f59e0b" />
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Tracked Hours
+            </Text>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              background: '#fff7ed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Clock size={20} color="#f59e0b" />
+            </div>
           </Group>
-          <Text size="xl" fw={800}>{totalHoursLogged} Hrs</Text>
-          <Text size="xs" c="dimmed" mt={4}>Tracked via automatic timers</Text>
-        </Card>
+          <Text fw={800} style={{ fontSize: '1.625rem', color: '#d97706', letterSpacing: '-0.03em' }}>
+            {totalHoursLogged} Hrs
+          </Text>
+          <Text size="xs" mt={4} style={{ color: '#64748b' }}>
+            Logged via automatic live task timers
+          </Text>
+        </Paper>
 
-        {/* Task Completion */}
-        <Card shadow="sm" p="lg" radius="lg" withBorder>
+        {/* Task Completion Rate */}
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
+            background: '#ffffff',
+          }}
+        >
           <Group justify="space-between" mb="xs">
-            <Text size="xs" fw={700} color="dimmed" tt="uppercase">Task Completion</Text>
-            <CheckCircle size={20} color="#3b82f6" />
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Task Completion
+            </Text>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              background: '#f0f5ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <CheckCircle2 size={20} color="#3b82f6" />
+            </div>
           </Group>
-          <Text size="xl" fw={800}>{taskCompletionRate}%</Text>
-          <Text size="xs" c="dimmed" mt={4}>{completedTasks} of {totalTasks} tasks completed</Text>
-        </Card>
+          <Text fw={800} style={{ fontSize: '1.625rem', color: '#2563eb', letterSpacing: '-0.03em' }}>
+            {taskCompletionRate}%
+          </Text>
+          <Text size="xs" mt={4} style={{ color: '#64748b' }}>
+            {completedTasks} of {totalTasks} tasks completed
+          </Text>
+        </Paper>
       </SimpleGrid>
 
       {/* Main Graphs Grid */}
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="xl" mb="xl">
         {/* Project Financial Stacked Breakdown */}
-        <Card shadow="sm" p="xl" radius="lg" withBorder>
-          <Group gap="xs" mb="lg">
-            <Briefcase size={20} color="#3b82f6" />
-            <Title order={4}>Financial Breakdown by Project</Title>
+        <Card
+          p="xl"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+            background: '#ffffff',
+          }}
+        >
+          <Group justify="space-between" mb="lg">
+            <Group gap="xs">
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: '8px',
+                background: '#f0f5ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Briefcase size={18} color="#3b82f6" />
+              </div>
+              <Title order={4} style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a' }}>
+                Financial Breakdown by Project
+              </Title>
+            </Group>
+            <Badge variant="light" color="blue" radius="md">Budget Progress</Badge>
           </Group>
+
           <Stack gap="lg">
             {projects.map((proj) => {
               const budget = proj.totalBudget || 0;
@@ -160,70 +286,109 @@ export const ReportsPage: React.FC = () => {
               const pendingPercent = budget > 0 ? (pending / budget) * 100 : 0;
 
               return (
-                <div key={proj._id}>
+                <Box key={proj._id}>
                   <Group justify="space-between" mb={8}>
-                    <Text size="sm" fw={700} style={{ color: '#1f2937' }}>{proj.name}</Text>
-                    <Badge variant="outline" color="gray" size="sm">Budget: ${budget.toLocaleString()}</Badge>
+                    <Text size="sm" fw={700} style={{ color: '#0f172a' }}>{proj.name}</Text>
+                    <Text size="xs" fw={700} style={{ color: '#64748b' }}>
+                      Budget: ${budget.toLocaleString()}
+                    </Text>
                   </Group>
-                  <Progress.Root size="lg" radius="xl" style={{ backgroundColor: '#f1f5f9' }}>
+                  <Progress.Root size="md" radius="xl" style={{ backgroundColor: '#f1f5f9' }}>
                     <Progress.Section value={paidPercent} color="teal" />
                     <Progress.Section value={pendingPercent} color="orange" />
                   </Progress.Root>
-                  <Group justify="space-between" mt={6}>
-                    <Group gap="xs">
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#0ca678' }} />
-                      <Text size="xs" color="dimmed" fw={500}>Paid: ${received.toLocaleString()} ({Math.round(paidPercent)}%)</Text>
+                  <Group justify="space-between" mt={8}>
+                    <Group gap={6}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981' }} />
+                      <Text size="xs" fw={600} style={{ color: '#059669' }}>
+                        Paid: ${received.toLocaleString()} ({Math.round(paidPercent)}%)
+                      </Text>
                     </Group>
-                    <Group gap="xs">
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f76707' }} />
-                      <Text size="xs" color="dimmed" fw={500}>Pending: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)</Text>
+                    <Group gap={6}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+                      <Text size="xs" fw={600} style={{ color: '#d97706' }}>
+                        Pending: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)
+                      </Text>
                     </Group>
                   </Group>
-                </div>
+                </Box>
               );
             })}
+            {projects.length === 0 && (
+              <Text size="sm" color="dimmed" ta="center" py="lg">No project data available.</Text>
+            )}
           </Stack>
         </Card>
 
         {/* Task Completion Rate Wheel & Department metrics */}
-        <Card shadow="sm" p="xl" radius="lg" withBorder>
-          <Group gap="xs" mb="lg">
-            <PieChart size={20} color="#2563eb" />
-            <Title order={4}>Department Hour Distributions</Title>
+        <Card
+          p="xl"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+            background: '#ffffff',
+          }}
+        >
+          <Group justify="space-between" mb="lg">
+            <Group gap="xs">
+              <div style={{
+                width: 32,
+                height: 32,
+                borderRadius: '8px',
+                background: '#f0f5ff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <PieChart size={18} color="#2563eb" />
+              </div>
+              <Title order={4} style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a' }}>
+                Department Distribution & Velocity
+              </Title>
+            </Group>
           </Group>
+
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
-            {/* Completion circle */}
-            <Paper withBorder p="md" radius="md" ta="center">
-              <Text size="sm" fw={700} color="dimmed" mb="md" tt="uppercase">Overall Progress</Text>
+            {/* Completion ring wheel */}
+            <Paper withBorder p="lg" radius="lg" ta="center" style={{ borderColor: '#e8ecf4', background: '#f8faff' }}>
+              <Text size="xs" fw={700} style={{ color: '#64748b', letterSpacing: '0.05em' }} mb="md" tt="uppercase">
+                Overall Work Velocity
+              </Text>
               <Center>
                 <RingProgress
                   size={140}
                   roundCaps
                   thickness={12}
-                  sections={[{ value: taskCompletionRate, color: 'blue' }]}
+                  sections={[{ value: taskCompletionRate, color: '#3b82f6' }]}
                   label={
-                    <Text ta="center" fw={700} size="xl">
+                    <Text ta="center" fw={800} style={{ fontSize: '1.5rem', color: '#0f172a' }}>
                       {taskCompletionRate}%
                     </Text>
                   }
                 />
               </Center>
-              <Text size="xs" color="dimmed" mt="xs">Tasks completed successfully</Text>
+              <Text size="xs" style={{ color: '#64748b' }} mt="md">
+                Tasks completed successfully across all departments
+              </Text>
             </Paper>
 
-            {/* Department bar chart cards */}
-            <Stack gap="xs">
+            {/* Department progress cards */}
+            <Stack gap="sm">
               {deptMetrics.map((dm) => (
-                <Paper key={dm.dept} withBorder p="xs" radius="md">
-                  <Group justify="space-between" mb={4}>
-                    <Badge variant="light" color={dm.dept === 'design' ? 'pink' : dm.dept === 'seo' ? 'green' : 'blue'}>
+                <Paper key={dm.dept} withBorder p="md" radius="md" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+                  <Group justify="space-between" mb={6}>
+                    <Badge variant="light" color={dm.dept === 'design' ? 'indigo' : dm.dept === 'seo' ? 'cyan' : 'blue'} radius="sm">
                       {dm.dept.toUpperCase()}
                     </Badge>
-                    <Text size="xs" color="dimmed">Spent: {dm.spent}h / Est: {dm.estimated}h</Text>
+                    <Text size="xs" fw={600} style={{ color: '#64748b' }}>
+                      Spent: {dm.spent}h / Est: {dm.estimated}h
+                    </Text>
                   </Group>
                   <Progress 
                     value={dm.estimated > 0 ? Math.min((dm.spent / dm.estimated) * 100, 100) : 0} 
-                    color={dm.dept === 'design' ? 'pink' : dm.dept === 'seo' ? 'green' : 'blue'}
+                    color={dm.dept === 'design' ? 'indigo' : dm.dept === 'seo' ? 'cyan' : 'blue'}
                     size="sm" 
                     radius="xl" 
                   />
@@ -234,19 +399,45 @@ export const ReportsPage: React.FC = () => {
         </Card>
       </SimpleGrid>
 
-      {/* Team Hours Logged Ranking Panel */}
-      <Card shadow="sm" p="xl" radius="lg" withBorder>
-        <Group gap="xs" mb="lg">
-          <Users size={20} color="#3b82f6" />
-          <Title order={4}>Team Hours Contributed</Title>
+      {/* Team Hours Logged Leaderboard */}
+      <Card
+        p="xl"
+        radius="xl"
+        withBorder
+        style={{
+          borderColor: '#e8ecf4',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+          background: '#ffffff',
+          overflow: 'hidden',
+        }}
+      >
+        <Group justify="space-between" mb="lg">
+          <Group gap="xs">
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: '8px',
+              background: '#f0f5ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Users size={18} color="#3b82f6" />
+            </div>
+            <Title order={4} style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a' }}>
+              Team Hours & Workload Leaderboard
+            </Title>
+          </Group>
+          <Badge variant="light" color="blue" radius="md">Tracked Contribution</Badge>
         </Group>
-        <Table verticalSpacing="sm">
-          <Table.Thead>
+
+        <Table verticalSpacing="md" horizontalSpacing="lg">
+          <Table.Thead style={{ backgroundColor: '#f8faff' }}>
             <Table.Tr>
               <Table.Th>Member</Table.Th>
               <Table.Th>Role / Department</Table.Th>
               <Table.Th>Hours Tracked</Table.Th>
-              <Table.Th>Workload Indicator</Table.Th>
+              <Table.Th style={{ width: '260px' }}>Workload Distribution</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -254,25 +445,55 @@ export const ReportsPage: React.FC = () => {
               <Table.Tr key={u._id}>
                 <Table.Td>
                   <Group gap="xs">
-                    <Avatar src={u.avatarUrl} size="sm" color="blue">{u.name.charAt(0)}</Avatar>
-                    <Text size="sm" fw={600}>{u.name}</Text>
+                    <Avatar
+                      src={u.avatarUrl}
+                      size="sm"
+                      radius="xl"
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                        color: '#fff',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {u.name?.charAt(0).toUpperCase()}
+                    </Avatar>
+                    <Text size="sm" fw={600} style={{ color: '#0f172a' }}>{u.name}</Text>
                   </Group>
                 </Table.Td>
                 <Table.Td>
-                  <Text size="sm">{u.role.replace('_', ' ')}</Text>
-                  {u.department && <Badge size="xs" variant="outline" color="gray">{u.department}</Badge>}
+                  <Group gap={6}>
+                    <Text size="xs" fw={600} style={{ color: '#64748b' }}>{u.role.replace('_', ' ')}</Text>
+                    {u.department && (
+                      <Badge size="xs" variant="outline" color="blue" radius="sm">
+                        {u.department}
+                      </Badge>
+                    )}
+                  </Group>
                 </Table.Td>
-                <Table.Td fw={700}>{u.hours} hrs</Table.Td>
-                <Table.Td style={{ width: '250px' }}>
+                <Table.Td fw={700} style={{ color: '#0f172a' }}>{u.hours} hrs</Table.Td>
+                <Table.Td>
                   <Group gap="xs" wrap="nowrap">
-                    <Progress value={Math.min((u.hours / 40) * 100, 100)} color={u.hours > 40 ? 'red' : u.hours > 20 ? 'blue' : 'gray'} size="xs" style={{ flex: 1 }} />
-                    <Badge size="xs" color={u.hours > 40 ? 'red' : u.hours > 20 ? 'blue' : 'gray'}>
+                    <Progress
+                      value={Math.min((u.hours / 40) * 100, 100)}
+                      color={u.hours > 40 ? 'red' : u.hours > 20 ? 'blue' : 'gray'}
+                      size="xs"
+                      style={{ flex: 1 }}
+                      radius="xl"
+                    />
+                    <Badge size="xs" variant="light" color={u.hours > 40 ? 'red' : u.hours > 20 ? 'blue' : 'gray'} radius="sm">
                       {u.hours > 40 ? 'Overload' : u.hours > 20 ? 'Optimal' : 'Light'}
                     </Badge>
                   </Group>
                 </Table.Td>
               </Table.Tr>
             ))}
+            {userHours.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={4} ta="center" py="xl">
+                  <Text color="dimmed">No team member logs available.</Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
           </Table.Tbody>
         </Table>
       </Card>

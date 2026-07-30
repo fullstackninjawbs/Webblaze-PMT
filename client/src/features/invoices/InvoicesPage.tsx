@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Container, Title, Text, Card, Group, Table, Badge, Button, Modal, TextInput, Select, NumberInput, Stack, ActionIcon } from '@mantine/core';
-import { Plus, Edit, Trash } from 'lucide-react';
+import { Container, Title, Text, Card, Group, Table, Badge, Button, Modal, TextInput, Select, NumberInput, Stack, ActionIcon, SimpleGrid, Paper } from '@mantine/core';
+import { Plus, Edit, Trash, DollarSign, ArrowUpRight, Clock, CheckCircle2, Search, Filter } from 'lucide-react';
 import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from './invoice.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useForm, zodResolver } from '@mantine/form';
@@ -33,6 +33,10 @@ export const InvoicesPage = () => {
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>('bank_transfer');
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().split('T')[0]);
+
+  // Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const invoices = invoicesData?.data || [];
   const projects = projectsData?.data || [];
@@ -127,23 +131,45 @@ export const InvoicesPage = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'draft': return 'gray';
-      case 'sent': return 'blue';
-      case 'partially_paid': return 'orange';
-      case 'paid': return 'green';
-      case 'overdue': return 'red';
-      default: return 'gray';
+      case 'draft':
+        return <Badge variant="light" color="gray" radius="sm" fw={600}>Draft</Badge>;
+      case 'sent':
+        return <Badge variant="light" color="blue" radius="sm" fw={600}>Sent</Badge>;
+      case 'partially_paid':
+        return <Badge variant="light" color="orange" radius="sm" fw={600}>Partially Paid</Badge>;
+      case 'paid':
+        return <Badge variant="light" color="green" radius="sm" fw={600}>Paid</Badge>;
+      case 'overdue':
+        return <Badge variant="light" color="red" radius="sm" fw={600}>Overdue</Badge>;
+      default:
+        return <Badge variant="light" color="gray" radius="sm" fw={600}>{status}</Badge>;
     }
   };
 
-  const totalPending = invoices.reduce((sum, inv) => sum + (inv.pendingAmount || 0), 0);
+  // Filtered Invoices
+  const filteredInvoices = invoices.filter((inv) => {
+    const projectObj = typeof inv.project === 'object' ? inv.project : null;
+    const projectName = projectObj?.name?.toLowerCase() || '';
+    const invNum = inv.invoiceNumber?.toLowerCase() || '';
+    const q = searchQuery.toLowerCase();
+
+    const matchesQuery = invNum.includes(q) || projectName.includes(q);
+    const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
+
+    return matchesQuery && matchesStatus;
+  });
+
+  const totalBilled = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
   const totalReceived = invoices.reduce((sum, inv) => sum + (inv.receivedAmount || 0), 0);
+  const totalPending = invoices.reduce((sum, inv) => sum + (inv.pendingAmount || 0), 0);
 
   return (
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
+      
+      {/* Header Bar */}
+      <Group justify="space-between" mb="xl">
         <div>
           <Title
             order={2}
@@ -155,91 +181,183 @@ export const InvoicesPage = () => {
               lineHeight: 1.25,
             }}
           >
-            Financial Overview
+            Financial Management & Invoices
           </Title>
           <Text
             size="sm"
             mt={4}
             style={{ color: '#64748b', letterSpacing: '-0.01em' }}
           >
-            Manage all project invoices and track payments.
+            Monitor billing status, record client payments, and manage invoices.
           </Text>
         </div>
         <Button
           leftSection={<Plus size={16} />}
           size="md"
-          color="blue"
           onClick={openCreateModal}
           style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
             fontWeight: 600,
-            boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+            boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
           }}
         >
           Create Invoice
         </Button>
       </Group>
 
-      <Group grow mb="xl">
-        <div style={{
-          background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
-          border: '1px solid #a7f3d0',
-          borderRadius: '14px',
-          padding: '20px 24px',
-          boxShadow: '0 2px 8px rgba(16,185,129,0.08)',
-        }}>
-          <Text
-            size="xs"
-            fw={700}
-            tt="uppercase"
-            style={{ color: '#059669', letterSpacing: '0.08em', fontSize: '0.7rem' }}
-          >
-            Total Received
+      {/* KPI Cards */}
+      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg" mb="xl">
+        {/* Total Billed */}
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+            background: '#ffffff',
+          }}
+        >
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Total Billed
+            </Text>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              background: '#f0f5ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <DollarSign size={20} color="#3b82f6" />
+            </div>
+          </Group>
+          <Text fw={800} style={{ fontSize: '1.625rem', color: '#0f172a', letterSpacing: '-0.03em' }}>
+            ${totalBilled.toLocaleString()}
           </Text>
-          <Text
-            fw={700}
-            style={{ fontSize: '1.5rem', color: '#065f46', letterSpacing: '-0.03em', lineHeight: 1.25, marginTop: '4px' }}
-          >
+          <Text size="xs" mt={4} style={{ color: '#64748b' }}>
+            Cumulative invoiced across {invoices.length} invoices
+          </Text>
+        </Paper>
+
+        {/* Total Received */}
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+            background: '#ffffff',
+          }}
+        >
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Total Received
+            </Text>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              background: '#ecfdf5',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <CheckCircle2 size={20} color="#10b981" />
+            </div>
+          </Group>
+          <Text fw={800} style={{ fontSize: '1.625rem', color: '#059669', letterSpacing: '-0.03em' }}>
             ${totalReceived.toLocaleString()}
           </Text>
-        </div>
-        <div style={{
-          background: 'linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)',
-          border: '1px solid #fed7aa',
-          borderRadius: '14px',
-          padding: '20px 24px',
-          boxShadow: '0 2px 8px rgba(245,158,11,0.08)',
-        }}>
-          <Text
-            size="xs"
-            fw={700}
-            tt="uppercase"
-            style={{ color: '#d97706', letterSpacing: '0.08em', fontSize: '0.7rem' }}
-          >
-            Total Pending
+          <Text size="xs" mt={4} style={{ color: '#64748b' }}>
+            {totalBilled > 0 ? Math.round((totalReceived / totalBilled) * 100) : 0}% of total billing collected
           </Text>
-          <Text
-            fw={700}
-            style={{ fontSize: '1.5rem', color: '#92400e', letterSpacing: '-0.03em', lineHeight: 1.25, marginTop: '4px' }}
-          >
+        </Paper>
+
+        {/* Total Pending */}
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+            background: '#ffffff',
+          }}
+        >
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Total Outstanding
+            </Text>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: '10px',
+              background: '#fff7ed',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <Clock size={20} color="#f59e0b" />
+            </div>
+          </Group>
+          <Text fw={800} style={{ fontSize: '1.625rem', color: '#d97706', letterSpacing: '-0.03em' }}>
             ${totalPending.toLocaleString()}
           </Text>
-        </div>
-      </Group>
+          <Text size="xs" mt={4} style={{ color: '#64748b' }}>
+            Pending payment from active clients
+          </Text>
+        </Paper>
+      </SimpleGrid>
 
+      {/* Filter Toolbar */}
+      <Paper p="md" radius="lg" withBorder mb="lg" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+        <Group justify="space-between">
+          <TextInput
+            placeholder="Search invoice number or project..."
+            leftSection={<Search size={16} color="#94a3b8" />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: 320 }}
+            radius="md"
+          />
+          <Group gap="sm">
+            <Filter size={16} color="#64748b" />
+            <Select
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val || 'all')}
+              data={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'draft', label: 'Draft' },
+                { value: 'sent', label: 'Sent' },
+                { value: 'partially_paid', label: 'Partially Paid' },
+                { value: 'paid', label: 'Paid' },
+                { value: 'overdue', label: 'Overdue' },
+              ]}
+              style={{ width: 180 }}
+              radius="md"
+            />
+          </Group>
+        </Group>
+      </Paper>
+
+      {/* Invoices Data Table */}
       <Card
-        shadow="sm"
-        p="lg"
+        p={0}
         radius="lg"
         withBorder
         style={{
-          border: '1px solid #e8ecf4',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
-          borderRadius: '16px',
+          borderColor: '#e8ecf4',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
           overflow: 'hidden',
+          backgroundColor: '#ffffff',
         }}
       >
-        <Table verticalSpacing="md" striped highlightOnHover>
-          <Table.Thead>
+        <Table verticalSpacing="md" horizontalSpacing="lg">
+          <Table.Thead style={{ backgroundColor: '#f8faff' }}>
             <Table.Tr>
               <Table.Th>Invoice #</Table.Th>
               <Table.Th>Project</Table.Th>
@@ -248,47 +366,47 @@ export const InvoicesPage = () => {
               <Table.Th>Total</Table.Th>
               <Table.Th>Pending</Table.Th>
               <Table.Th>Status</Table.Th>
-              <Table.Th w={150}></Table.Th>
+              <Table.Th style={{ textAlign: 'right' }}>Actions</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {invoices.map((inv) => {
+            {filteredInvoices.map((inv) => {
               const project = typeof inv.project === 'object' ? inv.project : null;
               return (
                 <Table.Tr key={inv._id}>
-                  <Table.Td fw={600}>{inv.invoiceNumber}</Table.Td>
-                  <Table.Td>{project?.name || 'Unknown'}</Table.Td>
-                  <Table.Td>{new Date(inv.issueDate).toLocaleDateString()}</Table.Td>
-                  <Table.Td>{new Date(inv.dueDate).toLocaleDateString()}</Table.Td>
-                  <Table.Td>${inv.totalAmount.toLocaleString()}</Table.Td>
-                  <Table.Td fw={600} c={inv.pendingAmount > 0 ? 'orange' : 'dimmed'}>
+                  <Table.Td fw={700} style={{ color: '#0f172a' }}>{inv.invoiceNumber}</Table.Td>
+                  <Table.Td fw={500}>{project?.name || 'Unknown'}</Table.Td>
+                  <Table.Td style={{ color: '#64748b' }}>{new Date(inv.issueDate).toLocaleDateString()}</Table.Td>
+                  <Table.Td style={{ color: '#64748b' }}>{new Date(inv.dueDate).toLocaleDateString()}</Table.Td>
+                  <Table.Td fw={700} style={{ color: '#0f172a' }}>${inv.totalAmount.toLocaleString()}</Table.Td>
+                  <Table.Td fw={700} style={{ color: inv.pendingAmount > 0 ? '#d97706' : '#64748b' }}>
                     ${inv.pendingAmount.toLocaleString()}
                   </Table.Td>
                   <Table.Td>
-                    <Badge color={getStatusColor(inv.status)} variant="light">
-                      {inv.status.replace('_', ' ')}
-                    </Badge>
+                    {getStatusBadge(inv.status)}
                   </Table.Td>
-                  <Table.Td>
-                    <Group gap={4} justify="flex-end">
+                  <Table.Td style={{ textAlign: 'right' }}>
+                    <Group gap={6} justify="flex-end">
                       {inv.status !== 'paid' && (
                         <Button
                           size="xs"
                           variant="light"
                           color="green"
+                          radius="md"
                           onClick={() => {
                             setActiveInvoiceForPayment(inv);
                             setPaymentAmount(inv.pendingAmount);
                             setPaymentModalOpened(true);
                           }}
+                          leftSection={<ArrowUpRight size={14} />}
                         >
-                          + Pay
+                          Pay
                         </Button>
                       )}
-                      <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(inv)} title="Edit">
+                      <ActionIcon variant="subtle" color="blue" radius="md" onClick={() => openEditModal(inv)} title="Edit">
                         <Edit size={16} />
                       </ActionIcon>
-                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteInvoice(inv._id, inv.invoiceNumber)} title="Delete">
+                      <ActionIcon variant="subtle" color="red" radius="md" onClick={() => handleDeleteInvoice(inv._id, inv.invoiceNumber)} title="Delete">
                         <Trash size={16} />
                       </ActionIcon>
                     </Group>
@@ -296,10 +414,10 @@ export const InvoicesPage = () => {
                 </Table.Tr>
               );
             })}
-            {invoices.length === 0 && !isLoading && (
+            {filteredInvoices.length === 0 && !isLoading && (
               <Table.Tr>
-                <Table.Td colSpan={8} ta="center" py="xl">
-                  <Text color="dimmed">No invoices found.</Text>
+                <Table.Td colSpan={8} ta="center" py={40}>
+                  <Text color="dimmed" fw={500}>No invoices found matching criteria.</Text>
                 </Table.Td>
               </Table.Tr>
             )}
@@ -308,23 +426,24 @@ export const InvoicesPage = () => {
       </Card>
 
       {/* Save Invoice Modal */}
-      <Modal opened={opened} onClose={() => setOpened(false)} title={editingInvoice ? "Edit Invoice" : "Create Invoice"} radius="md">
+      <Modal opened={opened} onClose={() => setOpened(false)} title={<Text fw={700} size="lg">{editingInvoice ? "Edit Invoice" : "Create New Invoice"}</Text>} radius="lg" padding="lg">
         <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack gap="sm">
+          <Stack gap="md">
             <Select
-              label="Project"
+              label={<Text size="xs" fw={600} mb={4}>Project</Text>}
               data={projects.map(p => ({ value: p._id, label: p.name }))}
               {...form.getInputProps('project')}
+              radius="md"
               withAsterisk
             />
-            <TextInput label="Invoice Number" {...form.getInputProps('invoiceNumber')} withAsterisk />
+            <TextInput label={<Text size="xs" fw={600} mb={4}>Invoice Number</Text>} placeholder="INV-2026-001" {...form.getInputProps('invoiceNumber')} radius="md" withAsterisk />
             <Group grow>
-              <TextInput type="date" label="Issue Date" {...form.getInputProps('issueDate')} withAsterisk />
-              <TextInput type="date" label="Due Date" {...form.getInputProps('dueDate')} withAsterisk />
+              <TextInput type="date" label={<Text size="xs" fw={600} mb={4}>Issue Date</Text>} {...form.getInputProps('issueDate')} radius="md" withAsterisk />
+              <TextInput type="date" label={<Text size="xs" fw={600} mb={4}>Due Date</Text>} {...form.getInputProps('dueDate')} radius="md" withAsterisk />
             </Group>
-            <NumberInput label="Total Amount ($)" min={0} {...form.getInputProps('totalAmount')} withAsterisk />
+            <NumberInput label={<Text size="xs" fw={600} mb={4}>Total Amount ($)</Text>} min={0} {...form.getInputProps('totalAmount')} radius="md" withAsterisk />
             <Select
-              label="Status"
+              label={<Text size="xs" fw={600} mb={4}>Status</Text>}
               data={[
                 { value: 'draft', label: 'Draft' },
                 { value: 'sent', label: 'Sent' },
@@ -333,8 +452,18 @@ export const InvoicesPage = () => {
                 { value: 'overdue', label: 'Overdue' }
               ]}
               {...form.getInputProps('status')}
+              radius="md"
             />
-            <Button type="submit" loading={isCreating || isUpdating} mt="md">
+            <Button 
+              type="submit" 
+              loading={isCreating || isUpdating} 
+              mt="md" 
+              radius="md"
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                fontWeight: 600,
+              }}
+            >
               {editingInvoice ? "Update Invoice" : "Save Invoice"}
             </Button>
           </Stack>
@@ -342,19 +471,20 @@ export const InvoicesPage = () => {
       </Modal>
 
       {/* Record Payment Modal */}
-      <Modal opened={paymentModalOpened} onClose={() => setPaymentModalOpened(false)} title="Record Payment" radius="md">
-        <Stack gap="sm">
-          <Text size="sm">Enter payment details to update the invoice status and totals.</Text>
+      <Modal opened={paymentModalOpened} onClose={() => setPaymentModalOpened(false)} title={<Text fw={700} size="lg">Record Payment</Text>} radius="lg" padding="lg">
+        <Stack gap="md">
+          <Text size="sm" color="dimmed">Record payment details for invoice #{activeInvoiceForPayment?.invoiceNumber}.</Text>
           <NumberInput
-            label="Payment Amount ($)"
+            label={<Text size="xs" fw={600} mb={4}>Payment Amount ($)</Text>}
             value={paymentAmount}
             onChange={(val) => setPaymentAmount(Number(val) || 0)}
             min={0.01}
             max={activeInvoiceForPayment?.pendingAmount}
+            radius="md"
             withAsterisk
           />
           <Select
-            label="Payment Method"
+            label={<Text size="xs" fw={600} mb={4}>Payment Method</Text>}
             value={paymentMethod}
             onChange={(val) => setPaymentMethod(val || 'bank_transfer')}
             data={[
@@ -364,14 +494,16 @@ export const InvoicesPage = () => {
               { value: 'paypal', label: 'PayPal' },
               { value: 'cash', label: 'Cash' },
             ]}
+            radius="md"
           />
           <TextInput
             type="date"
-            label="Payment Date"
+            label={<Text size="xs" fw={600} mb={4}>Payment Date</Text>}
             value={paymentDate}
             onChange={(e) => setPaymentDate(e.target.value)}
+            radius="md"
           />
-          <Button color="green" onClick={handleRecordPayment} loading={isUpdating}>
+          <Button color="green" radius="md" onClick={handleRecordPayment} loading={isUpdating} style={{ fontWeight: 600 }}>
             Submit Payment
           </Button>
         </Stack>

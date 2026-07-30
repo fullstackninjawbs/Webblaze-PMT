@@ -230,9 +230,9 @@ export const DashboardLayout: React.FC = () => {
           boxShadow: '2px 0 20px rgba(0,0,0,0.04)',
         }}
       >
-        {/* Blaze Softtech Branding Header — Flushed to left screen edge */}
-        <Box pl={0} pr="md" pt="md" pb="xs">
-          <BlazeLogo variant="light" size="md" />
+        {/* WebBlaze PMS Branding Header */}
+        <Box px="md" pt="md" pb="xs">
+          <BlazeLogo variant="dark" size="md" />
         </Box>
 
         {/* Separator */}
@@ -331,7 +331,7 @@ export const DashboardLayout: React.FC = () => {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <div style={{ width: '100%', padding: '36px 32px' }}>
+        <div style={{ width: '100%', maxWidth: '1920px', margin: '0 auto', padding: '36px 32px' }}>
           <Outlet />
         </div>
       </AppShell.Main>

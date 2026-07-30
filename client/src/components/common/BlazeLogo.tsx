@@ -1,86 +1,56 @@
 import React from 'react';
+import { Rocket } from 'lucide-react';
+import { Group, Text } from '@mantine/core';
 
 interface Props {
-  variant?: 'light' | 'dark';
-  size?: 'sm' | 'md' | 'lg' | number;
-  height?: number;
+  variant?: 'light' | 'dark' | 'transparent';
+  size?: 'sm' | 'md' | 'lg';
   style?: React.CSSProperties;
 }
 
-export const BlazeLogo: React.FC<Props> = ({ variant = 'light', style }) => {
-  // Clean minimal Project Checkmark Icon
-  const LogoSymbol = () => (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="2" width="20" height="20" rx="6" fill="url(#cyanGrad)" />
-      <path d="M7.5 12L10.5 15L16.5 9" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <defs>
-        <linearGradient id="cyanGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#38BDF8" />
-          <stop offset="1" stopColor="#2563EB" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
+export const BlazeLogo: React.FC<Props> = ({ variant = 'dark', size = 'md', style }) => {
+  const iconSize = size === 'sm' ? 16 : size === 'lg' ? 22 : 19;
+  const badgeSize = size === 'sm' ? '32px' : size === 'lg' ? '42px' : '36px';
+  const fontSize = size === 'sm' ? '1rem' : size === 'lg' ? '1.25rem' : '1.125rem';
 
-  if (variant === 'dark') {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', ...style }}>
-        <LogoSymbol />
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em', lineHeight: 1.1 }}>
-            Project Management
-          </span>
-          <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: '#64748b', letterSpacing: '0.05em' }}>
-            System
-          </span>
-        </div>
-      </div>
-    );
-  }
+  const isLightText = variant === 'light' || variant === 'transparent';
+  const textColor = isLightText ? '#ffffff' : '#0f172a';
+  const subTextColor = isLightText ? 'rgba(255, 255, 255, 0.85)' : '#64748b';
 
-  // Light Variant (Minimalist Professional Badge for Sidebar Header)
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        width: '100%',
-        padding: '12px 16px',
-        borderRadius: '0px 12px 12px 0px',
-        backgroundColor: '#0f172a',
-        boxShadow: '0 4px 14px rgba(15, 23, 42, 0.2)',
-        boxSizing: 'border-box',
-        ...style,
-      }}
-    >
-      <LogoSymbol />
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span
-          style={{
-            fontSize: '0.875rem',
-            fontWeight: 800,
-            color: '#ffffff',
-            letterSpacing: '-0.01em',
-            lineHeight: 1.15,
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          Project Management
-        </span>
-        <span
-          style={{
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            color: '#38bdf8',
-            letterSpacing: '0.06em',
-            marginTop: '1px',
-          }}
-        >
-          System
-        </span>
+    <Group gap="10px" wrap="nowrap" style={{ ...style }}>
+      <div
+        style={{
+          width: badgeSize,
+          height: badgeSize,
+          borderRadius: '10px',
+          background: isLightText
+            ? 'rgba(255, 255, 255, 0.2)'
+            : 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+          backdropFilter: isLightText ? 'blur(10px)' : 'none',
+          border: isLightText ? '1px solid rgba(255, 255, 255, 0.3)' : 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: isLightText ? '0 4px 16px rgba(0,0,0,0.1)' : '0 4px 14px rgba(59, 130, 246, 0.35)',
+          flexShrink: 0,
+        }}
+      >
+        <Rocket size={iconSize} color="#ffffff" strokeWidth={2.5} />
       </div>
-    </div>
+      <Text
+        fw={800}
+        style={{
+          fontSize,
+          letterSpacing: '-0.035em',
+          color: textColor,
+          lineHeight: 1.1,
+          fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+        }}
+      >
+        WebBlaze <span style={{ color: subTextColor, fontWeight: 700 }}>PMS</span>
+      </Text>
+    </Group>
   );
 };
 
