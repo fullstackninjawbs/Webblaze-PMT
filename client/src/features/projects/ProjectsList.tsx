@@ -1,12 +1,48 @@
 import React, { useState, useMemo } from 'react';
-import { useGetProjectsQuery, useCreateProjectMutation, useUpdateProjectMutation, useDeleteProjectMutation } from './project.slice';
+import {
+  useGetProjectsQuery,
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+} from './project.slice';
 import { useGetClientsQuery } from '../clients/client.slice';
 import { useGetUsersQuery } from '../users/user.slice';
 import { useGetReleasesQuery } from '../releases/release.slice';
-import { Table, Button, Group, Title, Modal, TextInput, Select, Card, Text, Badge, ActionIcon, NumberInput, MultiSelect, Grid, Progress, Tabs } from '@mantine/core';
+import {
+  Table,
+  Button,
+  Group,
+  Title,
+  Modal,
+  TextInput,
+  Select,
+  Card,
+  Text,
+  Badge,
+  ActionIcon,
+  NumberInput,
+  MultiSelect,
+  Grid,
+  Progress,
+  Tabs,
+  Paper,
+  SimpleGrid,
+  Stack,
+} from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, Edit, Trash, Briefcase, DollarSign, Eye } from 'lucide-react';
+import {
+  Plus,
+  Edit,
+  Trash,
+  Briefcase,
+  DollarSign,
+  Eye,
+  Search,
+  CheckCircle2,
+  Clock,
+  Filter,
+} from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus } from '../../types';
@@ -36,6 +72,7 @@ export const ProjectsList: React.FC = () => {
   const [modalOpened, setModalOpened] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const { user } = useSelector((state: RootState) => state.auth);
 
   const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
@@ -78,9 +115,9 @@ export const ProjectsList: React.FC = () => {
       const payload = {
         ...values,
         totalBudget: values.totalBudget || undefined,
-        team: values.team.length > 0 ? values.team : undefined
+        team: values.team.length > 0 ? values.team : undefined,
       };
-      
+
       if (editingProject) {
         await updateProject({ id: editingProject._id, data: payload as any }).unwrap();
       } else {
@@ -106,11 +143,13 @@ export const ProjectsList: React.FC = () => {
   };
 
   const clientOptions = clientsData?.data.map((c) => ({ value: c._id, label: c.name })) || [];
-  const teamOptions = usersData?.data
-    .filter(u => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER)
-    .map((u) => ({ value: u._id, label: `${u.name} (${u.role.replace('_', ' ')})` })) || [];
+  const teamOptions =
+    usersData?.data
+      .filter((u) => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER)
+      .map((u) => ({ value: u._id, label: `${u.name} (${u.role.replace('_', ' ')})` })) || [];
 
-  const getClientName = (id: string) => clientOptions.find(c => c.value === id)?.label || 'Unknown Client';
+  const getClientName = (id: string) =>
+    clientOptions.find((c) => c.value === id)?.label || 'Unknown Client';
 
   const getProjectReleaseDate = (projectId: string) => {
     const projectReleases = (releasesData?.data || []).filter(
@@ -128,24 +167,45 @@ export const ProjectsList: React.FC = () => {
     });
   };
 
+  const allProjects = projectsData?.data || [];
+
   const filteredProjects = useMemo(() => {
-    const raw = projectsData?.data || [];
-    if (activeTab === 'all') return raw;
-    return raw.filter(p => p.status === activeTab);
-  }, [projectsData, activeTab]);
+    return allProjects.filter((p) => {
+      const matchesTab = activeTab === 'all' || p.status === activeTab;
+      const matchesQuery =
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.client?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (p.type || '').toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesTab && matchesQuery;
+    });
+  }, [allProjects, activeTab, searchQuery]);
+
+  // KPI Metrics Calculation
+  const metrics = useMemo(() => {
+    const activeCount = allProjects.filter((p) => p.status === ProjectStatus.ACTIVE).length;
+    const totalBudgetSum = allProjects.reduce((sum, p) => sum + (p.totalBudget || 0), 0);
+    const totalReceivedSum = allProjects.reduce((sum, p) => sum + (p.receivedAmount || 0), 0);
+    const totalPendingSum = allProjects.reduce((sum, p) => sum + (p.pendingAmount || 0), 0);
+    return { activeCount, totalBudgetSum, totalReceivedSum, totalPendingSum };
+  }, [allProjects]);
 
   const rows = filteredProjects.map((project: any) => (
     <Table.Tr key={project._id}>
       <Table.Td>
         <Group gap="sm">
-          <div style={{ width: 36, height: 36, borderRadius: '8px', backgroundColor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4B5563' }}>
-            <Briefcase size={18} />
-          </div>
+          <Paper p={6} radius="md" bg="#eff6ff">
+            <Briefcase size={18} color="#2563eb" />
+          </Paper>
           <div>
-            <Text size="sm" fw={600} style={{ cursor: 'pointer', color: '#111827' }} onClick={() => navigate(`/projects/${project._id}`)}>
+            <Text
+              size="sm"
+              fw={700}
+              style={{ cursor: 'pointer', color: '#0f172a' }}
+              onClick={() => navigate(`/projects/${project._id}`)}
+            >
               {project.name}
             </Text>
-            <Text size="xs" c="dimmed">
+            <Text size="xs" style={{ color: '#64748b' }}>
               {project.client?.name || 'Unknown Client'}
             </Text>
           </div>
@@ -154,30 +214,46 @@ export const ProjectsList: React.FC = () => {
       <Table.Td>
         <Badge
           variant="light"
+          radius="sm"
+          fw={600}
           color={
-            project.status === ProjectStatus.ACTIVE ? 'green' :
-              project.status === ProjectStatus.ON_HOLD ? 'orange' :
-                project.status === ProjectStatus.COMPLETED ? 'blue' : 'gray'
+            project.status === ProjectStatus.ACTIVE
+              ? 'green'
+              : project.status === ProjectStatus.ON_HOLD
+              ? 'orange'
+              : project.status === ProjectStatus.COMPLETED
+              ? 'blue'
+              : 'gray'
           }
         >
           {project.status.replace('_', ' ')}
         </Badge>
       </Table.Td>
       <Table.Td>
-        <Text size="sm" c="dimmed">{getProjectReleaseDate(project._id)}</Text>
+        <Text size="sm" style={{ color: '#64748b' }}>
+          {getProjectReleaseDate(project._id)}
+        </Text>
       </Table.Td>
       {isAdminOrPM && (
         <>
           <Table.Td>
-            {project.totalBudget ? <Text size="sm" fw={500}>${project.totalBudget.toLocaleString()}</Text> : <Text size="sm" c="dimmed">-</Text>}
+            {project.totalBudget ? (
+              <Text size="sm" fw={600} style={{ color: '#0f172a' }}>
+                ${project.totalBudget.toLocaleString()}
+              </Text>
+            ) : (
+              <Text size="sm" style={{ color: '#94a3b8' }}>
+                -
+              </Text>
+            )}
           </Table.Td>
           <Table.Td>
-            <Text size="sm" c="teal" fw={500}>
+            <Text size="sm" style={{ color: '#059669' }} fw={600}>
               ${(project.receivedAmount || 0).toLocaleString()}
             </Text>
           </Table.Td>
           <Table.Td>
-            <Text size="sm" c="blue" fw={500}>
+            <Text size="sm" style={{ color: '#d97706' }} fw={600}>
               ${(project.pendingAmount || 0).toLocaleString()}
             </Text>
           </Table.Td>
@@ -185,21 +261,38 @@ export const ProjectsList: React.FC = () => {
       )}
       <Table.Td>
         <Group gap="xs" wrap="nowrap">
-          <Text size="sm" w={35} ta="right">{project.progress || 0}%</Text>
+          <Text size="sm" w={35} ta="right" fw={600} style={{ color: '#0f172a' }}>
+            {project.progress || 0}%
+          </Text>
           <Progress value={project.progress || 0} color="blue" size="sm" radius="xl" style={{ flex: 1 }} />
         </Group>
       </Table.Td>
       <Table.Td>
         <Group gap={4} justify="flex-end" wrap="nowrap">
-          <ActionIcon variant="subtle" color="blue" onClick={() => navigate(`/projects/${project._id}`)} title="View Details">
+          <ActionIcon
+            variant="subtle"
+            color="blue"
+            onClick={() => navigate(`/projects/${project._id}`)}
+            title="View Details"
+          >
             <Eye size={16} />
           </ActionIcon>
           {isAdminOrPM && (
             <>
-              <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(project)} title="Edit">
+              <ActionIcon
+                variant="subtle"
+                color="blue"
+                onClick={() => openEditModal(project)}
+                title="Edit"
+              >
                 <Edit size={16} />
               </ActionIcon>
-              <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteProject(project._id, project.name)} title="Delete">
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                onClick={() => handleDeleteProject(project._id, project.name)}
+                title="Delete"
+              >
                 <Trash size={16} />
               </ActionIcon>
             </>
@@ -211,37 +304,34 @@ export const ProjectsList: React.FC = () => {
 
   return (
     <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
+      {/* Header */}
+      <Group justify="space-between" align="center" mb="xl">
         <div>
           <Title
-            order={2}
+            order={1}
             style={{
               color: '#0f172a',
-              fontSize: '1.625rem',
-              fontWeight: 700,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.25,
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
             }}
           >
-            Projects
+            Projects Directory
           </Title>
-          <Text
-            size="sm"
-            mt={4}
-            style={{ color: '#64748b', letterSpacing: '-0.01em' }}
-          >
-            Track and manage all your active engagements.
+          <Text size="sm" mt={4} style={{ color: '#64748b' }}>
+            Manage client deliverables, milestone schedules, team assignments, and budgets.
           </Text>
         </div>
         {isAdminOrPM && (
           <Button
             leftSection={<Plus size={16} />}
             radius="md"
-            variant="filled"
+            size="md"
             onClick={openCreateModal}
             style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
               fontWeight: 600,
-              boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
             }}
           >
             New Project
@@ -249,30 +339,127 @@ export const ProjectsList: React.FC = () => {
         )}
       </Group>
 
-      <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'all')} mb="xl">
-        <Tabs.List>
-          <Tabs.Tab value="all">All Projects</Tabs.Tab>
-          <Tabs.Tab value={ProjectStatus.ACTIVE}>Active</Tabs.Tab>
-          <Tabs.Tab value={ProjectStatus.ON_HOLD}>On Hold</Tabs.Tab>
-          <Tabs.Tab value={ProjectStatus.MAINTENANCE}>Maintenance</Tabs.Tab>
-          <Tabs.Tab value={ProjectStatus.COMPLETED}>Completed</Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
+      {/* KPI Cards */}
+      {isAdminOrPM && (
+        <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="md" mb="xl">
+          <Paper
+            p="lg"
+            radius="xl"
+            withBorder
+            style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+          >
+            <Group justify="space-between" mb="xs">
+              <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                Active Projects
+              </Text>
+              <Paper p={8} radius="md" bg="#eff6ff">
+                <Briefcase size={18} color="#2563eb" />
+              </Paper>
+            </Group>
+            <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+              {metrics.activeCount}
+            </Text>
+          </Paper>
 
+          <Paper
+            p="lg"
+            radius="xl"
+            withBorder
+            style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+          >
+            <Group justify="space-between" mb="xs">
+              <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                Total Portfolio Budget
+              </Text>
+              <Paper p={8} radius="md" bg="#f0fdf4">
+                <DollarSign size={18} color="#10b981" />
+              </Paper>
+            </Group>
+            <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+              ${metrics.totalBudgetSum.toLocaleString()}
+            </Text>
+          </Paper>
+
+          <Paper
+            p="lg"
+            radius="xl"
+            withBorder
+            style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+          >
+            <Group justify="space-between" mb="xs">
+              <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                Total Received
+              </Text>
+              <Paper p={8} radius="md" bg="#f0fdf4">
+                <CheckCircle2 size={18} color="#10b981" />
+              </Paper>
+            </Group>
+            <Text fw={800} style={{ fontSize: '1.75rem', color: '#059669', lineHeight: 1 }}>
+              ${metrics.totalReceivedSum.toLocaleString()}
+            </Text>
+          </Paper>
+
+          <Paper
+            p="lg"
+            radius="xl"
+            withBorder
+            style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+          >
+            <Group justify="space-between" mb="xs">
+              <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                Total Pending
+              </Text>
+              <Paper p={8} radius="md" bg="#fffbeb">
+                <Clock size={18} color="#f59e0b" />
+              </Paper>
+            </Group>
+            <Text fw={800} style={{ fontSize: '1.75rem', color: '#d97706', lineHeight: 1 }}>
+              ${metrics.totalPendingSum.toLocaleString()}
+            </Text>
+          </Paper>
+        </SimpleGrid>
+      )}
+
+      {/* Tabs & Search Filter Toolbar */}
+      <Paper p="md" radius="lg" withBorder mb="lg" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+        <Group justify="space-between">
+          <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'all')} radius="md">
+            <Tabs.List style={{ borderBottom: 'none' }}>
+              <Tabs.Tab value="all">All Projects</Tabs.Tab>
+              <Tabs.Tab value={ProjectStatus.ACTIVE}>Active</Tabs.Tab>
+              <Tabs.Tab value={ProjectStatus.ON_HOLD}>On Hold</Tabs.Tab>
+              <Tabs.Tab value={ProjectStatus.MAINTENANCE}>Maintenance</Tabs.Tab>
+              <Tabs.Tab value={ProjectStatus.COMPLETED}>Completed</Tabs.Tab>
+            </Tabs.List>
+          </Tabs>
+
+          <TextInput
+            placeholder="Search project name, client..."
+            leftSection={<Search size={16} color="#94a3b8" />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: 280 }}
+            radius="md"
+          />
+        </Group>
+      </Paper>
+
+      {/* Data Table */}
       <Card
-        shadow="sm"
-        p="0"
+        shadow="xs"
+        p={0}
         radius="xl"
         withBorder
         style={{
-          border: '1px solid #e8ecf4',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+          borderColor: '#e8ecf4',
+          boxShadow: 'none',
           overflow: 'hidden',
+          backgroundColor: '#ffffff',
         }}
       >
         <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="md" horizontalSpacing="xl">
-            <Table.Thead>
+          <Table verticalSpacing="md" horizontalSpacing="lg">
+            <Table.Thead style={{ backgroundColor: '#f8faff' }}>
               <Table.Tr>
                 <Table.Th>Project</Table.Th>
                 <Table.Th>Status</Table.Th>
@@ -289,10 +476,14 @@ export const ProjectsList: React.FC = () => {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {rows?.length ? rows : (
+              {rows?.length ? (
+                rows
+              ) : (
                 <Table.Tr>
                   <Table.Td colSpan={isAdminOrPM ? 8 : 5} style={{ textAlign: 'center', padding: '40px' }}>
-                    <Text c="dimmed">No projects found.</Text>
+                    <Text style={{ color: '#64748b' }} fw={500}>
+                      No projects found matching criteria.
+                    </Text>
                   </Table.Td>
                 </Table.Tr>
               )}
@@ -301,125 +492,187 @@ export const ProjectsList: React.FC = () => {
         </Table.ScrollContainer>
       </Card>
 
-      {/* Create Project Modal (Split Layout) */}
+      {/* Create / Edit Project Modal */}
       <Modal
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
-        title={<Text fw={700} size="xl">{editingProject ? 'Edit Project' : 'Create New Project'}</Text>}
+        title={
+          <Text fw={700} size="lg">
+            {editingProject ? 'Edit Project' : 'Create New Project'}
+          </Text>
+        }
         radius="lg"
-        size="1000px" // large for split layout
+        padding="xl"
+        size="1000px"
       >
         <form onSubmit={form.onSubmit(onSubmit)}>
           <Grid gutter="xl">
-            {/* Left: Form Inputs */}
+            {/* Left: Inputs */}
             <Grid.Col span={7}>
-              <TextInput label="Project Name" placeholder="e.g. Website Redesign" required mb="md" {...form.getInputProps('name')} />
-              <Select
-                label="Client"
-                placeholder="Select a client"
-                data={clientOptions}
-                searchable
-                required
-                mb="md"
-                {...form.getInputProps('client')}
-              />
-              <Group grow mb="md">
-                <TextInput label="Project Type" placeholder="e.g. Web App" {...form.getInputProps('type')} />
-                <Select
-                  label="Status"
-                  data={[
-                    { value: ProjectStatus.ACTIVE, label: 'Active' },
-                    { value: ProjectStatus.ON_HOLD, label: 'On Hold' },
-                    { value: ProjectStatus.MAINTENANCE, label: 'Maintenance' },
-                    { value: ProjectStatus.COMPLETED, label: 'Completed' },
-                  ]}
-                  {...form.getInputProps('status')}
+              <Stack gap="md">
+                <TextInput
+                  label="Project Name"
+                  placeholder="e.g. Website Redesign"
+                  withAsterisk
+                  radius="md"
+                  {...form.getInputProps('name')}
                 />
-              </Group>
+                <Select
+                  label="Client"
+                  placeholder="Select a client"
+                  data={clientOptions}
+                  searchable
+                  withAsterisk
+                  radius="md"
+                  {...form.getInputProps('client')}
+                />
+                <Group grow gap="md">
+                  <TextInput
+                    label="Project Type"
+                    placeholder="e.g. Web App"
+                    radius="md"
+                    {...form.getInputProps('type')}
+                  />
+                  <Select
+                    label="Status"
+                    data={[
+                      { value: ProjectStatus.ACTIVE, label: 'Active' },
+                      { value: ProjectStatus.ON_HOLD, label: 'On Hold' },
+                      { value: ProjectStatus.MAINTENANCE, label: 'Maintenance' },
+                      { value: ProjectStatus.COMPLETED, label: 'Completed' },
+                    ]}
+                    radius="md"
+                    {...form.getInputProps('status')}
+                  />
+                </Group>
 
-              <NumberInput
-                label="Total Budget ($)"
-                placeholder="0.00"
-                leftSection={<DollarSign size={16} color="gray" />}
-                thousandSeparator=","
-                min={0}
-                mb="md"
-                {...form.getInputProps('totalBudget')}
-              />
+                <NumberInput
+                  label="Total Budget ($)"
+                  placeholder="0.00"
+                  leftSection={<DollarSign size={16} color="gray" />}
+                  thousandSeparator=","
+                  min={0}
+                  radius="md"
+                  {...form.getInputProps('totalBudget')}
+                />
 
-              <MultiSelect
-                label="Assign Team"
-                placeholder="Select Team Leads and Members"
-                data={teamOptions}
-                searchable
-                clearable
-                mb="md"
-                {...form.getInputProps('team')}
-              />
+                <MultiSelect
+                  label="Assign Team"
+                  placeholder="Select Team Leads and Members"
+                  data={teamOptions}
+                  searchable
+                  clearable
+                  radius="md"
+                  {...form.getInputProps('team')}
+                />
 
-              <TextInput label="Description" placeholder="Brief project description" mb="xl" {...form.getInputProps('description')} />
+                <TextInput
+                  label="Description"
+                  placeholder="Brief project description"
+                  radius="md"
+                  {...form.getInputProps('description')}
+                />
 
-              <Group justify="flex-start" mt="xl">
-                <Button variant="light" onClick={() => setModalOpened(false)}>Cancel</Button>
-                <Button type="submit" loading={isCreating || isUpdating}>
-                  {editingProject ? 'Update Project' : 'Create Project'}
-                </Button>
-              </Group>
+                <Group justify="flex-end" mt="md">
+                  <Button variant="light" color="gray" onClick={() => setModalOpened(false)} radius="md">
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    loading={isCreating || isUpdating}
+                    radius="md"
+                    size="md"
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                      fontWeight: 600,
+                      boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                    }}
+                  >
+                    {editingProject ? 'Update Project' : 'Create Project'}
+                  </Button>
+                </Group>
+              </Stack>
             </Grid.Col>
 
             {/* Right: Live Summary Preview */}
             <Grid.Col span={5}>
-              <Card shadow="sm" p="lg" radius="md" withBorder style={{ backgroundColor: '#F8FAFC', position: 'sticky', top: '20px' }}>
-                <Text fw={600} size="sm" c="dimmed" tt="uppercase" mb="md">Live Preview</Text>
+              <Paper
+                p="lg"
+                radius="xl"
+                withBorder
+                style={{
+                  borderColor: '#e8ecf4',
+                  backgroundColor: '#f8fafc',
+                  position: 'sticky',
+                  top: '20px',
+                }}
+              >
+                <Text fw={700} size="xs" style={{ color: '#64748b', letterSpacing: '0.05em' }} tt="uppercase" mb="md">
+                  Live Preview
+                </Text>
 
                 <Group gap="sm" mb="xl">
-                  <div style={{ width: 48, height: 48, borderRadius: '8px', backgroundColor: '#E0E7FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4F46E5' }}>
-                    <Briefcase size={24} />
-                  </div>
+                  <Paper p={10} radius="md" bg="#eff6ff">
+                    <Briefcase size={22} color="#2563eb" />
+                  </Paper>
                   <div style={{ flex: 1 }}>
-                    <Text fw={700} size="lg" style={{ color: form.values.name ? '#111827' : '#9CA3AF' }}>
+                    <Text fw={700} size="md" style={{ color: form.values.name ? '#0f172a' : '#94a3b8' }}>
                       {form.values.name || 'Project Name'}
                     </Text>
-                    <Text size="sm" c="dimmed">
+                    <Text size="xs" style={{ color: '#64748b' }}>
                       Client: {form.values.client ? getClientName(form.values.client) : 'Not Selected'}
                     </Text>
                   </div>
                 </Group>
 
-                <Group justify="space-between" mb="sm">
-                  <Text size="sm" c="dimmed">Status</Text>
-                  <Badge variant="light" color={form.values.status === ProjectStatus.ACTIVE ? 'green' : 'orange'}>
-                    {form.values.status.replace('_', ' ')}
-                  </Badge>
-                </Group>
+                <Stack gap="sm">
+                  <Group justify="space-between">
+                    <Text size="xs" style={{ color: '#64748b' }}>
+                      Status
+                    </Text>
+                    <Badge
+                      variant="light"
+                      radius="sm"
+                      color={form.values.status === ProjectStatus.ACTIVE ? 'green' : 'orange'}
+                    >
+                      {form.values.status.replace('_', ' ')}
+                    </Badge>
+                  </Group>
 
-                <Group justify="space-between" mb="sm">
-                  <Text size="sm" c="dimmed">Type</Text>
-                  <Text size="sm" fw={500}>{form.values.type || '-'}</Text>
-                </Group>
+                  <Group justify="space-between">
+                    <Text size="xs" style={{ color: '#64748b' }}>
+                      Type
+                    </Text>
+                    <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
+                      {form.values.type || '-'}
+                    </Text>
+                  </Group>
 
-                <Group justify="space-between" mb="sm">
-                  <Text size="sm" c="dimmed">Budget</Text>
-                  <Text size="sm" fw={500}>
-                    {form.values.totalBudget ? `$${form.values.totalBudget.toLocaleString()}` : '-'}
-                  </Text>
-                </Group>
+                  <Group justify="space-between">
+                    <Text size="xs" style={{ color: '#64748b' }}>
+                      Budget
+                    </Text>
+                    <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
+                      {form.values.totalBudget ? `$${form.values.totalBudget.toLocaleString()}` : '-'}
+                    </Text>
+                  </Group>
 
-                <Group justify="space-between" mb="sm" align="flex-start">
-                  <Text size="sm" c="dimmed">Team</Text>
-                  <div style={{ textAlign: 'right' }}>
-                    <Text size="sm" fw={500}>
+                  <Group justify="space-between" align="flex-start">
+                    <Text size="xs" style={{ color: '#64748b' }}>
+                      Team
+                    </Text>
+                    <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
                       {form.values.team.length > 0 ? `${form.values.team.length} members` : 'Unassigned'}
                     </Text>
-                  </div>
-                </Group>
-              </Card>
+                  </Group>
+                </Stack>
+              </Paper>
             </Grid.Col>
           </Grid>
         </form>
       </Modal>
 
-      {/* Custom Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         opened={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

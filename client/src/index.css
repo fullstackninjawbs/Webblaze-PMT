@@ -32,12 +32,12 @@
   --sidebar-bg: #ffffff;
   --sidebar-border: #eef0f8;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.04);
-  --shadow-brand: 0 6px 20px rgba(59, 130, 246, 0.3);
+  /* Soft, Subtle Modern Shadows */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.02);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.05), 0 2px 6px rgba(15, 23, 42, 0.02);
+  --shadow-brand: 0 4px 12px rgba(59, 130, 246, 0.22);
 
   /* Radii */
   --radius-sm: 8px;
@@ -61,6 +61,22 @@
   width: 100% !important;
   margin-left: auto !important;
   margin-right: auto !important;
+}
+
+/* Zero Card Shadows - Crisp, Flat, Modern Clean Design */
+.mantine-Card-root,
+.mantine-Paper-root,
+.mantine-Modal-content,
+.mantine-Drawer-content {
+  box-shadow: none !important;
+  border-color: #e8ecf4 !important;
+  transition: border-color 0.2s ease;
+}
+
+.mantine-Card-root:hover,
+.mantine-Paper-root:hover {
+  box-shadow: none !important;
+  border-color: #cbd5e1 !important;
 }
 
 /* =====================================================
@@ -581,7 +597,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .user-menu-btn:hover {
-  background-color: #f8faff !important;
+  background-color: #eff6ff !important;
+}
+
+.user-avatar-badge {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25) !important;
+}
+
+.user-avatar-badge .mantine-Avatar-placeholder {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 0.875rem !important;
+  background: transparent !important;
 }
 
 /* ---- ACCORDION ---- */

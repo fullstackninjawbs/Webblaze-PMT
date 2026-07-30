@@ -1,10 +1,43 @@
 import React, { useState, useMemo } from 'react';
-import { useGetClientsQuery, useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation } from './client.slice';
-import { Table, Button, Group, Title, Drawer, TextInput, Select, Card, Text, Badge, ActionIcon, Divider, Stack, Paper } from '@mantine/core';
+import {
+  useGetClientsQuery,
+  useCreateClientMutation,
+  useUpdateClientMutation,
+  useDeleteClientMutation,
+} from './client.slice';
+import {
+  Table,
+  Button,
+  Group,
+  Title,
+  Drawer,
+  TextInput,
+  Select,
+  Card,
+  Text,
+  Badge,
+  ActionIcon,
+  Divider,
+  Stack,
+  Paper,
+  SimpleGrid,
+} from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { Plus, Building2, Edit, Trash, Eye, Search, Filter } from 'lucide-react';
+import {
+  Plus,
+  Building2,
+  Edit,
+  Trash,
+  Eye,
+  Search,
+  Filter,
+  Users,
+  Globe,
+  Clock,
+  DollarSign,
+} from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
@@ -109,46 +142,76 @@ export const ClientsList: React.FC = () => {
     }
   };
 
+  const clients = data?.data || [];
+
   // Filter clients
   const filteredClients = useMemo(() => {
-    let result = data?.data || [];
+    let result = clients;
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(c => c.name.toLowerCase().includes(q) || c.companyName?.toLowerCase().includes(q));
+      result = result.filter(
+        (c) => c.name.toLowerCase().includes(q) || c.companyName?.toLowerCase().includes(q)
+      );
     }
 
     if (sourceFilter) {
-      result = result.filter(c => c.source === sourceFilter);
+      result = result.filter((c) => c.source === sourceFilter);
     }
 
     if (billingFilter) {
-      result = result.filter(c => c.billingType === billingFilter);
+      result = result.filter((c) => c.billingType === billingFilter);
     }
 
     return result;
-  }, [data, searchQuery, sourceFilter, billingFilter]);
+  }, [clients, searchQuery, sourceFilter, billingFilter]);
 
   // Compute active projects per client
   const projects = projectsData?.data || [];
   const getActiveProjectsCount = (clientId: string) => {
-    return projects.filter(p => (p.client as any)?._id === clientId && p.status === 'active').length;
+    return projects.filter((p) => (p.client as any)?._id === clientId && p.status === 'active').length;
   };
   const getClientProjects = (clientId: string) => {
-    return projects.filter(p => (p.client as any)?._id === clientId || (p.client as any) === clientId);
+    return projects.filter(
+      (p) => (p.client as any)?._id === clientId || (p.client as any) === clientId
+    );
   };
+
+  // Metrics
+  const metrics = useMemo(() => {
+    const totalClients = clients.length;
+    const upworkCount = clients.filter((c) => c.source === 'upwork').length;
+    const directCount = clients.filter((c) => c.source === 'direct').length;
+    const hourlyCount = clients.filter((c) => c.billingType === 'hourly').length;
+    return { totalClients, upworkCount, directCount, hourlyCount };
+  }, [clients]);
 
   const rows = filteredClients.map((client) => (
     <Table.Tr key={client._id}>
       <Table.Td>
         <Group gap="sm">
-          <div style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', fontWeight: 600 }}>
-            {client.name.charAt(0).toUpperCase()}
-          </div>
+          <Paper
+            p={6}
+            radius="md"
+            bg="#eff6ff"
+            style={{
+              width: 36,
+              height: 36,
+              display: 'flex',
+              alignItems: 'center',
+              justify: 'center',
+            }}
+          >
+            <Text fw={700} style={{ color: '#2563eb' }}>
+              {client.name.charAt(0).toUpperCase()}
+            </Text>
+          </Paper>
           <div>
-            <Text size="sm" fw={500}>{client.name}</Text>
+            <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
+              {client.name}
+            </Text>
             {client.companyName && (
-              <Text size="xs" c="dimmed">
+              <Text size="xs" style={{ color: '#64748b' }}>
                 <Building2 size={12} style={{ display: 'inline', marginRight: 4 }} />
                 {client.companyName}
               </Text>
@@ -157,20 +220,34 @@ export const ClientsList: React.FC = () => {
         </Group>
       </Table.Td>
       <Table.Td>
-        <Text size="sm" c="dimmed">{client.country || '-'}</Text>
+        <Text size="sm" style={{ color: '#64748b' }}>
+          {client.country || '-'}
+        </Text>
       </Table.Td>
       <Table.Td>
-        <Badge variant="light" color={client.source === 'upwork' ? 'green' : 'blue'}>
+        <Badge
+          variant="light"
+          radius="sm"
+          fw={600}
+          color={client.source === 'upwork' ? 'green' : 'blue'}
+        >
           {client.source}
         </Badge>
       </Table.Td>
       <Table.Td>
-        <Badge variant="dot" color={client.billingType === 'hourly' ? 'orange' : 'teal'}>
+        <Badge
+          variant="dot"
+          radius="sm"
+          fw={600}
+          color={client.billingType === 'hourly' ? 'orange' : 'teal'}
+        >
           {client.billingType}
         </Badge>
       </Table.Td>
       <Table.Td>
-        <Text size="sm" fw={600}>{getActiveProjectsCount(client._id)}</Text>
+        <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
+          {getActiveProjectsCount(client._id)}
+        </Text>
       </Table.Td>
       <Table.Td>
         <Group gap={4} justify="flex-end" wrap="nowrap">
@@ -179,10 +256,20 @@ export const ClientsList: React.FC = () => {
           </ActionIcon>
           {isAdminOrPM && (
             <>
-              <ActionIcon variant="subtle" color="blue" onClick={() => openEditDrawer(client)} title="Edit">
+              <ActionIcon
+                variant="subtle"
+                color="blue"
+                onClick={() => openEditDrawer(client)}
+                title="Edit"
+              >
                 <Edit size={16} />
               </ActionIcon>
-              <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(client._id, client.name)} title="Delete">
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                onClick={() => handleDelete(client._id, client.name)}
+                title="Delete"
+              >
                 <Trash size={16} />
               </ActionIcon>
             </>
@@ -194,42 +281,34 @@ export const ClientsList: React.FC = () => {
 
   return (
     <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
+      {/* Header Banner */}
+      <Group justify="space-between" align="center" mb="xl">
         <div>
           <Title
-            order={2}
+            order={1}
             style={{
               color: '#0f172a',
-              fontSize: '1.625rem',
-              fontWeight: 700,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.25,
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
             }}
           >
-            Clients
+            Client Directory
           </Title>
-          <Text
-            size="sm"
-            mt={4}
-            style={{
-              color: '#64748b',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            Manage your clients and their billing details.
+          <Text size="sm" mt={4} style={{ color: '#64748b' }}>
+            Manage client profiles, company contacts, lead channels, and billing models.
           </Text>
         </div>
         {isAdminOrPM && (
           <Button
             leftSection={<Plus size={16} />}
             radius="md"
-            variant="filled"
-            color="blue"
+            size="md"
             onClick={openCreateDrawer}
             style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
               fontWeight: 600,
-              letterSpacing: '-0.01em',
-              boxShadow: '0 4px 14px rgba(59,130,246,0.3)',
+              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
             }}
           >
             Add Client
@@ -237,53 +316,122 @@ export const ClientsList: React.FC = () => {
         )}
       </Group>
 
-      {/* Filters */}
-      <div style={{
-        background: '#ffffff',
-        border: '1px solid #e8ecf4',
-        borderRadius: '14px',
-        padding: '14px 18px',
-        marginBottom: '20px',
-        boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
-      }}>
-        <Group align="flex-end">
+      {/* KPI Cards */}
+      <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="md" mb="xl">
+        <Paper p="lg" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Total Accounts
+            </Text>
+            <Paper p={8} radius="md" bg="#eff6ff">
+              <Users size={18} color="#2563eb" />
+            </Paper>
+          </Group>
+          <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+            {metrics.totalClients}
+          </Text>
+        </Paper>
+
+        <Paper p="lg" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Upwork Escrow
+            </Text>
+            <Paper p={8} radius="md" bg="#f0fdf4">
+              <Globe size={18} color="#10b981" />
+            </Paper>
+          </Group>
+          <Text fw={800} style={{ fontSize: '1.75rem', color: '#10b981', lineHeight: 1 }}>
+            {metrics.upworkCount}
+          </Text>
+        </Paper>
+
+        <Paper p="lg" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Direct Retainers
+            </Text>
+            <Paper p={8} radius="md" bg="#eff6ff">
+              <Building2 size={18} color="#2563eb" />
+            </Paper>
+          </Group>
+          <Text fw={800} style={{ fontSize: '1.75rem', color: '#2563eb', lineHeight: 1 }}>
+            {metrics.directCount}
+          </Text>
+        </Paper>
+
+        <Paper p="lg" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Hourly Billing
+            </Text>
+            <Paper p={8} radius="md" bg="#fffbeb">
+              <Clock size={18} color="#f59e0b" />
+            </Paper>
+          </Group>
+          <Text fw={800} style={{ fontSize: '1.75rem', color: '#d97706', lineHeight: 1 }}>
+            {metrics.hourlyCount}
+          </Text>
+        </Paper>
+      </SimpleGrid>
+
+      {/* Filter Toolbar */}
+      <Paper p="md" radius="lg" withBorder mb="lg" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+        <Group align="center" justify="space-between">
           <TextInput
-            placeholder="Search clients or companies..."
-            leftSection={<Search size={15} color="#94a3b8" />}
+            placeholder="Search client name or company..."
+            leftSection={<Search size={16} color="#94a3b8" />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            style={{ flex: 1, minWidth: '200px' }}
+            style={{ width: 320 }}
+            radius="md"
           />
-          <Select
-            placeholder="Filter Source"
-            leftSection={<Filter size={15} color="#94a3b8" />}
-            data={[{ value: 'upwork', label: 'Upwork' }, { value: 'direct', label: 'Direct' }]}
-            value={sourceFilter}
-            onChange={setSourceFilter}
-            clearable
-            style={{ width: '150px' }}
-          />
-          <Select
-            placeholder="Filter Billing"
-            leftSection={<Filter size={15} color="#94a3b8" />}
-            data={[{ value: 'hourly', label: 'Hourly' }, { value: 'fixed', label: 'Fixed Price' }]}
-            value={billingFilter}
-            onChange={setBillingFilter}
-            clearable
-            style={{ width: '150px' }}
-          />
+          <Group gap="sm">
+            <Filter size={16} color="#64748b" />
+            <Select
+              placeholder="Filter Source"
+              data={[
+                { value: 'upwork', label: 'Upwork' },
+                { value: 'direct', label: 'Direct' },
+              ]}
+              value={sourceFilter}
+              onChange={setSourceFilter}
+              clearable
+              style={{ width: 160 }}
+              radius="md"
+            />
+            <Select
+              placeholder="Filter Billing"
+              data={[
+                { value: 'hourly', label: 'Hourly' },
+                { value: 'fixed', label: 'Fixed Price' },
+              ]}
+              value={billingFilter}
+              onChange={setBillingFilter}
+              clearable
+              style={{ width: 160 }}
+              radius="md"
+            />
+          </Group>
         </Group>
-      </div>
+      </Paper>
 
-      <Card shadow="sm" p="0" radius="xl" withBorder style={{
-        border: '1px solid #e8ecf4',
-        boxShadow: '0 2px 16px rgba(0, 0, 0, 0.05)',
-        borderRadius: '16px',
-        overflow: 'hidden',
-      }}>
+      {/* Data Table */}
+      <Card
+        shadow="xs"
+        p={0}
+        radius="xl"
+        withBorder
+        style={{
+          borderColor: '#e8ecf4',
+          boxShadow: 'none',
+          overflow: 'hidden',
+          backgroundColor: '#ffffff',
+        }}
+      >
         <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="md" horizontalSpacing="xl">
-            <Table.Thead>
+          <Table verticalSpacing="md" horizontalSpacing="lg">
+            <Table.Thead style={{ backgroundColor: '#f8faff' }}>
               <Table.Tr>
                 <Table.Th>Client</Table.Th>
                 <Table.Th>Country</Table.Th>
@@ -294,10 +442,14 @@ export const ClientsList: React.FC = () => {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {rows?.length ? rows : (
+              {rows?.length ? (
+                rows
+              ) : (
                 <Table.Tr>
                   <Table.Td colSpan={6} style={{ textAlign: 'center', padding: '40px' }}>
-                    <Text c="dimmed">No clients found.</Text>
+                    <Text style={{ color: '#64748b' }} fw={500}>
+                      No clients found matching criteria.
+                    </Text>
                   </Table.Td>
                 </Table.Tr>
               )}
@@ -310,52 +462,113 @@ export const ClientsList: React.FC = () => {
       <Drawer
         opened={drawerOpened}
         onClose={() => setDrawerOpened(false)}
-        title={<Text fw={700} size="lg">{selectedClient ? 'Edit Client' : 'Add New Client'}</Text>}
+        title={
+          <Text fw={700} size="lg">
+            {selectedClient ? 'Edit Client Profile' : 'Add New Client'}
+          </Text>
+        }
         position="right"
         size="md"
         padding="xl"
       >
         <form onSubmit={form.onSubmit(onSubmit)}>
-          <Stack gap="xl">
-            {/* Section 1: Identity */}
+          <Stack gap="lg">
             <div>
-              <Text fw={600} size="sm" mb="sm" c="blue">Identity</Text>
-              <TextInput label="Client Name" placeholder="e.g. John Doe" required mb="sm" {...form.getInputProps('name')} />
-              <TextInput label="Company Name" placeholder="e.g. Acme Corp (Optional)" mb="sm" {...form.getInputProps('companyName')} />
-              <TextInput label="Country" placeholder="e.g. United States" mb="sm" {...form.getInputProps('country')} />
-              <TextInput label="Address" placeholder="e.g. 123 Main St, City" {...form.getInputProps('address')} />
+              <Text fw={700} size="xs" mb="xs" style={{ color: '#2563eb', letterSpacing: '0.05em' }} tt="uppercase">
+                Identity & Company
+              </Text>
+              <Stack gap="sm">
+                <TextInput
+                  label="Client Name"
+                  placeholder="e.g. John Doe"
+                  withAsterisk
+                  radius="md"
+                  {...form.getInputProps('name')}
+                />
+                <TextInput
+                  label="Company Name"
+                  placeholder="e.g. Acme Corp (Optional)"
+                  radius="md"
+                  {...form.getInputProps('companyName')}
+                />
+                <TextInput
+                  label="Country"
+                  placeholder="e.g. United States"
+                  radius="md"
+                  {...form.getInputProps('country')}
+                />
+                <TextInput
+                  label="Address"
+                  placeholder="e.g. 123 Main St, City"
+                  radius="md"
+                  {...form.getInputProps('address')}
+                />
+              </Stack>
             </div>
-            <Divider />
+            <Divider color="#e8ecf4" />
 
-            {/* Section 2: Contact */}
             <div>
-              <Text fw={600} size="sm" mb="sm" c="blue">Contact</Text>
-              <TextInput label="Email" placeholder="client@example.com" mb="sm" {...form.getInputProps('email')} />
-              <TextInput label="Contact Number" placeholder="+1 (555) 123-4567" {...form.getInputProps('contactNumber')} />
+              <Text fw={700} size="xs" mb="xs" style={{ color: '#2563eb', letterSpacing: '0.05em' }} tt="uppercase">
+                Contact Information
+              </Text>
+              <Stack gap="sm">
+                <TextInput
+                  label="Email Address"
+                  placeholder="client@example.com"
+                  radius="md"
+                  {...form.getInputProps('email')}
+                />
+                <TextInput
+                  label="Contact Phone"
+                  placeholder="+1 (555) 123-4567"
+                  radius="md"
+                  {...form.getInputProps('contactNumber')}
+                />
+              </Stack>
             </div>
-            <Divider />
+            <Divider color="#e8ecf4" />
 
-            {/* Section 3: Business */}
             <div>
-              <Text fw={600} size="sm" mb="sm" c="blue">Business</Text>
-              <Text size="xs" c="dimmed" mb="sm">Billing type will impact how you invoice this client in the future.</Text>
-              <Group grow>
+              <Text fw={700} size="xs" mb="xs" style={{ color: '#2563eb', letterSpacing: '0.05em' }} tt="uppercase">
+                Business & Billing
+              </Text>
+              <Group grow gap="md">
                 <Select
                   label="Source"
-                  data={[{ value: 'upwork', label: 'Upwork' }, { value: 'direct', label: 'Direct' }]}
+                  data={[
+                    { value: 'upwork', label: 'Upwork' },
+                    { value: 'direct', label: 'Direct' },
+                  ]}
+                  radius="md"
                   {...form.getInputProps('source')}
                 />
                 <Select
                   label="Billing Type"
-                  data={[{ value: 'hourly', label: 'Hourly' }, { value: 'fixed', label: 'Fixed Price' }]}
+                  data={[
+                    { value: 'hourly', label: 'Hourly' },
+                    { value: 'fixed', label: 'Fixed Price' },
+                  ]}
+                  radius="md"
                   {...form.getInputProps('billingType')}
                 />
               </Group>
             </div>
 
-            <Group justify="flex-end" mt="xl">
-              <Button variant="light" onClick={() => setDrawerOpened(false)}>Cancel</Button>
-              <Button type="submit" loading={isCreating || isUpdating}>
+            <Group justify="flex-end" mt="md">
+              <Button variant="light" color="gray" onClick={() => setDrawerOpened(false)} radius="md">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                loading={isCreating || isUpdating}
+                radius="md"
+                size="md"
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                }}
+              >
                 {selectedClient ? 'Update Client' : 'Create Client'}
               </Button>
             </Group>
@@ -367,88 +580,133 @@ export const ClientsList: React.FC = () => {
       <Drawer
         opened={viewDrawerOpened}
         onClose={() => setViewDrawerOpened(false)}
-        title={<Text fw={700} size="lg">Client Details</Text>}
+        title={
+          <Text fw={700} size="lg">
+            Client Profile Overview
+          </Text>
+        }
         position="right"
         size="md"
         padding="xl"
       >
         {selectedClient && (
-          <Stack gap="xl">
-            <div>
-              <Group gap="sm" mb="md">
-                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB', fontWeight: 600, fontSize: '20px' }}>
+          <Stack gap="lg">
+            <Group gap="md">
+              <Paper
+                p={10}
+                radius="xl"
+                bg="#eff6ff"
+                style={{
+                  width: 48,
+                  height: 48,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text fw={800} style={{ color: '#2563eb', fontSize: '20px' }}>
                   {selectedClient.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <Text fw={700} size="lg">{selectedClient.name}</Text>
-                  {selectedClient.companyName && (
-                    <Text size="sm" c="dimmed">
-                      <Building2 size={14} style={{ display: 'inline', marginRight: 4 }} />
-                      {selectedClient.companyName}
-                    </Text>
-                  )}
-                </div>
-              </Group>
-            </div>
-            <Divider />
+                </Text>
+              </Paper>
+              <div>
+                <Text fw={700} size="lg" style={{ color: '#0f172a' }}>
+                  {selectedClient.name}
+                </Text>
+                {selectedClient.companyName && (
+                  <Text size="sm" style={{ color: '#64748b' }}>
+                    <Building2 size={14} style={{ display: 'inline', marginRight: 4 }} />
+                    {selectedClient.companyName}
+                  </Text>
+                )}
+              </div>
+            </Group>
+
+            <Divider color="#e8ecf4" />
 
             <div>
-              <Text fw={600} size="sm" mb="sm" c="dimmed" tt="uppercase">Contact Information</Text>
-              {selectedClient.email ? (
-                <Text size="sm" mb={4}><strong>Email:</strong> {selectedClient.email}</Text>
-              ) : <Text size="sm" mb={4} c="dimmed">No email provided</Text>}
-
-              {selectedClient.contactNumber ? (
-                <Text size="sm" mb={4}><strong>Phone:</strong> {selectedClient.contactNumber}</Text>
-              ) : <Text size="sm" mb={4} c="dimmed">No phone provided</Text>}
-
-              {selectedClient.country ? (
-                <Text size="sm" mb={4}><strong>Country:</strong> {selectedClient.country}</Text>
-              ) : <Text size="sm" mb={4} c="dimmed">No country provided</Text>}
-
-              {selectedClient.address ? (
-                <Text size="sm" mb={4}><strong>Address:</strong> {selectedClient.address}</Text>
-              ) : <Text size="sm" mb={4} c="dimmed">No address provided</Text>}
+              <Text fw={700} size="xs" mb="xs" style={{ color: '#64748b', letterSpacing: '0.05em' }} tt="uppercase">
+                Contact Details
+              </Text>
+              <Stack gap={4}>
+                <Text size="sm" style={{ color: '#334155' }}>
+                  <strong>Email:</strong> {selectedClient.email || 'N/A'}
+                </Text>
+                <Text size="sm" style={{ color: '#334155' }}>
+                  <strong>Phone:</strong> {selectedClient.contactNumber || 'N/A'}
+                </Text>
+                <Text size="sm" style={{ color: '#334155' }}>
+                  <strong>Country:</strong> {selectedClient.country || 'N/A'}
+                </Text>
+                <Text size="sm" style={{ color: '#334155' }}>
+                  <strong>Address:</strong> {selectedClient.address || 'N/A'}
+                </Text>
+              </Stack>
             </div>
-            <Divider />
+
+            <Divider color="#e8ecf4" />
 
             <div>
-              <Text fw={600} size="sm" mb="sm" c="dimmed" tt="uppercase">Business Details</Text>
+              <Text fw={700} size="xs" mb="xs" style={{ color: '#64748b', letterSpacing: '0.05em' }} tt="uppercase">
+                Engagement & Billing
+              </Text>
               <Group gap="md">
                 <div>
-                  <Text size="xs" c="dimmed">Source</Text>
-                  <Badge variant="light" color={selectedClient.source === 'upwork' ? 'green' : 'blue'}>
+                  <Text size="xs" style={{ color: '#64748b' }}>
+                    Channel
+                  </Text>
+                  <Badge variant="light" radius="sm" color={selectedClient.source === 'upwork' ? 'green' : 'blue'}>
                     {selectedClient.source}
                   </Badge>
                 </div>
                 <div>
-                  <Text size="xs" c="dimmed">Billing Type</Text>
-                  <Badge variant="dot" color={selectedClient.billingType === 'hourly' ? 'orange' : 'teal'}>
+                  <Text size="xs" style={{ color: '#64748b' }}>
+                    Billing Type
+                  </Text>
+                  <Badge variant="dot" radius="sm" color={selectedClient.billingType === 'hourly' ? 'orange' : 'teal'}>
                     {selectedClient.billingType}
                   </Badge>
                 </div>
                 <div>
-                  <Text size="xs" c="dimmed">Active Projects</Text>
-                  <Text size="sm" fw={600}>{getActiveProjectsCount(selectedClient._id)}</Text>
+                  <Text size="xs" style={{ color: '#64748b' }}>
+                    Active Projects
+                  </Text>
+                  <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
+                    {getActiveProjectsCount(selectedClient._id)}
+                  </Text>
                 </div>
               </Group>
             </div>
-            <Divider />
+
+            <Divider color="#e8ecf4" />
 
             <div>
-              <Text fw={600} size="sm" mb="sm" c="dimmed" tt="uppercase">Associated Projects</Text>
+              <Text fw={700} size="xs" mb="xs" style={{ color: '#64748b', letterSpacing: '0.05em' }} tt="uppercase">
+                Associated Projects
+              </Text>
               {getClientProjects(selectedClient._id).length === 0 ? (
-                <Text size="sm" color="dimmed">No projects found for this client.</Text>
+                <Text size="sm" style={{ color: '#64748b' }}>
+                  No projects found for this client.
+                </Text>
               ) : (
                 <Stack gap="xs">
                   {getClientProjects(selectedClient._id).map((proj) => (
-                    <Paper key={proj._id} withBorder p="xs" radius="md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Paper
+                      key={proj._id}
+                      withBorder
+                      p="sm"
+                      radius="md"
+                      style={{
+                        borderColor: '#e8ecf4',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
                       <div>
                         <Text
-                          component="span"
                           size="sm"
-                          fw={600}
-                          style={{ cursor: 'pointer', color: '#2563EB', textDecoration: 'underline' }}
+                          fw={700}
+                          style={{ cursor: 'pointer', color: '#2563eb' }}
                           onClick={() => {
                             setViewDrawerOpened(false);
                             navigate(`/projects/${proj._id}`);
@@ -456,11 +714,14 @@ export const ClientsList: React.FC = () => {
                         >
                           {proj.name}
                         </Text>
-                        <Text size="xs" color="dimmed">{proj.type || 'Web App'}</Text>
+                        <Text size="xs" style={{ color: '#64748b' }}>
+                          {proj.type || 'Web App'}
+                        </Text>
                       </div>
                       <Badge
                         size="xs"
                         variant="light"
+                        radius="sm"
                         color={proj.status === 'active' ? 'green' : proj.status === 'on_hold' ? 'orange' : 'blue'}
                       >
                         {proj.status}
@@ -470,15 +731,17 @@ export const ClientsList: React.FC = () => {
                 </Stack>
               )}
             </div>
-            <Divider />
-            <Group justify="flex-end">
-              <Button variant="default" onClick={() => setViewDrawerOpened(false)}>Close</Button>
+
+            <Group justify="flex-end" mt="md">
+              <Button variant="light" color="gray" onClick={() => setViewDrawerOpened(false)} radius="md">
+                Close
+              </Button>
             </Group>
           </Stack>
         )}
       </Drawer>
 
-      {/* Custom Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         opened={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}

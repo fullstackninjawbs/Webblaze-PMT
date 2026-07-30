@@ -4,7 +4,7 @@ import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation } from '../milestones/milestone.slice';
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Accordion, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Avatar, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect } from '@mantine/core';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Accordion, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Avatar, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock } from 'lucide-react';
@@ -172,36 +172,36 @@ export const ProjectDetails = () => {
         withBorder
         mb="xl"
         style={{
-          border: '1px solid #e8ecf4',
+          borderColor: '#e8ecf4',
           background: '#ffffff',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.05)',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
         }}
       >
         <Group justify="space-between" align="flex-start">
           {/* Left: Project Info */}
           <div style={{ flex: 1 }}>
-            <Group gap="sm" mb="xs">
-              <Badge variant="light" color={project.status === ProjectStatus.ACTIVE ? 'green' : 'orange'} size="lg">
+            <Group gap="xs" mb="xs">
+              <Badge variant="light" color={project.status === ProjectStatus.ACTIVE ? 'green' : 'orange'} radius="sm" fw={600}>
                 {project.status.replace('_', ' ')}
               </Badge>
-              <Badge variant="dot" color="blue" size="lg">
+              <Badge variant="light" color="blue" radius="sm" fw={600}>
                 Client: {project.client?.name || 'Unknown'}
               </Badge>
             </Group>
 
-            <Title order={1} style={{ color: '#111827', fontSize: '32px', fontWeight: 800, letterSpacing: '-0.5px' }} mb="xs">
+            <Title order={1} style={{ color: '#0f172a', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.03em' }} mb="xs">
               {project.name}
             </Title>
 
-            <Text size="sm" color="dimmed" style={{ maxWidth: '600px' }}>
+            <Text size="sm" style={{ color: '#64748b', maxWidth: '650px', lineHeight: 1.6 }}>
               {project.description || 'No description provided for this project.'}
             </Text>
 
-            <Group mt="xl" gap="sm" wrap="nowrap" style={{ maxWidth: '400px' }}>
+            <Group mt="xl" gap="sm" wrap="nowrap" style={{ maxWidth: '420px' }}>
               <div style={{ flex: 1 }}>
-                <Group justify="space-between" mb={4}>
-                  <Text size="xs" fw={600} color="dimmed">Project Progress (Hours)</Text>
-                  <Text size="xs" fw={700} color="blue">{Math.round((projectSpentHours / (projectEstHours || 1)) * 100)}%</Text>
+                <Group justify="space-between" mb={6}>
+                  <Text size="xs" fw={600} style={{ color: '#64748b' }}>Project Progress (Hours)</Text>
+                  <Text size="xs" fw={700} style={{ color: '#2563eb' }}>{Math.round((projectSpentHours / (projectEstHours || 1)) * 100)}%</Text>
                 </Group>
                 <Progress value={(projectSpentHours / (projectEstHours || 1)) * 100} color="blue" size="sm" radius="xl" />
               </div>
@@ -210,32 +210,32 @@ export const ProjectDetails = () => {
 
           {/* Right: KPIs (Admin/PM only) */}
           {isAdminOrPM && (
-            <Group gap="lg" style={{ minWidth: '450px' }}>
-              <Card withBorder p="sm" radius="md" style={{ flex: 1, backgroundColor: '#F9FAFB' }}>
-                <Group gap="xs" mb="xs">
-                  <DollarSign size={14} color="#6B7280" />
-                  <Text size="xs" fw={600} tt="uppercase" color="dimmed">Total Budget</Text>
+            <Group gap="md">
+              <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
+                <Group gap="xs" mb={4}>
+                  <DollarSign size={16} color="#3b82f6" />
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Budget</Text>
                 </Group>
-                <Text fw={700} size="xl">{project.totalBudget ? `$${project.totalBudget.toLocaleString()}` : 'N/A'}</Text>
-              </Card>
+                <Text fw={800} style={{ fontSize: '1.25rem', color: '#0f172a' }}>{project.totalBudget ? `$${project.totalBudget.toLocaleString()}` : 'N/A'}</Text>
+              </Paper>
 
-              <Card withBorder p="sm" radius="md" style={{ flex: 1, backgroundColor: '#F0FDF4' }}>
-                <Group gap="xs" mb="xs">
-                  <CheckCircle size={14} color="#059669" />
-                  <Text size="xs" fw={600} tt="uppercase" color="#059669">Received</Text>
+              <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
+                <Group gap="xs" mb={4}>
+                  <CheckCircle size={16} color="#10b981" />
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Received</Text>
                 </Group>
-                <Text fw={700} size="xl" color="#059669">$0</Text>
-              </Card>
+                <Text fw={800} style={{ fontSize: '1.25rem', color: '#059669' }}>$0</Text>
+              </Paper>
 
-              <Card withBorder p="sm" radius="md" style={{ flex: 1, backgroundColor: '#EFF6FF' }}>
-                <Group gap="xs" mb="xs">
-                  <Activity size={14} color="#2563EB" />
-                  <Text size="xs" fw={600} tt="uppercase" color="#2563EB">Pending</Text>
+              <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
+                <Group gap="xs" mb={4}>
+                  <Activity size={16} color="#f59e0b" />
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Pending</Text>
                 </Group>
-                <Text fw={700} size="xl" color="#2563EB">
+                <Text fw={800} style={{ fontSize: '1.25rem', color: '#d97706' }}>
                   {project.pendingAmount !== undefined ? `$${project.pendingAmount.toLocaleString()}` : (project.totalBudget ? `$${project.totalBudget.toLocaleString()}` : '$0')}
                 </Text>
-              </Card>
+              </Paper>
             </Group>
           )}
         </Group>
@@ -291,7 +291,15 @@ export const ProjectDetails = () => {
         <Tabs.Panel value="milestones">
           <Group justify="space-between" mb="md">
             <Title order={3}>Project Milestones</Title>
-            <Button leftSection={<Plus size={16} />} onClick={() => setMilestoneDrawerOpened(true)}>
+            <Button
+              leftSection={<Plus size={16} />}
+              onClick={() => setMilestoneDrawerOpened(true)}
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                fontWeight: 600,
+                boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+              }}
+            >
               Add Milestone
             </Button>
           </Group>

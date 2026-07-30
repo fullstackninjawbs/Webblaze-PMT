@@ -1,31 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
 import { useForm } from '@mantine/form';
-import { Container, Title, Text, Card, Group, Tabs, Textarea, Button, Select, Stack, Loader, Center, Table, Avatar, Badge, Paper } from '@mantine/core';
-import { ClipboardList, Calendar, Users, Send, AlertTriangle, Briefcase } from 'lucide-react';
+import {
+  Container,
+  Title,
+  Text,
+  Card,
+  Group,
+  Tabs,
+  Textarea,
+  Button,
+  Select,
+  Stack,
+  Loader,
+  Center,
+  Avatar,
+  Badge,
+  Paper,
+  SimpleGrid,
+  TextInput,
+} from '@mantine/core';
+import {
+  ClipboardList,
+  Calendar,
+  Users,
+  Send,
+  AlertTriangle,
+  Briefcase,
+  Search,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  Filter,
+} from 'lucide-react';
 import { useGetProjectsQuery } from '../projects/project.slice';
-import { useGetMyDailyStatusesQuery, useGetTeamDailyStatusesQuery, useSubmitDailyStatusMutation } from './dailyStatus.slice';
+import {
+  useGetMyDailyStatusesQuery,
+  useGetTeamDailyStatusesQuery,
+  useSubmitDailyStatusMutation,
+} from './dailyStatus.slice';
 
 export const DailyStatus: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const [activeTab, setActiveTab] = useState<string | null>('my-status');
-  
-  const isManagement = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+
+  const isManagement =
+    user?.role === Role.ADMIN ||
+    user?.role === Role.PM ||
+    user?.role === Role.TEAM_LEAD;
 
   // API Queries & Mutations
   const { data: projectsData } = useGetProjectsQuery();
   const { data: myLogsData, isLoading: isMyLogsLoading } = useGetMyDailyStatusesQuery();
-  const { data: teamLogsData, isLoading: isTeamLogsLoading } = useGetTeamDailyStatusesQuery(undefined, { skip: !isManagement });
+  const { data: teamLogsData, isLoading: isTeamLogsLoading } = useGetTeamDailyStatusesQuery(
+    undefined,
+    { skip: !isManagement }
+  );
   const [submitDailyStatus, { isLoading: isSubmitting }] = useSubmitDailyStatusMutation();
 
   const projects = projectsData?.data || [];
   const myLogs = myLogsData?.data || [];
   const teamLogs = teamLogsData?.data || [];
 
-  // Project options for dropdown
-  const projectOptions = projects.map(p => ({ value: p._id, label: p.name }));
+  // Project options for dropdowns
+  const projectOptions = projects.map((p) => ({ value: p._id, label: p.name }));
 
   // Form setup
   const form = useForm({
@@ -36,8 +78,10 @@ export const DailyStatus: React.FC = () => {
       blockers: '',
     },
     validate: {
-      workDone: (value) => (value.trim().length === 0 ? 'Please describe the work done today' : null),
-      plannedWork: (value) => (value.trim().length === 0 ? 'Please describe what you plan to work on next' : null),
+      workDone: (value) =>
+        value.trim().length === 0 ? 'Please describe the work done today' : null,
+      plannedWork: (value) =>
+        value.trim().length === 0 ? 'Please describe what you plan to work on next' : null,
     },
   });
 
@@ -49,9 +93,9 @@ export const DailyStatus: React.FC = () => {
         plannedWork: values.plannedWork,
         blockers: values.blockers || undefined,
       }).unwrap();
-      
+
       form.reset();
-      setActiveTab('my-status'); // Navigate to history feed
+      setActiveTab('my-status');
     } catch (err) {
       console.error('Failed to submit status:', err);
     }
@@ -59,96 +103,293 @@ export const DailyStatus: React.FC = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case Role.ADMIN: return 'red';
-      case Role.PM: return 'indigo';
-      case Role.TEAM_LEAD: return 'teal';
-      default: return 'blue';
+      case Role.ADMIN:
+        return 'red';
+      case Role.PM:
+        return 'indigo';
+      case Role.TEAM_LEAD:
+        return 'teal';
+      default:
+        return 'blue';
     }
   };
 
+  // Filtered Team Logs
+  const filteredTeamLogs = useMemo(() => {
+    return teamLogs.filter((log) => {
+      const userName = log.user?.name || '';
+      const projectName = log.project?.name || '';
+      const matchesQuery =
+        userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.workDone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        projectName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesProject = !projectFilter || log.project?._id === projectFilter;
+      return matchesQuery && matchesProject;
+    });
+  }, [teamLogs, searchQuery, projectFilter]);
+
+  // Total Blockers Count across Team
+  const totalBlockers = useMemo(() => {
+    return teamLogs.filter((log) => log.blockers && log.blockers.trim().length > 0).length;
+  }, [teamLogs]);
+
   return (
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
+      {/* Header Banner */}
+      <Group justify="space-between" align="center" mb="xl">
         <div>
           <Title
-            order={2}
+            order={1}
             style={{
               color: '#0f172a',
-              fontSize: '1.625rem',
-              fontWeight: 700,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.25,
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
             }}
           >
             Daily Work Status
           </Title>
-          <Text
-            size="sm"
-            mt={4}
-            style={{ color: '#64748b', letterSpacing: '-0.01em' }}
-          >
-            Log your daily progress and keep the team updated on milestones.
+          <Text size="sm" mt={4} style={{ color: '#64748b' }}>
+            Track daily accomplishments, upcoming goals, and team roadblocks in real-time.
           </Text>
         </div>
+
+        <Button
+          leftSection={<Send size={16} />}
+          onClick={() => setActiveTab('new-status')}
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+            fontWeight: 600,
+            boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+          }}
+          size="md"
+          radius="md"
+        >
+          Submit Check-in
+        </Button>
       </Group>
 
-      <Tabs value={activeTab} onChange={setActiveTab} radius="md">
-        <Tabs.List style={{ borderBottom: '1px solid #e5e7eb' }} mb="xl">
-          <Tabs.Tab value="my-status" leftSection={<Calendar size={16} />}>My Status History</Tabs.Tab>
-          <Tabs.Tab value="new-status" leftSection={<ClipboardList size={16} />}>Submit Daily Status</Tabs.Tab>
+      {/* KPI Metric Summary Cards */}
+      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="xl">
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{ borderColor: '#e8ecf4', background: '#ffffff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}
+        >
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              My Submissions
+            </Text>
+            <Paper p={8} radius="md" bg="#eff6ff">
+              <Calendar size={18} color="#2563eb" />
+            </Paper>
+          </Group>
+          <Group align="flex-end" gap="xs">
+            <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+              {myLogs.length}
+            </Text>
+            <Text size="xs" style={{ color: '#64748b' }} mb={2}>
+              Total logs submitted
+            </Text>
+          </Group>
+        </Paper>
+
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{ borderColor: '#e8ecf4', background: '#ffffff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}
+        >
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Team Activity Today
+            </Text>
+            <Paper p={8} radius="md" bg="#f0fdf4">
+              <Users size={18} color="#10b981" />
+            </Paper>
+          </Group>
+          <Group align="flex-end" gap="xs">
+            <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+              {teamLogs.length}
+            </Text>
+            <Text size="xs" style={{ color: '#64748b' }} mb={2}>
+              Team check-ins
+            </Text>
+          </Group>
+        </Paper>
+
+        <Paper
+          p="lg"
+          radius="xl"
+          withBorder
+          style={{ borderColor: '#e8ecf4', background: '#ffffff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}
+        >
+          <Group justify="space-between" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+              Reported Blockers
+            </Text>
+            <Paper p={8} radius="md" bg="#fffbeb">
+              <AlertTriangle size={18} color="#f59e0b" />
+            </Paper>
+          </Group>
+          <Group align="flex-end" gap="xs">
+            <Text fw={800} style={{ fontSize: '1.75rem', color: totalBlockers > 0 ? '#d97706' : '#0f172a', lineHeight: 1 }}>
+              {totalBlockers}
+            </Text>
+            <Text size="xs" style={{ color: '#64748b' }} mb={2}>
+              Require attention
+            </Text>
+          </Group>
+        </Paper>
+      </SimpleGrid>
+
+      {/* Main Tabs Navigation */}
+      <Tabs value={activeTab} onChange={setActiveTab} radius="lg">
+        <Tabs.List style={{ borderBottom: '1px solid #e8ecf4' }} mb="xl">
+          <Tabs.Tab value="my-status" leftSection={<Calendar size={16} />}>
+            My Status History
+          </Tabs.Tab>
+          <Tabs.Tab value="new-status" leftSection={<ClipboardList size={16} />}>
+            Submit Daily Check-in
+          </Tabs.Tab>
           {isManagement && (
-            <Tabs.Tab value="team-status" leftSection={<Users size={16} />}>Team Updates Feed</Tabs.Tab>
+            <Tabs.Tab value="team-status" leftSection={<Users size={16} />}>
+              Team Updates Feed ({teamLogs.length})
+            </Tabs.Tab>
           )}
         </Tabs.List>
 
         {/* Tab 1: Personal Status Logs */}
         <Tabs.Panel value="my-status">
           {isMyLogsLoading ? (
-            <Center h={200}><Loader color="blue" /></Center>
+            <Center h={240}>
+              <Loader color="blue" />
+            </Center>
           ) : myLogs.length === 0 ? (
-            <Card withBorder p="xl" radius="md" ta="center" style={{ borderStyle: 'dashed' }}>
-              <Text c="dimmed">You haven't submitted any daily status updates yet.</Text>
-              <Button mt="md" variant="light" onClick={() => setActiveTab('new-status')}>Submit Your First Update</Button>
-            </Card>
+            <Paper
+              p="xl"
+              radius="xl"
+              withBorder
+              ta="center"
+              style={{
+                borderColor: '#e8ecf4',
+                background: '#ffffff',
+                borderStyle: 'dashed',
+                borderWidth: '2px',
+              }}
+            >
+              <Paper
+                p="md"
+                radius="full"
+                bg="#eff6ff"
+                style={{ display: 'inline-flex', marginBottom: '16px' }}
+              >
+                <Sparkles size={28} color="#2563eb" />
+              </Paper>
+              <Title order={3} style={{ color: '#0f172a' }} mb="xs">
+                No Daily Statuses Logged Yet
+              </Title>
+              <Text size="sm" style={{ color: '#64748b', maxWidth: '420px', margin: '0 auto' }} mb="lg">
+                Submit your first daily work log to keep your team informed on your progress and goals.
+              </Text>
+              <Button
+                variant="light"
+                color="blue"
+                leftSection={<Send size={16} />}
+                onClick={() => setActiveTab('new-status')}
+                radius="md"
+                fw={600}
+              >
+                Submit Your First Check-in
+              </Button>
+            </Paper>
           ) : (
-            <Stack gap="md">
+            <Stack gap="lg">
               {myLogs.map((log) => (
-                <Paper key={log._id} withBorder p="lg" radius="lg" shadow="xs">
-                  <Group justify="space-between" mb="md">
+                <Paper
+                  key={log._id}
+                  p="xl"
+                  radius="xl"
+                  withBorder
+                  style={{
+                    borderColor: '#e8ecf4',
+                    background: '#ffffff',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <Group justify="space-between" align="center" mb="lg">
                     <Group gap="xs">
-                      <Calendar size={16} color="#6b7280" />
-                      <Text size="sm" fw={600} color="dimmed">
-                        {new Date(log.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                      <Paper p={6} radius="md" bg="#f1f5f9">
+                        <Clock size={16} color="#64748b" />
+                      </Paper>
+                      <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
+                        {new Date(log.date).toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
                       </Text>
                     </Group>
                     {log.project && (
-                      <Badge variant="light" color="blue" leftSection={<Briefcase size={10} />}>
-                        Project: {log.project.name}
+                      <Badge
+                        variant="light"
+                        color="blue"
+                        size="md"
+                        radius="sm"
+                        leftSection={<Briefcase size={12} />}
+                      >
+                        {log.project.name}
                       </Badge>
                     )}
                   </Group>
 
-                  <Stack gap="xs">
-                    <div>
-                      <Text size="xs" fw={700} tt="uppercase" color="blue" mb={4}>Work Completed Today:</Text>
-                      <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{log.workDone}</Text>
-                    </div>
+                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+                    <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
+                      <Group gap="xs" mb={6}>
+                        <CheckCircle2 size={16} color="#10b981" />
+                        <Text size="xs" fw={700} tt="uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+                          Work Completed Today
+                        </Text>
+                      </Group>
+                      <Text size="sm" style={{ color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                        {log.workDone}
+                      </Text>
+                    </Paper>
 
-                    <div style={{ marginTop: '8px' }}>
-                      <Text size="xs" fw={700} tt="uppercase" color="teal" mb={4}>Planned for Next Session:</Text>
-                      <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{log.plannedWork}</Text>
-                    </div>
+                    <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
+                      <Group gap="xs" mb={6}>
+                        <Clock size={16} color="#3b82f6" />
+                        <Text size="xs" fw={700} tt="uppercase" style={{ color: '#2563eb', letterSpacing: '0.05em' }}>
+                          Planned for Next Session
+                        </Text>
+                      </Group>
+                      <Text size="sm" style={{ color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                        {log.plannedWork}
+                      </Text>
+                    </Paper>
+                  </SimpleGrid>
 
-                    {log.blockers && (
-                      <Paper p="xs" radius="md" bg="#fffbeb" style={{ border: '1px solid #fde68a', marginTop: '12px' }}>
-                        <Group gap="xs" mb={4}>
-                          <AlertTriangle size={14} color="#d97706" />
-                          <Text size="xs" fw={700} color="#b45309" tt="uppercase">Blockers / Roadblocks:</Text>
-                        </Group>
-                        <Text size="sm" color="#92400e" style={{ whiteSpace: 'pre-wrap' }}>{log.blockers}</Text>
-                      </Paper>
-                    )}
-                  </Stack>
+                  {log.blockers && (
+                    <Paper
+                      p="md"
+                      radius="lg"
+                      bg="#fffbeb"
+                      mt="md"
+                      style={{ border: '1px solid #fde68a' }}
+                    >
+                      <Group gap="xs" mb={4}>
+                        <AlertTriangle size={16} color="#d97706" />
+                        <Text size="xs" fw={700} tt="uppercase" style={{ color: '#b45309', letterSpacing: '0.05em' }}>
+                          Roadblocks & Impediments
+                        </Text>
+                      </Group>
+                      <Text size="sm" style={{ color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                        {log.blockers}
+                      </Text>
+                    </Paper>
+                  )}
                 </Paper>
               ))}
             </Stack>
@@ -157,125 +398,230 @@ export const DailyStatus: React.FC = () => {
 
         {/* Tab 2: Submit Daily Status */}
         <Tabs.Panel value="new-status">
-          <Card withBorder shadow="sm" p="xl" radius="lg" style={{ maxWidth: '700px', margin: '0 auto' }}>
-            <Title order={3} mb="lg">Submit Daily Check-in</Title>
+          <Paper
+            p="xl"
+            radius="xl"
+            withBorder
+            style={{
+              maxWidth: '720px',
+              margin: '0 auto',
+              borderColor: '#e8ecf4',
+              background: '#ffffff',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+            }}
+          >
+            <Title order={3} style={{ color: '#0f172a' }} mb="xs">
+              Submit Daily Check-in
+            </Title>
+            <Text size="sm" style={{ color: '#64748b' }} mb="xl">
+              Fill out your daily work status update for your project lead and teammates.
+            </Text>
+
             <form onSubmit={form.onSubmit(handleSubmit)}>
-              <Stack gap="md">
+              <Stack gap="lg">
                 <Select
                   label="Associated Project (Optional)"
                   placeholder="Select a project you worked on..."
                   data={projectOptions}
                   clearable
+                  radius="md"
                   {...form.getInputProps('project')}
                 />
 
                 <Textarea
                   required
                   label="Work Completed Today"
-                  placeholder="E.g., Designed responsive navigation bar, created auth slice, resolved compiler warnings..."
+                  placeholder="Describe key achievements, tasks finished, PRs created, or bugs resolved..."
                   minRows={4}
+                  radius="md"
                   {...form.getInputProps('workDone')}
+                  withAsterisk
                 />
 
                 <Textarea
                   required
                   label="Planned Work for Tomorrow / Next Session"
-                  placeholder="E.g., Integrate file upload endpoint, add layout styles to tasks board..."
+                  placeholder="Detail your goals for the upcoming session..."
                   minRows={3}
+                  radius="md"
                   {...form.getInputProps('plannedWork')}
+                  withAsterisk
                 />
 
                 <Textarea
                   label="Blockers or Obstacles (Optional)"
-                  placeholder="E.g., Waiting for S3 bucket credentials, API returns 500 when creating release..."
+                  placeholder="List any impediments, pending approvals, or dependencies..."
                   minRows={2}
+                  radius="md"
                   {...form.getInputProps('blockers')}
                 />
 
                 <Group justify="flex-end" mt="md">
-                  <Button type="submit" leftSection={<Send size={16} />} loading={isSubmitting}>
-                    Submit Status
+                  <Button
+                    type="submit"
+                    leftSection={<Send size={16} />}
+                    loading={isSubmitting}
+                    size="md"
+                    radius="md"
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                      fontWeight: 600,
+                      boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                    }}
+                  >
+                    Submit Check-in
                   </Button>
                 </Group>
               </Stack>
             </form>
-          </Card>
+          </Paper>
         </Tabs.Panel>
 
         {/* Tab 3: Team Updates Feed */}
         {isManagement && (
           <Tabs.Panel value="team-status">
+            {/* Search and Filter Bar */}
+            <Paper p="md" radius="lg" withBorder mb="lg" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+              <Group justify="space-between">
+                <TextInput
+                  placeholder="Search teammate name, project, or task..."
+                  leftSection={<Search size={16} color="#94a3b8" />}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ width: 320 }}
+                  radius="md"
+                />
+                <Group gap="sm">
+                  <Filter size={16} color="#64748b" />
+                  <Select
+                    placeholder="All Projects"
+                    value={projectFilter}
+                    onChange={setProjectFilter}
+                    data={[{ value: '', label: 'All Projects' }, ...projectOptions]}
+                    clearable
+                    style={{ width: 220 }}
+                    radius="md"
+                  />
+                </Group>
+              </Group>
+            </Paper>
+
             {isTeamLogsLoading ? (
-              <Center h={200}><Loader color="blue" /></Center>
-            ) : teamLogs.length === 0 ? (
-              <Card withBorder p="xl" radius="md" ta="center">
-                <Text c="dimmed">No team logs submitted today.</Text>
-              </Card>
+              <Center h={240}>
+                <Loader color="blue" />
+              </Center>
+            ) : filteredTeamLogs.length === 0 ? (
+              <Paper p="xl" radius="xl" withBorder ta="center" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+                <Text style={{ color: '#64748b' }} fw={500}>
+                  No team daily status logs found matching criteria.
+                </Text>
+              </Paper>
             ) : (
-              <Table verticalSpacing="md">
-                <Table.Thead>
-                  <Table.Tr>
-                    <Table.Th>Team Member</Table.Th>
-                    <Table.Th>Date & Project</Table.Th>
-                    <Table.Th>Work Done & Roadblocks</Table.Th>
-                  </Table.Tr>
-                </Table.Thead>
-                <Table.Tbody>
-                  {teamLogs.map((log) => {
-                    const memberName = log.user?.name || 'Unknown';
-                    return (
-                      <Table.Tr key={log._id}>
-                        <Table.Td style={{ verticalAlign: 'top', width: '220px' }}>
-                          <Group gap="sm" wrap="nowrap">
-                            <Avatar src={log.user?.avatarUrl} size="md" color="blue">
-                              {memberName.charAt(0)}
-                            </Avatar>
-                            <div>
-                              <Text size="sm" fw={600}>{memberName}</Text>
-                              <Badge size="xs" color={getRoleColor(log.user?.role)} mt={2}>
+              <Stack gap="lg">
+                {filteredTeamLogs.map((log) => {
+                  const memberName = log.user?.name || 'Unknown User';
+                  return (
+                    <Paper
+                      key={log._id}
+                      p="xl"
+                      radius="xl"
+                      withBorder
+                      style={{
+                        borderColor: '#e8ecf4',
+                        background: '#ffffff',
+                        boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
+                      }}
+                    >
+                      <Group justify="space-between" align="center" mb="lg">
+                        <Group gap="md">
+                          <Avatar src={log.user?.avatarUrl} size="md" radius="xl" color="blue">
+                            {memberName.charAt(0)}
+                          </Avatar>
+                          <div>
+                            <Group gap="xs">
+                              <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
+                                {memberName}
+                              </Text>
+                              <Badge size="xs" color={getRoleColor(log.user?.role)} radius="sm" fw={600}>
                                 {log.user?.role === Role.ADMIN ? 'Admin' : log.user?.role?.replace('_', ' ')}
                               </Badge>
-                            </div>
+                            </Group>
+                            <Text size="xs" style={{ color: '#64748b' }}>
+                              {new Date(log.date).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </Text>
+                          </div>
+                        </Group>
+
+                        {log.project ? (
+                          <Badge
+                            variant="light"
+                            color="blue"
+                            size="md"
+                            radius="sm"
+                            leftSection={<Briefcase size={12} />}
+                          >
+                            {log.project.name}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" color="gray" radius="sm">
+                            General
+                          </Badge>
+                        )}
+                      </Group>
+
+                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+                        <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
+                          <Group gap="xs" mb={6}>
+                            <CheckCircle2 size={16} color="#10b981" />
+                            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>
+                              Done Today
+                            </Text>
                           </Group>
-                        </Table.Td>
-                        <Table.Td style={{ verticalAlign: 'top', width: '250px' }}>
-                          <Text size="sm" fw={500}>
-                            {new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          <Text size="sm" style={{ color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                            {log.workDone}
                           </Text>
-                          {log.project ? (
-                            <Badge variant="light" color="blue" mt={6} leftSection={<Briefcase size={10} />}>
-                              {log.project.name}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" color="gray" mt={6}>General</Badge>
-                          )}
-                        </Table.Td>
-                        <Table.Td style={{ verticalAlign: 'top' }}>
-                          <Stack gap="xs">
-                            <div>
-                              <Text size="xs" fw={700} color="dimmed" tt="uppercase">Done:</Text>
-                              <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{log.workDone}</Text>
-                            </div>
-                            <div>
-                              <Text size="xs" fw={700} color="dimmed" tt="uppercase">Next Up:</Text>
-                              <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{log.plannedWork}</Text>
-                            </div>
-                            {log.blockers && (
-                              <Paper p="xs" radius="md" bg="#fffbeb" style={{ border: '1px solid #fde68a' }}>
-                                <Group gap="xs" mb={4}>
-                                  <AlertTriangle size={12} color="#d97706" />
-                                  <Text size="xs" fw={700} color="#b45309" tt="uppercase">Blockers:</Text>
-                                </Group>
-                                <Text size="sm" color="#92400e" style={{ whiteSpace: 'pre-wrap' }}>{log.blockers}</Text>
-                              </Paper>
-                            )}
-                          </Stack>
-                        </Table.Td>
-                      </Table.Tr>
-                    );
-                  })}
-                </Table.Tbody>
-              </Table>
+                        </Paper>
+
+                        <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
+                          <Group gap="xs" mb={6}>
+                            <Clock size={16} color="#3b82f6" />
+                            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#2563eb', letterSpacing: '0.05em' }}>
+                              Next Goals
+                            </Text>
+                          </Group>
+                          <Text size="sm" style={{ color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                            {log.plannedWork}
+                          </Text>
+                        </Paper>
+                      </SimpleGrid>
+
+                      {log.blockers && (
+                        <Paper
+                          p="md"
+                          radius="lg"
+                          bg="#fffbeb"
+                          mt="md"
+                          style={{ border: '1px solid #fde68a' }}
+                        >
+                          <Group gap="xs" mb={4}>
+                            <AlertTriangle size={16} color="#d97706" />
+                            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#b45309', letterSpacing: '0.05em' }}>
+                              Blocker Reported
+                            </Text>
+                          </Group>
+                          <Text size="sm" style={{ color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                            {log.blockers}
+                          </Text>
+                        </Paper>
+                      )}
+                    </Paper>
+                  );
+                })}
+              </Stack>
             )}
           </Tabs.Panel>
         )}

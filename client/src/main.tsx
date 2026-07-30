@@ -9,10 +9,18 @@ import '@mantine/core/styles.css';
 import './index.css';
 
 const theme = createTheme({
-  primaryColor: 'orange',
+  primaryColor: 'indigo',
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
   fontFamilyMonospace: "'JetBrains Mono', 'Fira Code', monospace",
   defaultRadius: 'md',
+
+  shadows: {
+    xs: 'none',
+    sm: 'none',
+    md: 'none',
+    lg: 'none',
+    xl: 'none',
+  },
 
   headings: {
     fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",

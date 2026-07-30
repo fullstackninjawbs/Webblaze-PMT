@@ -223,11 +223,11 @@ export const DashboardLayout: React.FC = () => {
 
       <AppShell.Navbar
         style={{
-          borderRight: '1px solid #eef0f8',
+          borderRight: '1px solid #e8ecf4',
           backgroundColor: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: '2px 0 20px rgba(0,0,0,0.04)',
+          boxShadow: 'none',
         }}
       >
         {/* WebBlaze PMS Branding Header */}
@@ -247,34 +247,15 @@ export const DashboardLayout: React.FC = () => {
         <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #f1f4f9' }}>
           <Menu position="top-start" shadow="lg" width={230} offset={8}>
             <Menu.Target>
-              <UnstyledButton
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '100%',
-                  padding: '10px 12px',
-                  borderRadius: '12px',
-                  transition: 'background-color 0.18s ease',
-                  backgroundColor: 'transparent',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fff7ed')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
+              <UnstyledButton className="user-menu-btn">
                 <Group wrap="nowrap" style={{ flex: 1, gap: '10px' }}>
                   <Avatar
                     src={user?.avatarUrl}
                     radius="xl"
                     size={38}
-                    style={{
-                      background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-                      color: '#fff',
-                      fontWeight: 700,
-                      border: '2px solid #e0f2fe',
-                      fontSize: '0.875rem',
-                      flexShrink: 0,
-                    }}
+                    className="user-avatar-badge"
                   >
-                    {user?.name?.charAt(0).toUpperCase()}{user?.name?.split(' ')?.[1]?.charAt(0).toUpperCase()}
+                    {user?.name?.charAt(0).toUpperCase()}{(user?.name?.split(' ')?.[1] || user?.name?.charAt(1) || '').charAt(0).toUpperCase()}
                   </Avatar>
                   <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                     <Text

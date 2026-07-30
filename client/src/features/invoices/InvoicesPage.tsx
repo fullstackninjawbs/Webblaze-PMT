@@ -351,7 +351,7 @@ export const InvoicesPage = () => {
         withBorder
         style={{
           borderColor: '#e8ecf4',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.03)',
           overflow: 'hidden',
           backgroundColor: '#ffffff',
         }}
@@ -426,24 +426,25 @@ export const InvoicesPage = () => {
       </Card>
 
       {/* Save Invoice Modal */}
-      <Modal opened={opened} onClose={() => setOpened(false)} title={<Text fw={700} size="lg">{editingInvoice ? "Edit Invoice" : "Create New Invoice"}</Text>} radius="lg" padding="lg">
+      <Modal opened={opened} onClose={() => setOpened(false)} title={<Text fw={700} size="lg">{editingInvoice ? "Edit Invoice" : "Create New Invoice"}</Text>} radius="lg" padding="xl" size={520}>
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
             <Select
-              label={<Text size="xs" fw={600} mb={4}>Project</Text>}
+              label="Project"
+              placeholder="Select project..."
               data={projects.map(p => ({ value: p._id, label: p.name }))}
               {...form.getInputProps('project')}
               radius="md"
               withAsterisk
             />
-            <TextInput label={<Text size="xs" fw={600} mb={4}>Invoice Number</Text>} placeholder="INV-2026-001" {...form.getInputProps('invoiceNumber')} radius="md" withAsterisk />
-            <Group grow>
-              <TextInput type="date" label={<Text size="xs" fw={600} mb={4}>Issue Date</Text>} {...form.getInputProps('issueDate')} radius="md" withAsterisk />
-              <TextInput type="date" label={<Text size="xs" fw={600} mb={4}>Due Date</Text>} {...form.getInputProps('dueDate')} radius="md" withAsterisk />
+            <TextInput label="Invoice Number" placeholder="INV-2026-001" {...form.getInputProps('invoiceNumber')} radius="md" withAsterisk />
+            <Group grow gap="md">
+              <TextInput type="date" label="Issue Date" {...form.getInputProps('issueDate')} radius="md" withAsterisk />
+              <TextInput type="date" label="Due Date" {...form.getInputProps('dueDate')} radius="md" withAsterisk />
             </Group>
-            <NumberInput label={<Text size="xs" fw={600} mb={4}>Total Amount ($)</Text>} min={0} {...form.getInputProps('totalAmount')} radius="md" withAsterisk />
+            <NumberInput label="Total Amount ($)" min={0} {...form.getInputProps('totalAmount')} radius="md" withAsterisk />
             <Select
-              label={<Text size="xs" fw={600} mb={4}>Status</Text>}
+              label="Status"
               data={[
                 { value: 'draft', label: 'Draft' },
                 { value: 'sent', label: 'Sent' },
@@ -459,9 +460,11 @@ export const InvoicesPage = () => {
               loading={isCreating || isUpdating} 
               mt="md" 
               radius="md"
+              size="md"
               style={{
                 background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
                 fontWeight: 600,
+                boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
               }}
             >
               {editingInvoice ? "Update Invoice" : "Save Invoice"}
@@ -471,11 +474,11 @@ export const InvoicesPage = () => {
       </Modal>
 
       {/* Record Payment Modal */}
-      <Modal opened={paymentModalOpened} onClose={() => setPaymentModalOpened(false)} title={<Text fw={700} size="lg">Record Payment</Text>} radius="lg" padding="lg">
+      <Modal opened={paymentModalOpened} onClose={() => setPaymentModalOpened(false)} title={<Text fw={700} size="lg">Record Payment</Text>} radius="lg" padding="xl" size={520}>
         <Stack gap="md">
-          <Text size="sm" color="dimmed">Record payment details for invoice #{activeInvoiceForPayment?.invoiceNumber}.</Text>
+          <Text size="sm" style={{ color: '#64748b' }}>Record payment details for invoice #{activeInvoiceForPayment?.invoiceNumber}.</Text>
           <NumberInput
-            label={<Text size="xs" fw={600} mb={4}>Payment Amount ($)</Text>}
+            label="Payment Amount ($)"
             value={paymentAmount}
             onChange={(val) => setPaymentAmount(Number(val) || 0)}
             min={0.01}
@@ -484,7 +487,7 @@ export const InvoicesPage = () => {
             withAsterisk
           />
           <Select
-            label={<Text size="xs" fw={600} mb={4}>Payment Method</Text>}
+            label="Payment Method"
             value={paymentMethod}
             onChange={(val) => setPaymentMethod(val || 'bank_transfer')}
             data={[
@@ -498,12 +501,19 @@ export const InvoicesPage = () => {
           />
           <TextInput
             type="date"
-            label={<Text size="xs" fw={600} mb={4}>Payment Date</Text>}
+            label="Payment Date"
             value={paymentDate}
             onChange={(e) => setPaymentDate(e.target.value)}
             radius="md"
           />
-          <Button color="green" radius="md" onClick={handleRecordPayment} loading={isUpdating} style={{ fontWeight: 600 }}>
+          <Button 
+            color="green" 
+            radius="md" 
+            size="md"
+            onClick={handleRecordPayment} 
+            loading={isUpdating} 
+            style={{ fontWeight: 600 }}
+          >
             Submit Payment
           </Button>
         </Stack>
