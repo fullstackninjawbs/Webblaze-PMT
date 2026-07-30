@@ -48,7 +48,7 @@ export const InvoicesPage = () => {
       invoiceNumber: '',
       issueDate: '',
       dueDate: '',
-      totalAmount: 0,
+      totalAmount: '' as any,
       status: 'draft',
     },
     validate: zodResolver(invoiceSchema),
@@ -465,7 +465,7 @@ export const InvoicesPage = () => {
                 clearable
               />
             </Group>
-            <NumberInput label="Total Amount ($)" min={0} {...form.getInputProps('totalAmount')} radius="md" withAsterisk />
+            <NumberInput label="Total Amount ($)" min={0} onFocus={(e) => e.target.select()} {...form.getInputProps('totalAmount')} radius="md" withAsterisk />
             <Select
               label="Status"
               data={[
@@ -503,10 +503,11 @@ export const InvoicesPage = () => {
           <NumberInput
             label="Payment Amount ($)"
             value={paymentAmount}
-            onChange={(val) => setPaymentAmount(Number(val) || 0)}
+            onChange={(val) => setPaymentAmount(typeof val === 'number' ? val : 0)}
             min={0.01}
             max={activeInvoiceForPayment?.pendingAmount}
             radius="md"
+            onFocus={(e) => e.target.select()}
             withAsterisk
           />
           <Select

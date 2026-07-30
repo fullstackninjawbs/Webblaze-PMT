@@ -61,7 +61,7 @@ export const TodosList: React.FC = () => {
     initialValues: {
       title: '',
       relatedProject: '',
-      estimatedTime: 0,
+      estimatedTime: '' as any,
       dueDate: '',
     },
   });
@@ -96,7 +96,7 @@ export const TodosList: React.FC = () => {
       form.setValues({
         title: todo.title,
         relatedProject: todo.relatedProject?._id || '',
-        estimatedTime: todo.estimatedTime || 0,
+        estimatedTime: todo.estimatedTime ?? '',
         dueDate: todo.dueDate ? new Date(todo.dueDate).toISOString().split('T')[0] : '',
       });
     } else {
@@ -446,6 +446,7 @@ export const TodosList: React.FC = () => {
                 placeholder="0"
                 min={0}
                 radius="md"
+                onFocus={(e) => e.target.select()}
                 {...form.getInputProps('estimatedTime')}
               />
             </Group>

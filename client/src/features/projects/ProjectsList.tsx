@@ -82,7 +82,7 @@ export const ProjectsList: React.FC = () => {
       client: '',
       description: '',
       type: 'Web App',
-      totalBudget: 0,
+      totalBudget: '' as any,
       status: ProjectStatus.ACTIVE,
       team: [] as string[],
     },
@@ -102,7 +102,7 @@ export const ProjectsList: React.FC = () => {
       client: project.client?._id || project.client || '',
       description: project.description || '',
       type: project.type || 'Web App',
-      totalBudget: project.totalBudget || 0,
+      totalBudget: project.totalBudget ?? '',
       status: project.status || ProjectStatus.ACTIVE,
       team: project.team?.map((t: any) => t._id || t) || [],
     });
@@ -190,8 +190,9 @@ export const ProjectsList: React.FC = () => {
 
   const rows = filteredProjects.map((project: any) => (
     <Table.Tr key={project._id}>
-      <Table.Td>
-        <Group gap="sm">
+      {/* 1. Project */}
+      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+        <Group gap="sm" wrap="nowrap">
           <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Briefcase size={18} color="#2563eb" />
           </div>
@@ -210,32 +211,25 @@ export const ProjectsList: React.FC = () => {
           </div>
         </Group>
       </Table.Td>
-      <Table.Td>
-        <Badge
-          variant="light"
-          radius="sm"
-          fw={600}
-          color={
-            project.status === ProjectStatus.ACTIVE
-              ? 'green'
-              : project.status === ProjectStatus.ON_HOLD
-              ? 'orange'
-              : project.status === ProjectStatus.COMPLETED
-              ? 'blue'
-              : 'gray'
-          }
-        >
-          {project.status ? project.status.replace('_', ' ') : '-'}
-        </Badge>
-      </Table.Td>
-      <Table.Td>
-        <Text size="sm" style={{ color: '#64748b' }}>
-          {getProjectReleaseDate(project._id)}
+
+      {/* 2. Hours Assists / Est. Hours */}
+      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+        <Text size="sm" fw={600} style={{ color: '#475569' }}>
+          {project.estHours !== undefined ? `${project.estHours}h` : '0h'}
         </Text>
       </Table.Td>
+
+      {/* 3. Active Hours */}
+      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+        <Text size="sm" fw={600} style={{ color: '#2563eb' }}>
+          {project.spentHours !== undefined ? `${Number(project.spentHours.toFixed(1))}h` : '0h'}
+        </Text>
+      </Table.Td>
+
+      {/* 4. Total Amount, 5. Pending Amount, 6. Received Amount */}
       {isAdminOrPM && (
         <>
-          <Table.Td>
+          <Table.Td style={{ whiteSpace: 'nowrap' }}>
             {project.totalBudget ? (
               <Text size="sm" fw={600} style={{ color: '#0f172a' }}>
                 ${project.totalBudget.toLocaleString()}
@@ -246,27 +240,60 @@ export const ProjectsList: React.FC = () => {
               </Text>
             )}
           </Table.Td>
-          <Table.Td>
-            <Text size="sm" style={{ color: '#059669' }} fw={600}>
-              ${(project.receivedAmount || 0).toLocaleString()}
-            </Text>
-          </Table.Td>
-          <Table.Td>
+          <Table.Td style={{ whiteSpace: 'nowrap' }}>
             <Text size="sm" style={{ color: '#d97706' }} fw={600}>
               ${(project.pendingAmount || 0).toLocaleString()}
             </Text>
           </Table.Td>
+          <Table.Td style={{ whiteSpace: 'nowrap' }}>
+            <Text size="sm" style={{ color: '#059669' }} fw={600}>
+              ${(project.receivedAmount || 0).toLocaleString()}
+            </Text>
+          </Table.Td>
         </>
       )}
-      <Table.Td>
+
+      {/* 7. Release Date */}
+      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+        <Text size="sm" style={{ color: '#64748b' }}>
+          {getProjectReleaseDate(project._id)}
+        </Text>
+      </Table.Td>
+
+      {/* 8. Status */}
+      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+        <Badge
+          variant="light"
+          radius="sm"
+          size="sm"
+          fw={600}
+          style={{ whiteSpace: 'nowrap' }}
+          color={
+            project.status === ProjectStatus.ACTIVE
+              ? 'green'
+              : project.status === ProjectStatus.ON_HOLD
+                ? 'orange'
+                : project.status === ProjectStatus.COMPLETED
+                  ? 'blue'
+                  : 'gray'
+          }
+        >
+          {project.status ? project.status.replace('_', ' ') : '-'}
+        </Badge>
+      </Table.Td>
+
+      {/* 9. Progress */}
+      <Table.Td style={{ minWidth: 130 }}>
         <Group gap="xs" wrap="nowrap">
-          <Text size="sm" w={35} ta="right" fw={600} style={{ color: '#0f172a' }}>
+          <Text size="sm" w={32} ta="right" fw={600} style={{ color: '#0f172a' }}>
             {project.progress || 0}%
           </Text>
           <Progress value={project.progress || 0} color="blue" size="sm" radius="xl" style={{ flex: 1 }} />
         </Group>
       </Table.Td>
-      <Table.Td>
+
+      {/* 10. Actions */}
+      <Table.Td style={{ whiteSpace: 'nowrap' }}>
         <Group gap={4} justify="flex-end" wrap="nowrap">
           <ActionIcon
             variant="subtle"
@@ -456,13 +483,13 @@ export const ProjectsList: React.FC = () => {
           backgroundColor: '#ffffff',
         }}
       >
-        <Table.ScrollContainer minWidth={800}>
+        <Table.ScrollContainer minWidth={1200}>
           <Table verticalSpacing="md" horizontalSpacing="lg">
             <Table.Thead style={{ backgroundColor: '#f8faff' }}>
               <Table.Tr>
-                <Table.Th>Project</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Release Date</Table.Th>
+                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROJECT</Table.Th>
+                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
+                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
                 {isAdminOrPM && (
                   <>
                     <Table.Th>Total Amount</Table.Th>
@@ -470,8 +497,10 @@ export const ProjectsList: React.FC = () => {
                     <Table.Th>Pending</Table.Th>
                   </>
                 )}
-                <Table.Th>Progress</Table.Th>
-                <Table.Th w={100}></Table.Th>
+                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>RELEASE DATE</Table.Th>
+                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
+                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
+                <Table.Th ta="right" style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIONS</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -479,7 +508,7 @@ export const ProjectsList: React.FC = () => {
                 rows
               ) : (
                 <Table.Tr>
-                  <Table.Td colSpan={isAdminOrPM ? 8 : 5} style={{ textAlign: 'center', padding: '40px' }}>
+                  <Table.Td colSpan={isAdminOrPM ? 10 : 7} style={{ textAlign: 'center', padding: '40px' }}>
                     <Text style={{ color: '#64748b' }} fw={500}>
                       No projects found matching criteria.
                     </Text>
@@ -552,6 +581,7 @@ export const ProjectsList: React.FC = () => {
                   thousandSeparator=","
                   min={0}
                   radius="md"
+                  onFocus={(e) => e.target.select()}
                   {...form.getInputProps('totalBudget')}
                 />
 

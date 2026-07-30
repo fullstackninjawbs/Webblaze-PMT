@@ -358,6 +358,7 @@ export const ProjectDetails = () => {
                 </Group>
               }
               min={0}
+              onFocus={(e) => e.target.select()}
               {...milestoneForm.getInputProps('estimatedHours')}
             />
             <Group grow>
@@ -427,7 +428,7 @@ export const ProjectDetails = () => {
             <Textarea label="Description" placeholder="Task details..." minRows={3} {...taskForm.getInputProps('description')} />
             <Group grow>
               <Select required label="Department" data={[{ value: 'design', label: 'Design' }, { value: 'development', label: 'Development' }, { value: 'seo', label: 'SEO' }]} {...taskForm.getInputProps('department')} />
-              <NumberInput required label="Estimated Hours" min={0.5} step={0.5} {...taskForm.getInputProps('estimatedHours')} />
+              <NumberInput required label="Estimated Hours" min={0.5} step={0.5} onFocus={(e) => e.target.select()} {...taskForm.getInputProps('estimatedHours')} />
             </Group>
             <Group grow>
               <DatePickerInput
@@ -1480,7 +1481,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
                 radius="md"
               />
             </Group>
-            <NumberInput label="Total Amount ($)" min={0} {...invoiceForm.getInputProps('totalAmount')} withAsterisk />
+            <NumberInput label="Total Amount ($)" min={0} onFocus={(e) => e.target.select()} {...invoiceForm.getInputProps('totalAmount')} withAsterisk />
             <Select
               label="Status"
               data={[
@@ -1506,9 +1507,10 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
           <NumberInput
             label="Payment Amount ($)"
             value={paymentAmount}
-            onChange={(val) => setPaymentAmount(Number(val) || 0)}
+            onChange={(val) => setPaymentAmount(typeof val === 'number' ? val : 0)}
             min={0.01}
             max={activeInvoiceForPayment?.pendingAmount}
+            onFocus={(e) => e.target.select()}
             withAsterisk
           />
           <Select
