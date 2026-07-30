@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { ActiveTimerBadge } from '../components/common/ActiveTimerBadge';
 import { useSelector } from 'react-redux';
 import { RootState } from '../app/store';
-import { useLogoutMutation } from '../features/auth/auth.slice';
+import { useLogoutMutation, useGetMeQuery } from '../features/auth/auth.slice';
 import { LayoutDashboard, CheckSquare, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity } from 'lucide-react';
 import { Role } from '../types';
 import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge } from '@mantine/core';
@@ -129,6 +129,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
 
 export const DashboardLayout: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
+  useGetMeQuery(undefined, { pollingInterval: 10000, skip: !user });
   const [logout] = useLogoutMutation();
   const navigate = useNavigate();
   const location = useLocation();

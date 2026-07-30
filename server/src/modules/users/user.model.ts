@@ -10,6 +10,7 @@ export interface IUser extends Document {
   department?: 'design' | 'development' | 'seo';
   isActive: boolean;
   avatarUrl?: string;
+  tokenVersion?: number;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   comparePassword(candidate: string): Promise<boolean>;
@@ -24,6 +25,7 @@ const UserSchema: Schema = new Schema(
     department: { type: String, enum: ['design', 'development', 'seo'] },
     isActive: { type: Boolean, default: true },
     avatarUrl: { type: String },
+    tokenVersion: { type: Number, default: 0 },
     resetPasswordToken: { type: String, select: false },
     resetPasswordExpires: { type: Date, select: false },
   },

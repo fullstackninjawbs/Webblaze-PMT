@@ -4,15 +4,15 @@ import { User, IUser } from '../users/user.model';
 import { ApiError } from '../../utils/ApiError';
 import { sendInviteEmail, sendResetPasswordEmail } from '../../utils/emailService';
 
-const generateTokens = (userId: string) => {
+const generateTokens = (userId: string, tokenVersion: number = 0) => {
   const accessToken = jwt.sign(
-    { id: userId },
+    { id: userId, tokenVersion },
     process.env.JWT_ACCESS_SECRET as string,
     { expiresIn: (process.env.JWT_ACCESS_EXPIRES || '15m') as any }
   );
 
   const refreshToken = jwt.sign(
-    { id: userId },
+    { id: userId, tokenVersion },
     process.env.JWT_REFRESH_SECRET as string,
     { expiresIn: (process.env.JWT_REFRESH_EXPIRES || '7d') as any }
   );
@@ -34,7 +34,7 @@ export const loginUser = async (
     throw new ApiError(401, 'Invalid email or password');
   }
 
-  const tokens = generateTokens((user._id as any).toString());
+  const tokens = generateTokens((user._id as any).toString(), user.tokenVersion || 0);
   return { user, tokens };
 };
 
@@ -78,7 +78,7 @@ export const acceptInviteToken = async (
       throw new ApiError(401, 'User account not found or disabled');
     }
 
-    const tokens = generateTokens((user._id as any).toString());
+    const tokens = generateTokens((user._id as any).toString(), user.tokenVersion || 0);
     return { user, tokens };
   } catch (error) {
     throw new ApiError(401, 'Invalid or expired invitation token');
@@ -89,12 +89,15 @@ export const refreshTokens = async (
   token: string
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET as string) as { id: string };
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET as string) as { id: string; tokenVersion?: number };
     const user = await User.findById(decoded.id);
     if (!user || !user.isActive) {
       throw new ApiError(401, 'User not found or disabled');
     }
-    return generateTokens((user._id as any).toString());
+    if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== (user.tokenVersion || 0)) {
+      throw new ApiError(401, 'Session invalidated due to role change');
+    }
+    return generateTokens((user._id as any).toString(), user.tokenVersion || 0);
   } catch (error) {
     throw new ApiError(401, 'Invalid or expired refresh token');
   }
