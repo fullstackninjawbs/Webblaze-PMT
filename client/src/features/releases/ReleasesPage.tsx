@@ -41,10 +41,11 @@ import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { DEPARTMENT_OPTIONS } from '../../types';
 
 const releaseSchema = z.object({
   project: z.string().min(1, 'Project is required'),
-  department: z.enum(['design', 'development', 'seo']),
+  department: z.enum(['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales', 'pm', 'admin']),
   teamMember: z.string().optional(),
   details: z.string().min(1, 'Details are required'),
   releaseDate: z.string().min(1, 'Date is required'),
@@ -91,7 +92,7 @@ export const ReleasesPage: React.FC = () => {
   const form = useForm({
     initialValues: {
       project: '',
-      department: 'development',
+      department: 'fullstack',
       teamMember: '',
       details: '',
       releaseDate: '',
@@ -136,7 +137,7 @@ export const ReleasesPage: React.FC = () => {
     try {
       const payload = {
         project: values.project,
-        department: values.department as 'design' | 'development' | 'seo',
+        department: values.department as any,
         teamMember: values.teamMember || undefined,
         details: values.details,
         releaseDate: new Date(values.releaseDate).toISOString(),
@@ -431,11 +432,7 @@ export const ReleasesPage: React.FC = () => {
             <Group grow gap="md">
               <Select
                 label="Department"
-                data={[
-                  { value: 'design', label: 'Design' },
-                  { value: 'development', label: 'Development' },
-                  { value: 'seo', label: 'SEO' },
-                ]}
+                data={DEPARTMENT_OPTIONS}
                 withAsterisk
                 radius="md"
                 {...form.getInputProps('department')}

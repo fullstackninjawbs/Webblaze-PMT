@@ -7,7 +7,7 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   role: Role;
-  department?: 'design' | 'development' | 'seo';
+  department?: 'seo' | 'fullstack' | 'design' | 'shopify' | 'wordpress' | 'sales';
   isActive: boolean;
   avatarUrl?: string;
   tokenVersion?: number;
@@ -22,7 +22,7 @@ const UserSchema: Schema = new Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, select: false },
     role: { type: String, enum: Object.values(Role), required: true },
-    department: { type: String, enum: ['design', 'development', 'seo'] },
+    department: { type: String, enum: ['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales'] },
     isActive: { type: Boolean, default: true },
     avatarUrl: { type: String },
     tokenVersion: { type: Number, default: 0 },

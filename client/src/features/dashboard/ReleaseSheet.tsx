@@ -7,10 +7,11 @@ import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetUsersQuery } from '../users/user.slice';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
+import { DEPARTMENT_OPTIONS } from '../../types';
 
 const releaseSchema = z.object({
   project: z.string().min(1, 'Project is required'),
-  department: z.enum(['design', 'development', 'seo']),
+  department: z.enum(['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales', 'pm', 'admin']),
   teamMember: z.string().optional(),
   details: z.string().min(1, 'Details are required'),
   releaseDate: z.string().min(1, 'Date is required'),
@@ -50,7 +51,7 @@ export const ReleaseSheet: React.FC = () => {
     try {
       await createRelease({
         ...values,
-        department: values.department as 'design' | 'development' | 'seo',
+        department: values.department as any,
         status: values.status as 'scheduled' | 'in_review' | 'released',
         releaseDate: new Date(values.releaseDate).toISOString()
       }).unwrap();
@@ -161,11 +162,7 @@ export const ReleaseSheet: React.FC = () => {
           />
           <Select
             label="Department"
-            data={[
-              { value: 'design', label: 'Design' },
-              { value: 'development', label: 'Development' },
-              { value: 'seo', label: 'SEO' }
-            ]}
+            data={DEPARTMENT_OPTIONS}
             {...form.getInputProps('department')}
             mb="sm"
             withAsterisk

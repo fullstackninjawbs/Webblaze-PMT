@@ -25,3 +25,12 @@ export enum TaskStatus {
   IN_REVIEW = 'in_review',
   COMPLETED = 'completed',
 }
+
+export enum Department {
+  SEO = 'seo',
+  FULLSTACK = 'fullstack',
+  DESIGN = 'design',
+  SHOPIFY = 'shopify',
+  WORDPRESS = 'wordpress',
+  SALES = 'sales',
+}

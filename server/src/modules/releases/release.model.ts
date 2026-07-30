@@ -2,7 +2,7 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 
 export interface IRelease extends Document {
   project: Types.ObjectId;
-  department: 'design' | 'development' | 'seo';
+  department: 'seo' | 'fullstack' | 'design' | 'shopify' | 'wordpress' | 'sales';
   teamMember?: Types.ObjectId;
   details: string;
   releaseDate: Date;
@@ -21,7 +21,7 @@ const releaseSchema = new Schema<IRelease>(
     },
     department: {
       type: String,
-      enum: ['design', 'development', 'seo'],
+      enum: ['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales'],
       required: [true, 'Department is required'],
     },
     teamMember: {

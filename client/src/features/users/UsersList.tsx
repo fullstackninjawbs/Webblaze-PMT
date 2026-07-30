@@ -38,7 +38,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { Role } from '../../types';
+import { Role, DEPARTMENT_OPTIONS } from '../../types';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
@@ -442,11 +442,7 @@ export const UsersList: React.FC = () => {
               <Select
                 label="Department"
                 placeholder="Optional"
-                data={[
-                  { value: 'design', label: 'Design' },
-                  { value: 'development', label: 'Development' },
-                  { value: 'seo', label: 'SEO' },
-                ]}
+                data={DEPARTMENT_OPTIONS}
                 radius="md"
                 {...form.getInputProps('department')}
               />
@@ -516,11 +512,7 @@ export const UsersList: React.FC = () => {
                 <Select
                   label="Department"
                   placeholder="None"
-                  data={[
-                    { value: 'design', label: 'Design' },
-                    { value: 'development', label: 'Development' },
-                    { value: 'seo', label: 'SEO' },
-                  ]}
+                  data={DEPARTMENT_OPTIONS}
                   clearable
                   radius="md"
                   {...editForm.getInputProps('department')}

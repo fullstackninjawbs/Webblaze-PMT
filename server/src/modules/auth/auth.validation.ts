@@ -14,7 +14,7 @@ export const registerSchema = z.object({
     email: z.string().email('Invalid email format'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     role: z.nativeEnum(Role),
-    department: z.enum(['design', 'development', 'seo']).optional().or(z.literal('')).transform((val) => (val === '' ? undefined : val)),
+    department: z.enum(['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales', 'pm', 'admin']).optional().or(z.literal('')).transform((val) => (val === '' ? undefined : val)),
   }),
 });
 

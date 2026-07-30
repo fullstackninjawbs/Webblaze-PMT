@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
-import { Role, ProjectStatus } from '../../types';
+import { Role, ProjectStatus, DEPARTMENT_OPTIONS } from '../../types';
 import { useGetUsersQuery } from '../users/user.slice';
 import { useGetReleasesQuery, useCreateReleaseMutation, useUpdateReleaseMutation, useDeleteReleaseMutation } from '../releases/release.slice';
 import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from '../invoices/invoice.slice';
@@ -38,7 +38,7 @@ const milestoneSchema = z.object({
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  department: z.enum(['design', 'development', 'seo']),
+  department: z.enum(['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales', 'pm', 'admin']),
   estimatedHours: z.number().min(0.5, 'Minimum 0.5 hours'),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
@@ -83,7 +83,7 @@ export const ProjectDetails = () => {
   });
 
   const taskForm = useForm({
-    initialValues: { title: '', description: '', department: 'development', estimatedHours: 2, startDate: '', endDate: '', assignedTo: '', milestone: '' },
+    initialValues: { title: '', description: '', department: 'fullstack', estimatedHours: 2, startDate: '', endDate: '', assignedTo: '', milestone: '' },
     validate: zodResolver(taskSchema),
   });
 
@@ -427,7 +427,7 @@ export const ProjectDetails = () => {
             <TextInput required label="Task Title" placeholder="e.g. Wireframe Homepage" {...taskForm.getInputProps('title')} />
             <Textarea label="Description" placeholder="Task details..." minRows={3} {...taskForm.getInputProps('description')} />
             <Group grow>
-              <Select required label="Department" data={[{ value: 'design', label: 'Design' }, { value: 'development', label: 'Development' }, { value: 'seo', label: 'SEO' }]} {...taskForm.getInputProps('department')} />
+              <Select required label="Department" data={DEPARTMENT_OPTIONS} {...taskForm.getInputProps('department')} />
               <NumberInput required label="Estimated Hours" min={0.5} step={0.5} onFocus={(e) => e.target.select()} {...taskForm.getInputProps('estimatedHours')} />
             </Group>
             <Group grow>

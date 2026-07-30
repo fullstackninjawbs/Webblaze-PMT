@@ -4,7 +4,7 @@ export interface ITask extends Document {
   milestone: Types.ObjectId;
   title: string;
   description?: string;
-  department?: 'design' | 'development' | 'seo';
+  department?: 'seo' | 'fullstack' | 'design' | 'shopify' | 'wordpress' | 'sales';
   estimatedHours: number;
   spentHours: number;
   startDate?: Date;
@@ -34,7 +34,7 @@ const taskSchema = new Schema<ITask>(
     },
     department: {
       type: String,
-      enum: ['design', 'development', 'seo'],
+      enum: ['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales'],
     },
     estimatedHours: {
       type: Number,

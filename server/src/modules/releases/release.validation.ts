@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createReleaseSchema = z.object({
   body: z.object({
     project: z.string().min(1, 'Project ID is required'),
-    department: z.enum(['design', 'development', 'seo']),
+    department: z.enum(['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales']),
     teamMember: z.string().optional(),
     details: z.string().min(1, 'Details are required'),
     releaseDate: z.string().datetime(),
@@ -14,7 +14,7 @@ export const createReleaseSchema = z.object({
 export const updateReleaseSchema = z.object({
   body: z.object({
     project: z.string().optional(),
-    department: z.enum(['design', 'development', 'seo']).optional(),
+    department: z.enum(['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales']).optional(),
     teamMember: z.string().optional().nullable(),
     details: z.string().optional(),
     releaseDate: z.string().datetime().optional(),

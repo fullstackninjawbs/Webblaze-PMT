@@ -5,7 +5,7 @@ import { User } from '../auth/auth.slice';
 export interface Release {
   _id: string;
   project: string | Project;
-  department: 'design' | 'development' | 'seo';
+  department: 'seo' | 'fullstack' | 'design' | 'shopify' | 'wordpress' | 'sales' | 'pm' | 'admin';
   teamMember?: string | User;
   details: string;
   releaseDate: string;

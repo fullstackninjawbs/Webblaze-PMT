@@ -7,7 +7,7 @@ export interface Task {
   milestone: string | { _id: string; title: string; project: string | { _id: string; name: string } };
   title: string;
   description?: string;
-  department?: 'design' | 'development' | 'seo';
+  department?: 'seo' | 'fullstack' | 'design' | 'shopify' | 'wordpress' | 'sales' | 'pm' | 'admin';
   estimatedHours: number;
   spentHours?: number;
   startDate?: string;
