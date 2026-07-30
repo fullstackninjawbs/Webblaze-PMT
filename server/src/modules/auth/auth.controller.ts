@@ -101,3 +101,25 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
     message: 'Password changed successfully'
   });
 });
+
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  await authService.requestPasswordReset(email);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'If an account with that email exists, a password reset link has been sent.',
+  });
+});
+
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { token, newPassword } = req.body;
+  await authService.resetPassword(token, newPassword);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'Password has been reset successfully. You can now log in with your new password.',
+  });
+});

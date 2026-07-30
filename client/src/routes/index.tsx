@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from '../features/auth/Login';
+import { ForgotPassword } from '../features/auth/ForgotPassword';
+import { ResetPassword } from '../features/auth/ResetPassword';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { DashboardShell } from '../features/dashboard/DashboardShell';
@@ -26,6 +28,8 @@ const AppRoutes = () => {
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route
         element={

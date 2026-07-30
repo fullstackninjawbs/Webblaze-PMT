@@ -10,6 +10,8 @@ export interface IUser extends Document {
   department?: 'design' | 'development' | 'seo';
   isActive: boolean;
   avatarUrl?: string;
+  resetPasswordToken?: string;
+  resetPasswordExpires?: Date;
   comparePassword(candidate: string): Promise<boolean>;
 }
 
@@ -22,6 +24,8 @@ const UserSchema: Schema = new Schema(
     department: { type: String, enum: ['design', 'development', 'seo'] },
     isActive: { type: Boolean, default: true },
     avatarUrl: { type: String },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
   },
   { timestamps: true }
 );
@@ -50,6 +54,8 @@ UserSchema.methods.comparePassword = async function (candidate: string): Promise
 UserSchema.set('toJSON', {
   transform: (doc, ret) => {
     delete ret.password;
+    delete ret.resetPasswordToken;
+    delete ret.resetPasswordExpires;
     return ret;
   }
 });

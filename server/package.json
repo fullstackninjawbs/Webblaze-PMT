@@ -11,7 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@types/nodemailer": "^8.0.1",
+    "@types/nodemailer": "^6.4.24",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -21,7 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.1.1",
     "multer": "^2.2.0",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^6.10.1",
     "winston": "^3.11.0",
     "zod": "^3.22.4"
   },

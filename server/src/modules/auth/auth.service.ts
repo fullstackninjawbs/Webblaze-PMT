@@ -1,7 +1,8 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { User, IUser } from '../users/user.model';
 import { ApiError } from '../../utils/ApiError';
-import { sendInviteEmail } from '../../utils/emailService';
+import { sendInviteEmail, sendResetPasswordEmail } from '../../utils/emailService';
 
 const generateTokens = (userId: string) => {
   const accessToken = jwt.sign(
@@ -115,5 +116,47 @@ export const changePassword = async (
   }
 
   user.password = newPassword;
+  await user.save();
+};
+
+export const requestPasswordReset = async (email: string): Promise<void> => {
+  const user = await User.findOne({ email, isActive: true });
+  if (!user) {
+    // Return early silently so we don't leak user existence
+    return;
+  }
+
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  await user.save();
+
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
+
+  await sendResetPasswordEmail({
+    to: user.email,
+    name: user.name,
+    resetUrl,
+  });
+};
+
+export const resetPassword = async (rawToken: string, newPassword: string): Promise<void> => {
+  const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: new Date() },
+  }).select('+password +resetPasswordToken +resetPasswordExpires');
+
+  if (!user || !user.isActive) {
+    throw new ApiError(400, 'Invalid or expired password reset token');
+  }
+
+  user.password = newPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
   await user.save();
 };

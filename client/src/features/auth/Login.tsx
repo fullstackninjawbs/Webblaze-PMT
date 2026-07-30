@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useLoginMutation, useAcceptInviteMutation, setCredentials } from './auth.slice';
 import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Clock, FileText } from 'lucide-react';
@@ -277,7 +277,7 @@ export const Login: React.FC = () => {
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.currentTarget.checked)}
                 />
-                <Anchor href="#" size="xs" fw={600} style={{ color: '#3b82f6' }}>
+                <Anchor component={Link} to="/forgot-password" size="xs" fw={600} style={{ color: '#3b82f6' }}>
                   Forgot password?
                 </Anchor>
               </Group>
