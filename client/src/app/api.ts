@@ -2,8 +2,7 @@ import { createApi, fetchBaseQuery, BaseQueryFn, FetchArgs, FetchBaseQueryError 
 import type { RootState } from './store';
 
 const baseQuery = fetchBaseQuery({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  baseUrl: (import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api/v1',
+  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1',
   credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;

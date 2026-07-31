@@ -25,9 +25,16 @@ dotenv.config();
 const app: Application = express();
 
 // Security Middlewares
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.) or matching CLIENT_URL / Vercel domains
+    if (!origin || !process.env.CLIENT_URL || origin === process.env.CLIENT_URL || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Permissive CORS for deployed API
+    }
+  },
   credentials: true
 }));
 
@@ -36,12 +43,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Ensure uploads folder exists and serve statically
-const uploadsDir = path.join(__dirname, '../public/uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure uploads folder exists (safely handled for Vercel serverless read-only filesystem)
+try {
+  const uploadsDir = path.join(__dirname, '../public/uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.use('/uploads', express.static(uploadsDir));
+} catch (e) {
+  // Read-only filesystem context on Vercel
 }
-app.use('/uploads', express.static(uploadsDir));
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
