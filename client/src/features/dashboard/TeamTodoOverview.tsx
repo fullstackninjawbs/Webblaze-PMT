@@ -4,6 +4,7 @@ import { UserAvatar } from '../../components/common/UserAvatar';
 import { Search, ExternalLink } from 'lucide-react';
 import { Todo } from '../todos/todo.slice';
 import { useNavigate } from 'react-router-dom';
+import { formatDateDisplay } from '../../utils/dateUtils';
 
 interface Props {
   todos: Todo[];
@@ -87,7 +88,7 @@ export const TeamTodoOverview: React.FC<Props> = ({ todos }) => {
                   <Text size="sm">{todo.estimatedTime ? `${todo.estimatedTime}h` : '-'}</Text>
                 </Table.Td>
                 <Table.Td>
-                  <Text size="sm">{todo.dueDate ? new Date(todo.dueDate).toLocaleDateString() : '-'}</Text>
+                  <Text size="sm">{formatDateDisplay(todo.dueDate)}</Text>
                 </Table.Td>
                 <Table.Td>
                   <Badge 

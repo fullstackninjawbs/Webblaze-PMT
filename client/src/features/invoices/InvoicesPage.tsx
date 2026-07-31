@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Container, Title, Text, Card, Group, Table, Badge, Button, Modal, TextInput, Select, NumberInput, Stack, ActionIcon, SimpleGrid, Paper } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
+import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
 import { Plus, Edit, Trash, DollarSign, ArrowUpRight, Clock, CheckCircle2, Search, Filter, Calendar } from 'lucide-react';
 import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from './invoice.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
@@ -377,8 +378,8 @@ export const InvoicesPage = () => {
                 <Table.Tr key={inv._id}>
                   <Table.Td fw={700} style={{ color: '#0f172a' }}>{inv.invoiceNumber}</Table.Td>
                   <Table.Td fw={500}>{project?.name || 'Unknown'}</Table.Td>
-                  <Table.Td style={{ color: '#64748b' }}>{new Date(inv.issueDate).toLocaleDateString()}</Table.Td>
-                  <Table.Td style={{ color: '#64748b' }}>{new Date(inv.dueDate).toLocaleDateString()}</Table.Td>
+                  <Table.Td style={{ color: '#64748b' }}>{formatDateDisplay(inv.issueDate)}</Table.Td>
+                  <Table.Td style={{ color: '#64748b' }}>{formatDateDisplay(inv.dueDate)}</Table.Td>
                   <Table.Td fw={700} style={{ color: '#0f172a' }}>${inv.totalAmount.toLocaleString()}</Table.Td>
                   <Table.Td fw={700} style={{ color: inv.pendingAmount > 0 ? '#d97706' : '#64748b' }}>
                     ${inv.pendingAmount.toLocaleString()}
@@ -442,25 +443,27 @@ export const InvoicesPage = () => {
             <Group grow gap="md">
               <DatePickerInput
                 label="Issue Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
                 leftSection={<Calendar size={16} color="#64748b" />}
                 radius="md"
                 withAsterisk
-                value={form.values.issueDate ? new Date(form.values.issueDate) : null}
+                value={parseLocalDateString(form.values.issueDate)}
                 onChange={(val) =>
-                  form.setFieldValue('issueDate', val ? val.toISOString().split('T')[0] : '')
+                  form.setFieldValue('issueDate', formatLocalDateString(val))
                 }
                 clearable
               />
               <DatePickerInput
                 label="Due Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
                 leftSection={<Calendar size={16} color="#64748b" />}
                 radius="md"
                 withAsterisk
-                value={form.values.dueDate ? new Date(form.values.dueDate) : null}
+                value={parseLocalDateString(form.values.dueDate)}
                 onChange={(val) =>
-                  form.setFieldValue('dueDate', val ? val.toISOString().split('T')[0] : '')
+                  form.setFieldValue('dueDate', formatLocalDateString(val))
                 }
                 clearable
               />

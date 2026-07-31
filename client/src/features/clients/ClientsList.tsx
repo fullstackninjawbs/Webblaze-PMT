@@ -55,6 +55,50 @@ const clientSchema = z.object({
   contactNumber: z.string().optional(),
 });
 
+export const COUNTRY_LIST = [
+  { name: 'India', code: '+91', flag: '🇮🇳' },
+  { name: 'United States', code: '+1', flag: '🇺🇸' },
+  { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
+  { name: 'Canada', code: '+1', flag: '🇨🇦' },
+  { name: 'Australia', code: '+61', flag: '🇦🇺' },
+  { name: 'Germany', code: '+49', flag: '🇩🇪' },
+  { name: 'France', code: '+33', flag: '🇫🇷' },
+  { name: 'United Arab Emirates', code: '+971', flag: '🇦🇪' },
+  { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦' },
+  { name: 'Singapore', code: '+65', flag: '🇸🇬' },
+  { name: 'Japan', code: '+81', flag: '🇯🇵' },
+  { name: 'China', code: '+86', flag: '🇨🇳' },
+  { name: 'Brazil', code: '+55', flag: '🇧🇷' },
+  { name: 'Mexico', code: '+52', flag: '🇲🇽' },
+  { name: 'Spain', code: '+34', flag: '🇪🇸' },
+  { name: 'Italy', code: '+39', flag: '🇮🇹' },
+  { name: 'Netherlands', code: '+31', flag: '🇳🇱' },
+  { name: 'Switzerland', code: '+41', flag: '🇨🇭' },
+  { name: 'Sweden', code: '+46', flag: '🇸🇪' },
+  { name: 'New Zealand', code: '+64', flag: '🇳🇿' },
+  { name: 'South Africa', code: '+27', flag: '🇿🇦' },
+  { name: 'Pakistan', code: '+92', flag: '🇵🇰' },
+  { name: 'Bangladesh', code: '+880', flag: '🇧🇩' },
+  { name: 'Nepal', code: '+977', flag: '🇳🇵' },
+  { name: 'Sri Lanka', code: '+94', flag: '🇱🇰' },
+  { name: 'Turkey', code: '+90', flag: '🇹🇷' },
+  { name: 'Malaysia', code: '+60', flag: '🇲🇾' },
+  { name: 'Indonesia', code: '+62', flag: '🇮🇩' },
+  { name: 'Philippines', code: '+63', flag: '🇵🇭' },
+  { name: 'Vietnam', code: '+84', flag: '🇻🇳' },
+  { name: 'Thailand', code: '+66', flag: '🇹🇭' },
+  { name: 'Ireland', code: '+353', flag: '🇮🇪' },
+  { name: 'Israel', code: '+972', flag: '🇮🇱' },
+  { name: 'Poland', code: '+48', flag: '🇵🇱' },
+  { name: 'Norway', code: '+47', flag: '🇳🇴' },
+  { name: 'Denmark', code: '+45', flag: '🇩🇰' },
+  { name: 'Finland', code: '+358', flag: '🇫🇮' },
+];
+
+export const UNIQUE_COUNTRY_CODES = Array.from(
+  new Map(COUNTRY_LIST.map((c) => [c.code, { value: c.code, label: `${c.code} (${c.name})` }])).values()
+);
+
 export const ClientsList: React.FC = () => {
   const { data } = useGetClientsQuery();
   const { data: projectsData } = useGetProjectsQuery();
@@ -70,6 +114,9 @@ export const ClientsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<string | null>(null);
   const [billingFilter, setBillingFilter] = useState<string | null>(null);
+
+  const [phoneCode, setPhoneCode] = useState('+91');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
@@ -91,6 +138,8 @@ export const ClientsList: React.FC = () => {
   const openCreateDrawer = () => {
     setSelectedClient(null);
     form.reset();
+    setPhoneCode('+91');
+    setPhoneNumber('');
     setDrawerOpened(true);
   };
 
@@ -106,13 +155,22 @@ export const ClientsList: React.FC = () => {
       address: client.address || '',
       contactNumber: client.contactNumber || '',
     });
+
+    const contact = client.contactNumber || '';
+    const matched = COUNTRY_LIST.find((c) => contact.startsWith(c.code));
+    if (matched) {
+      setPhoneCode(matched.code);
+      setPhoneNumber(contact.replace(matched.code, '').trim());
+    } else {
+      const countryMatch = COUNTRY_LIST.find((c) => c.name === client.country);
+      setPhoneCode(countryMatch ? countryMatch.code : '+91');
+      setPhoneNumber(contact);
+    }
+
     setDrawerOpened(true);
   };
 
-  const openViewDrawer = (client: any) => {
-    setSelectedClient(client);
-    setViewDrawerOpened(true);
-  };
+
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -129,10 +187,16 @@ export const ClientsList: React.FC = () => {
 
   const onSubmit = async (values: typeof form.values) => {
     try {
+      const formattedContact = phoneNumber.trim() ? `${phoneCode} ${phoneNumber.trim()}` : '';
+      const payload = {
+        ...values,
+        contactNumber: formattedContact,
+      };
+
       if (selectedClient) {
-        await updateClient({ id: selectedClient._id, data: values as any }).unwrap();
+        await updateClient({ id: selectedClient._id, data: payload as any }).unwrap();
       } else {
-        await createClient(values as any).unwrap();
+        await createClient(payload as any).unwrap();
       }
       setDrawerOpened(false);
       form.reset();
@@ -199,14 +263,21 @@ export const ClientsList: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
+              cursor: 'pointer',
             }}
+            onClick={() => navigate(`/clients/${client._id}`)}
           >
             <Text fw={700} style={{ color: '#2563eb' }}>
               {client.name.charAt(0).toUpperCase()}
             </Text>
           </div>
           <div>
-            <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
+            <Text
+              size="sm"
+              fw={700}
+              style={{ color: '#0f172a', cursor: 'pointer' }}
+              onClick={() => navigate(`/clients/${client._id}`)}
+            >
               {client.name}
             </Text>
             {client.companyName && (
@@ -250,7 +321,7 @@ export const ClientsList: React.FC = () => {
       </Table.Td>
       <Table.Td>
         <Group gap={4} justify="flex-end" wrap="nowrap">
-          <ActionIcon variant="subtle" color="blue" onClick={() => openViewDrawer(client)}>
+          <ActionIcon variant="subtle" color="blue" onClick={() => navigate(`/clients/${client._id}`)} title="View Profile">
             <Eye size={16} />
           </ActionIcon>
           {isAdminOrPM && (
@@ -490,11 +561,21 @@ export const ClientsList: React.FC = () => {
                   radius="md"
                   {...form.getInputProps('companyName')}
                 />
-                <TextInput
+                <Select
                   label="Country"
-                  placeholder="e.g. United States"
+                  placeholder="Search or select country"
+                  data={COUNTRY_LIST.map((c) => ({ value: c.name, label: c.name }))}
+                  searchable
+                  clearable
                   radius="md"
-                  {...form.getInputProps('country')}
+                  value={form.values.country}
+                  onChange={(val) => {
+                    form.setFieldValue('country', val || '');
+                    const found = COUNTRY_LIST.find((c) => c.name === val);
+                    if (found) {
+                      setPhoneCode(found.code);
+                    }
+                  }}
                 />
                 <TextInput
                   label="Address"
@@ -517,12 +598,25 @@ export const ClientsList: React.FC = () => {
                   radius="md"
                   {...form.getInputProps('email')}
                 />
-                <TextInput
-                  label="Contact Phone"
-                  placeholder="+1 (555) 123-4567"
-                  radius="md"
-                  {...form.getInputProps('contactNumber')}
-                />
+                <Group gap="xs" wrap="nowrap" align="flex-end">
+                  <Select
+                    label="Code"
+                    data={UNIQUE_COUNTRY_CODES}
+                    value={phoneCode}
+                    onChange={(val) => setPhoneCode(val || '+91')}
+                    w={130}
+                    searchable
+                    radius="md"
+                  />
+                  <TextInput
+                    label="Mobile / Phone Number"
+                    placeholder="9876543210"
+                    radius="md"
+                    style={{ flex: 1 }}
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.currentTarget.value)}
+                  />
+                </Group>
               </Stack>
             </div>
             <Divider color="#e8ecf4" />

@@ -7,6 +7,10 @@ export const userApi = baseApi.injectEndpoints({
       query: () => '/users',
       providesTags: ['User'],
     }),
+    getUserById: builder.query<{ success: boolean; data: User }, string>({
+      query: (id) => `/users/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'User', id }],
+    }),
     registerUser: builder.mutation<{ success: boolean; data: User }, Partial<User> & { password?: string }>({
       query: (body) => ({
         url: '/auth/register',
@@ -35,6 +39,7 @@ export const userApi = baseApi.injectEndpoints({
 
 export const {
   useGetUsersQuery,
+  useGetUserByIdQuery,
   useRegisterUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,

@@ -1,15 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { ActiveTimerBadge } from '../components/common/ActiveTimerBadge';
 import { useSelector } from 'react-redux';
 import { RootState } from '../app/store';
 import { useLogoutMutation, useGetMeQuery } from '../features/auth/auth.slice';
-import { LayoutDashboard, CheckSquare, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity, Search } from 'lucide-react';
 import { Role } from '../types';
-import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge } from '@mantine/core';
+import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge, Kbd } from '@mantine/core';
 import { useGetActiveTimerQuery } from '../features/timelogs/timeLog.slice';
 import { BlazeLogo } from '../components/common/BlazeLogo';
 import { UserAvatar } from '../components/common/UserAvatar';
+import { GlobalSearchModal } from '../components/common/GlobalSearchModal';
 
 interface NavItem {
   name: string;
@@ -136,6 +137,19 @@ export const DashboardLayout: React.FC = () => {
   const { data: activeTimerData } = useGetActiveTimerQuery();
   const activeTimer = activeTimerData?.data;
 
+  const [searchModalOpened, setSearchModalOpened] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpened((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleLogout = async () => {
     await logout({}).unwrap();
     navigate('/login');
@@ -175,25 +189,20 @@ export const DashboardLayout: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '32px',
-                    height: '32px',
+                    width: 28,
+                    height: 28,
                     borderRadius: '8px',
-                    backgroundColor: active ? 'rgba(255,255,255,0.22)' : 'transparent',
-                    marginRight: '10px',
-                    flexShrink: 0,
-                    transition: 'all 0.18s ease',
+                    backgroundColor: active ? '#eff6ff' : 'transparent',
+                    color: active ? '#2563eb' : '#64748b',
+                    marginRight: 10,
                   }}
                 >
-                  <item.icon size={17} strokeWidth={active ? 2.5 : 2} color={active ? '#ffffff' : 'currentColor'} />
+                  <item.icon size={18} />
                 </div>
                 <Text
                   size="sm"
-                  style={{
-                    fontWeight: active ? 600 : 500,
-                    fontSize: '0.875rem',
-                    letterSpacing: '-0.01em',
-                    color: 'inherit',
-                  }}
+                  fw={active ? 700 : 500}
+                  style={{ color: active ? '#1e40af' : '#475569', fontSize: '0.875rem' }}
                 >
                   {item.name}
                 </Text>
@@ -218,6 +227,7 @@ export const DashboardLayout: React.FC = () => {
       {activeTimer && (
         <AppShell.Header
           style={{
+            left: 264,
             borderBottom: '1px solid #bae6fd',
             backgroundColor: '#f0f9ff',
             display: 'flex',
@@ -232,11 +242,14 @@ export const DashboardLayout: React.FC = () => {
 
       <AppShell.Navbar
         style={{
+          top: 0,
+          height: '100vh',
           borderRight: '1px solid #e8ecf4',
           backgroundColor: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: 'none',
+          zIndex: 101,
         }}
       >
         {/* WebBlaze PMS Branding Header */}
@@ -244,8 +257,30 @@ export const DashboardLayout: React.FC = () => {
           <BlazeLogo variant="dark" size="md" />
         </Box>
 
+        {/* Global Search Bar Quick Trigger */}
+        <UnstyledButton
+          onClick={() => setSearchModalOpened(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '8px 12px',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '10px',
+            margin: '4px 16px 8px',
+            cursor: 'pointer',
+          }}
+        >
+          <Group gap="xs">
+            <Search size={15} color="#64748b" />
+            <Text size="xs" fw={500} style={{ color: '#64748b' }}>Search PMT...</Text>
+          </Group>
+          <Kbd size="xs">Ctrl K</Kbd>
+        </UnstyledButton>
+
         {/* Separator */}
-        <div style={{ height: '1px', background: '#f1f4f9', margin: '8px 20px 12px' }} />
+        <div style={{ height: '1px', background: '#f1f4f9', margin: '4px 20px 12px' }} />
 
         {/* Nav Items grouped by Section */}
         <AppShell.Section grow px="md" pb="md" style={{ overflowY: 'auto' }}>
@@ -298,6 +333,13 @@ export const DashboardLayout: React.FC = () => {
             </Menu.Target>
             <Menu.Dropdown>
               <Menu.Item
+                leftSection={<Users size={14} />}
+                onClick={() => user?._id && navigate(`/team/${user._id}`)}
+                style={{ fontWeight: 500, fontSize: '0.875rem' }}
+              >
+                View My Profile
+              </Menu.Item>
+              <Menu.Item
                 leftSection={<Settings size={14} />}
                 onClick={() => navigate('/settings')}
                 style={{ fontWeight: 500, fontSize: '0.875rem' }}
@@ -323,6 +365,8 @@ export const DashboardLayout: React.FC = () => {
           <Outlet />
         </div>
       </AppShell.Main>
+
+      <GlobalSearchModal opened={searchModalOpened} onClose={() => setSearchModalOpened(false)} />
     </AppShell>
   );
 };

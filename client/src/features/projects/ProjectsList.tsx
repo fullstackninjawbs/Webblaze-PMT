@@ -46,8 +46,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus } from '../../types';
 import { useNavigate } from 'react-router-dom';
-
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { formatDateDisplay } from '../../utils/dateUtils';
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -159,11 +159,7 @@ export const ProjectsList: React.FC = () => {
     const sorted = [...projectReleases].sort(
       (a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
     );
-    return new Date(sorted[0].releaseDate).toLocaleDateString(undefined, {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    return formatDateDisplay(sorted[0].releaseDate);
   };
 
   const allProjects = projectsData?.data || [];
@@ -189,7 +185,11 @@ export const ProjectsList: React.FC = () => {
   }, [allProjects]);
 
   const rows = filteredProjects.map((project: any) => (
-    <Table.Tr key={project._id}>
+    <Table.Tr
+      key={project._id}
+      onClick={() => navigate(`/projects/${project._id}`)}
+      style={{ cursor: 'pointer', transition: 'background-color 0.15s ease' }}
+    >
       {/* 1. Project */}
       <Table.Td style={{ whiteSpace: 'nowrap' }}>
         <Group gap="sm" wrap="nowrap">
@@ -200,8 +200,7 @@ export const ProjectsList: React.FC = () => {
             <Text
               size="sm"
               fw={700}
-              style={{ cursor: 'pointer', color: '#0f172a' }}
-              onClick={() => navigate(`/projects/${project._id}`)}
+              style={{ color: '#0f172a' }}
             >
               {project.name}
             </Text>
@@ -286,19 +285,22 @@ export const ProjectsList: React.FC = () => {
       <Table.Td style={{ minWidth: 130 }}>
         <Group gap="xs" wrap="nowrap">
           <Text size="sm" w={32} ta="right" fw={600} style={{ color: '#0f172a' }}>
-            {project.progress || 0}%
+            {Math.min(project.progress || 0, 100)}%
           </Text>
-          <Progress value={project.progress || 0} color="blue" size="sm" radius="xl" style={{ flex: 1 }} />
+          <Progress value={Math.min(project.progress || 0, 100)} color={project.progress >= 100 ? 'green' : 'blue'} size="sm" radius="xl" style={{ flex: 1 }} />
         </Group>
       </Table.Td>
 
       {/* 10. Actions */}
-      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+      <Table.Td style={{ whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
         <Group gap={4} justify="flex-end" wrap="nowrap">
           <ActionIcon
             variant="subtle"
             color="blue"
-            onClick={() => navigate(`/projects/${project._id}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/projects/${project._id}`);
+            }}
             title="View Details"
           >
             <Eye size={16} />
@@ -308,7 +310,10 @@ export const ProjectsList: React.FC = () => {
               <ActionIcon
                 variant="subtle"
                 color="blue"
-                onClick={() => openEditModal(project)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openEditModal(project);
+                }}
                 title="Edit"
               >
                 <Edit size={16} />
@@ -316,7 +321,10 @@ export const ProjectsList: React.FC = () => {
               <ActionIcon
                 variant="subtle"
                 color="red"
-                onClick={() => handleDeleteProject(project._id, project.name)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteProject(project._id, project.name);
+                }}
                 title="Delete"
               >
                 <Trash size={16} />

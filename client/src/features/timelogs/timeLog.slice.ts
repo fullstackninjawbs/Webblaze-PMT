@@ -52,13 +52,58 @@ export const timeLogApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: (result) => 
-        result?.data 
-        ? [
-            'ActiveTimer', 
-            { type: 'TimeLog', id: `LIST-TASK-${typeof result.data.task === 'string' ? result.data.task : result.data.task._id}` }
-          ] 
-        : ['ActiveTimer'],
+      invalidatesTags: (result) => {
+        const taskId = result?.data
+          ? (typeof result.data.task === 'string' ? result.data.task : result.data.task._id)
+          : null;
+        return [
+          'ActiveTimer',
+          'Task',
+          'Milestone',
+          ...(taskId ? [{ type: 'TimeLog' as const, id: `LIST-TASK-${taskId}` }, { type: 'Task' as const, id: taskId }] : []),
+        ];
+      },
+    }),
+    createManualTimeLog: builder.mutation<{ success: boolean; data: TimeLog; message: string }, { taskId: string; hours: number; description?: string }>({
+      query: (body) => ({
+        url: '/timelogs/manual',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        'TimeLog',
+        'Task',
+        'Milestone',
+        'Project',
+        { type: 'TimeLog', id: `LIST-TASK-${taskId}` },
+      ],
+    }),
+    deleteTimeLog: builder.mutation<{ success: boolean; message: string }, { id: string; taskId?: string }>({
+      query: ({ id }) => ({
+        url: `/timelogs/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { taskId }) => [
+        'TimeLog',
+        'Task',
+        'Milestone',
+        'Project',
+        ...(taskId ? [{ type: 'TimeLog' as const, id: `LIST-TASK-${taskId}` }, { type: 'Task' as const, id: taskId }] : []),
+      ],
+    }),
+    clearTaskTimeLogs: builder.mutation<{ success: boolean; message: string }, string>({
+      query: (taskId) => ({
+        url: `/timelogs/task/${taskId}/clear`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, taskId) => [
+        'TimeLog',
+        'Task',
+        'Milestone',
+        'Project',
+        { type: 'TimeLog', id: `LIST-TASK-${taskId}` },
+        { type: 'Task', id: taskId },
+      ],
     }),
   }),
 });
@@ -69,4 +114,7 @@ export const {
   useStartTimerMutation,
   useStopTimerMutation,
   useGetTeamTimeLogsQuery,
+  useCreateManualTimeLogMutation,
+  useDeleteTimeLogMutation,
+  useClearTaskTimeLogsMutation,
 } = timeLogApi;

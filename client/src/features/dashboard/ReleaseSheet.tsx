@@ -3,6 +3,7 @@ import { Card, Text, Group, Table, Badge, Button, Select, Modal, Textarea } from
 import { DatePickerInput } from '@mantine/dates';
 import { Plus, Calendar } from 'lucide-react';
 import { useGetReleasesQuery, useCreateReleaseMutation } from '../releases/release.slice';
+import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetUsersQuery } from '../users/user.slice';
 import { useForm, zodResolver } from '@mantine/form';
@@ -127,7 +128,7 @@ export const ReleaseSheet: React.FC = () => {
                   <Text size="sm" lineClamp={1}>{release.details}</Text>
                 </Table.Td>
                 <Table.Td>
-                  <Text size="sm" fw={500}>{new Date(release.releaseDate).toLocaleDateString()}</Text>
+                  <Text size="sm" fw={500}>{formatDateDisplay(release.releaseDate)}</Text>
                 </Table.Td>
                 <Table.Td>
                   <Badge 
@@ -184,11 +185,12 @@ export const ReleaseSheet: React.FC = () => {
           />
           <DatePickerInput
             label="Release Date"
-            placeholder="Select date"
+            placeholder="DD Month, YYYY"
+            valueFormat="DD MMMM, YYYY"
             leftSection={<Calendar size={16} color="#64748b" />}
-            value={form.values.releaseDate ? new Date(form.values.releaseDate) : null}
+            value={parseLocalDateString(form.values.releaseDate)}
             onChange={(val) =>
-              form.setFieldValue('releaseDate', val ? val.toISOString().split('T')[0] : '')
+              form.setFieldValue('releaseDate', formatLocalDateString(val))
             }
             mb="sm"
             withAsterisk

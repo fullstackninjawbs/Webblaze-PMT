@@ -41,6 +41,7 @@ import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
 import { DEPARTMENT_OPTIONS } from '../../types';
 
 const releaseSchema = z.object({
@@ -346,11 +347,7 @@ export const ReleasesPage: React.FC = () => {
                     </Table.Td>
                     <Table.Td>
                       <Text size="sm" fw={600} style={{ color: '#0f172a' }}>
-                        {new Date(release.releaseDate).toLocaleDateString(undefined, {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
+                        {formatDateDisplay(release.releaseDate)}
                       </Text>
                     </Table.Td>
                     <Table.Td>
@@ -457,13 +454,14 @@ export const ReleasesPage: React.FC = () => {
             <Group grow gap="md">
               <DatePickerInput
                 label="Release Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
                 leftSection={<Calendar size={16} color="#64748b" />}
                 withAsterisk
                 radius="md"
-                value={form.values.releaseDate ? new Date(form.values.releaseDate) : null}
+                value={parseLocalDateString(form.values.releaseDate)}
                 onChange={(val) =>
-                  form.setFieldValue('releaseDate', val ? val.toISOString().split('T')[0] : '')
+                  form.setFieldValue('releaseDate', formatLocalDateString(val))
                 }
                 clearable
               />

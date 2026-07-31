@@ -1,9 +1,11 @@
-import { Container, Title, Text, Card, Table, Badge, Group, SimpleGrid } from '@mantine/core';
+import { Container, Title, Text, Card, Table, Badge, Group, SimpleGrid, ActionIcon } from '@mantine/core';
+import { Trash } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { useGetTeamTimeLogsQuery } from './timeLog.slice';
+import { useGetTeamTimeLogsQuery, useDeleteTimeLogMutation } from './timeLog.slice';
 
 export const TeamTimeTracking = () => {
   const { data: logsData, isLoading } = useGetTeamTimeLogsQuery();
+  const [deleteTimeLog] = useDeleteTimeLogMutation();
   const logs = logsData?.data || [];
 
   const activeLogs = logs.filter(log => !log.endTime);
@@ -82,6 +84,7 @@ export const TeamTimeTracking = () => {
               <Table.Th>Start Time</Table.Th>
               <Table.Th>End Time</Table.Th>
               <Table.Th>Total Logged</Table.Th>
+              <Table.Th w={60}></Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -89,6 +92,7 @@ export const TeamTimeTracking = () => {
               const user = typeof log.user === 'object' ? log.user : null;
               const task = typeof log.task === 'object' ? log.task : null;
               const project = (task?.milestone as any)?.project;
+              const taskId = task?._id;
 
               return (
                 <Table.Tr key={log._id}>
@@ -103,13 +107,30 @@ export const TeamTimeTracking = () => {
                     <Text size="xs" color="dimmed">{project?.name || 'Unknown Project'}</Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">{new Date(log.startTime).toLocaleString()}</Text>
+                    <Text size="xs" fw={600} c="green">
+                      {new Date(log.startTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                    </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">{log.endTime ? new Date(log.endTime).toLocaleString() : '-'}</Text>
+                    <Text size="xs" fw={600} c={log.endTime ? 'red' : 'blue'}>
+                      {log.endTime
+                        ? new Date(log.endTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                        : '● Active'}
+                    </Text>
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm" fw={600}>{formatDuration(log.durationSeconds)}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      size="sm"
+                      onClick={() => deleteTimeLog({ id: log._id, taskId })}
+                      title="Delete time log"
+                    >
+                      <Trash size={14} />
+                    </ActionIcon>
                   </Table.Td>
                 </Table.Tr>
               );

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper } from '@mantine/core';
-import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip } from 'lucide-react';
+import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Trash, RotateCcw } from 'lucide-react';
 import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
+import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useDeleteTimeLogMutation, useClearTaskTimeLogsMutation } from '../timelogs/timeLog.slice';
 import { useUploadFileMutation } from '../uploads/upload.slice';
 
 export const TaskDetail = () => {
@@ -18,6 +18,26 @@ export const TaskDetail = () => {
   const [startTimer] = useStartTimerMutation();
   const [stopTimer] = useStopTimerMutation();
   const [updateTask] = useUpdateTaskMutation();
+  const [deleteTimeLog] = useDeleteTimeLogMutation();
+  const [clearTaskTimeLogs] = useClearTaskTimeLogsMutation();
+
+  const handleDeleteLog = async (logId: string) => {
+    try {
+      await deleteTimeLog({ id: logId, taskId: id }).unwrap();
+    } catch (err) {
+      console.error('Failed to delete time log', err);
+    }
+  };
+
+  const handleClearAllLogs = async () => {
+    if (window.confirm('Are you sure you want to clear all logged time for this task? This will reset logged hours.')) {
+      try {
+        await clearTaskTimeLogs(id as string).unwrap();
+      } catch (err) {
+        console.error('Failed to clear time logs', err);
+      }
+    }
+  };
 
   const [statusModalOpened, setStatusModalOpened] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
@@ -164,7 +184,21 @@ export const TaskDetail = () => {
       </Card>
 
       {/* Timeline Section */}
-      <Title order={4} mb="md">Time Log Activity</Title>
+      <Group justify="space-between" align="center" mb="md">
+        <Title order={4}>Time Log Activity</Title>
+        {timeLogs.length > 0 && (
+          <Button
+            variant="light"
+            color="red"
+            size="xs"
+            leftSection={<RotateCcw size={14} />}
+            onClick={handleClearAllLogs}
+          >
+            Clear All Time Logs
+          </Button>
+        )}
+      </Group>
+
       <Card shadow="sm" p="xl" radius="md" withBorder>
         {timeLogs.length === 0 && !isTimerActiveForThisTask ? (
           <Text color="dimmed" ta="center">No time logged for this task yet.</Text>
@@ -175,17 +209,28 @@ export const TaskDetail = () => {
                 <Text color="dimmed" size="sm" mt={4}>Currently tracking time...</Text>
               </Timeline.Item>
             )}
-            
+
             {timeLogs.map((log) => (
-              <Timeline.Item 
-                key={log._id} 
+              <Timeline.Item
+                key={log._id}
                 bullet={<CheckCircle size={12} />}
                 title={
                   <Group justify="space-between" wrap="nowrap">
-                    <Text fw={500} size="sm">
+                    <Text fw={600} size="sm">
                       {log.durationSeconds ? `${(log.durationSeconds / 3600).toFixed(2)}h logged` : 'Session recorded'}
                     </Text>
-                    <Text size="xs" color="dimmed">{new Date(log.startTime).toLocaleString()}</Text>
+                    <Group gap="xs" wrap="nowrap">
+                      <Text size="xs" color="dimmed">{new Date(log.startTime).toLocaleString()}</Text>
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        size="xs"
+                        onClick={() => handleDeleteLog(log._id)}
+                        title="Delete this time log"
+                      >
+                        <Trash size={14} />
+                      </ActionIcon>
+                    </Group>
                   </Group>
                 }
               >

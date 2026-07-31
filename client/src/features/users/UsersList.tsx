@@ -24,6 +24,7 @@ import {
   Alert,
 } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import {
   Plus,
@@ -36,6 +37,7 @@ import {
   UserCheck,
   Filter,
   CheckCircle2,
+  Eye,
 } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { Role, DEPARTMENT_OPTIONS } from '../../types';
@@ -51,6 +53,7 @@ const registerSchema = z.object({
 });
 
 export const UsersList: React.FC = () => {
+  const navigate = useNavigate();
   const { data: usersData } = useGetUsersQuery();
   const [registerUser, { isLoading: isRegistering }] = useRegisterUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
@@ -161,7 +164,7 @@ export const UsersList: React.FC = () => {
   const rows = filteredUsers.map((user) => (
     <Table.Tr key={user._id}>
       <Table.Td>
-        <Group gap="sm">
+        <Group gap="sm" style={{ cursor: 'pointer' }} onClick={() => navigate(`/team/${user._id}`)}>
           <UserAvatar
             name={user.name}
             email={user.email}
@@ -210,6 +213,14 @@ export const UsersList: React.FC = () => {
       </Table.Td>
       <Table.Td>
         <Group gap={4} justify="flex-end" wrap="nowrap">
+          <ActionIcon
+            variant="subtle"
+            color="blue"
+            onClick={() => navigate(`/team/${user._id}`)}
+            title="View Profile"
+          >
+            <Eye size={16} />
+          </ActionIcon>
           <ActionIcon
             variant="subtle"
             color="blue"

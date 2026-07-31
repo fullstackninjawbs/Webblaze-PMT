@@ -28,6 +28,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { useForm } from '@mantine/form';
 import { DatePickerInput } from '@mantine/dates';
+import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
 import {
   Plus,
   Edit2,
@@ -321,7 +322,7 @@ export const TodosList: React.FC = () => {
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" style={{ color: '#334155' }}>
-                    {todo.dueDate ? new Intl.DateTimeFormat('en-GB').format(new Date(todo.dueDate)) : '-'}
+                    {formatDateDisplay(todo.dueDate)}
                   </Text>
                 </Table.Td>
                 <Table.Td>
@@ -432,12 +433,13 @@ export const TodosList: React.FC = () => {
             <Group grow gap="md">
               <DatePickerInput
                 label="Due Date"
-                placeholder="Select due date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
                 leftSection={<Calendar size={16} color="#64748b" />}
                 radius="md"
-                value={form.values.dueDate ? new Date(form.values.dueDate) : null}
+                value={parseLocalDateString(form.values.dueDate)}
                 onChange={(val) =>
-                  form.setFieldValue('dueDate', val ? val.toISOString().split('T')[0] : '')
+                  form.setFieldValue('dueDate', formatLocalDateString(val))
                 }
                 clearable
               />

@@ -20,6 +20,8 @@ import { MyTodos } from '../features/todos/MyTodos';
 import { DailyStatus } from '../features/dailyStatus/DailyStatus';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { ClientDetail } from '../features/clients/ClientDetail';
+import { UserProfile } from '../features/users/UserProfile';
 import { RoleGuard } from '../components/common/RoleGuard';
 import { Role } from '../types';
 
@@ -40,11 +42,13 @@ const AppRoutes = () => {
       >
         <Route path="/dashboard" element={<DashboardShell />} />
         <Route path="/clients" element={<ClientsList />} />
+        <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/projects" element={<ProjectsList />} />
         <Route path="/projects/:id" element={<ProjectDetails />} />
         <Route path="/todos/team" element={<TodosList />} />
         <Route path="/todos/me" element={<MyTodos />} />
         <Route path="/team" element={<UsersList />} />
+        <Route path="/team/:id" element={<UserProfile />} />
         
         <Route path="/releases" element={<ReleasesPage />} />
         <Route 

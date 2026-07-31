@@ -39,7 +39,10 @@ export const milestoneApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (result) => result ? [{ type: 'Milestone', id: result.data._id }] : [],
+      invalidatesTags: (_result, _error, body) => [
+        { type: 'Milestone', id: body._id },
+        { type: 'Milestone', id: `LIST-${body.project}` },
+      ],
     }),
     deleteMilestone: builder.mutation<{ success: boolean; data: null; message: string }, string>({
       query: (id) => ({

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { formatDateDisplay } from '../../utils/dateUtils';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
@@ -323,12 +324,7 @@ export const DailyStatus: React.FC = () => {
                         <Clock size={16} color="#64748b" />
                       </Paper>
                       <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
-                        {new Date(log.date).toLocaleDateString(undefined, {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
+                        {formatDateDisplay(log.date)}
                       </Text>
                     </Group>
                     {log.project && (
@@ -544,11 +540,7 @@ export const DailyStatus: React.FC = () => {
                               </Badge>
                             </Group>
                             <Text size="xs" style={{ color: '#64748b' }}>
-                              {new Date(log.date).toLocaleDateString(undefined, {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                              })}
+                              {formatDateDisplay(log.date)}
                             </Text>
                           </div>
                         </Group>

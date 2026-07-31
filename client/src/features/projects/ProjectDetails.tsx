@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
-import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation } from '../milestones/milestone.slice';
-import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
-import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper } from '@mantine/core';
+import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation, useUpdateMilestoneMutation, useDeleteMilestoneMutation } from '../milestones/milestone.slice';
+import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
+import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Menu } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
@@ -18,6 +18,7 @@ import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { useUploadFileMutation } from '../uploads/upload.slice';
+import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
 
 const milestoneSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -46,6 +47,16 @@ const taskSchema = z.object({
   milestone: z.string(),
 });
 
+const editTaskSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  department: z.enum(['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales', 'pm', 'admin']),
+  estimatedHours: z.number().min(0.5, 'Minimum 0.5 hours'),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  assignedTo: z.string().optional(),
+});
+
 export const ProjectDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -63,21 +74,47 @@ export const ProjectDetails = () => {
   const projectSpentHours = milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0);
 
   const { data: usersData } = useGetUsersQuery();
-  const teamOptions = usersData?.data
-    .filter(u => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER)
-    .map(u => ({ value: u._id, label: `${u.name} (${u.department || 'N/A'})` })) || [];
+  const teamOptions = usersData?.data?.map(u => ({
+    value: u._id,
+    label: `${u.name} (${u.role === Role.ADMIN ? 'Admin' : u.role === Role.PM ? 'PM' : u.department || 'Team'})`
+  })) || [];
 
   const [createMilestone, { isLoading: isCreatingMilestone }] = useCreateMilestoneMutation();
+  const [updateMilestone, { isLoading: isUpdatingMilestone }] = useUpdateMilestoneMutation();
+  const [deleteMilestone, { isLoading: isDeletingMilestone }] = useDeleteMilestoneMutation();
   const [createTask, { isLoading: isCreatingTask }] = useCreateTaskMutation();
+  const [updateTask, { isLoading: isUpdatingTask }] = useUpdateTaskMutation();
+  const [deleteTask, { isLoading: isDeletingTask }] = useDeleteTaskMutation();
+  const [createManualTimeLog, { isLoading: isLoggingTime }] = useCreateManualTimeLogMutation();
   const [uploadFile, { isLoading: isUploadingFile }] = useUploadFileMutation();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const [milestoneDrawerOpened, setMilestoneDrawerOpened] = useState(false);
+  const [editMilestoneOpened, setEditMilestoneOpened] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState<any>(null);
+
+  const [deleteMilestoneModalOpened, setDeleteMilestoneModalOpened] = useState(false);
+  const [deletingMilestone, setDeletingMilestone] = useState<any>(null);
+
   const [taskDrawerOpened, setTaskDrawerOpened] = useState(false);
+  const [editTaskOpened, setEditTaskOpened] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
+  const [deleteTaskTarget, setDeleteTaskTarget] = useState<{ id: string; title: string } | null>(null);
+
+  const [logTimeOpened, setLogTimeOpened] = useState(false);
+  const [logTimeTask, setLogTimeTask] = useState<any>(null);
+  const [logTimeHours, setLogTimeHours] = useState<number | string>(1);
+  const [logTimeDescription, setLogTimeDescription] = useState('');
+
   const [activeMilestoneEstimated, setActiveMilestoneEstimated] = useState<number>(0);
   const [activeMilestoneAllocated, setActiveMilestoneAllocated] = useState<number>(0);
 
   const milestoneForm = useForm({
+    initialValues: { title: '', estimatedHours: 10, startDate: '', endDate: '', status: 'not_started' },
+    validate: zodResolver(milestoneSchema),
+  });
+
+  const editMilestoneForm = useForm({
     initialValues: { title: '', estimatedHours: 10, startDate: '', endDate: '', status: 'not_started' },
     validate: zodResolver(milestoneSchema),
   });
@@ -87,17 +124,160 @@ export const ProjectDetails = () => {
     validate: zodResolver(taskSchema),
   });
 
+  const editTaskForm = useForm({
+    initialValues: { title: '', description: '', department: 'fullstack', estimatedHours: 2, startDate: '', endDate: '', assignedTo: '' },
+    validate: zodResolver(editTaskSchema),
+  });
+
+  const handleOpenEditTask = (task: any) => {
+    setEditingTask(task);
+    const startStr = task.startDate ? formatLocalDateString(parseLocalDateString(task.startDate)) : '';
+    const endStr = task.endDate ? formatLocalDateString(parseLocalDateString(task.endDate)) : '';
+    const assignedId = typeof task.assignedTo === 'object' && task.assignedTo !== null
+      ? task.assignedTo._id
+      : (typeof task.assignedTo === 'string' ? task.assignedTo : '');
+    editTaskForm.setValues({
+      title: task.title || '',
+      description: task.description || '',
+      department: task.department || 'fullstack',
+      estimatedHours: task.estimatedHours || 2,
+      startDate: startStr,
+      endDate: endStr,
+      assignedTo: assignedId,
+    });
+    setEditTaskOpened(true);
+  };
+
+  const handleUpdateTask = async (values: typeof editTaskForm.values) => {
+    if (!editingTask) return;
+    try {
+      const sDate = parseLocalDateString(values.startDate);
+      const eDate = parseLocalDateString(values.endDate);
+      await updateTask({
+        _id: editingTask._id,
+        ...values,
+        startDate: sDate ? formatLocalDateString(sDate) : undefined,
+        endDate: eDate ? formatLocalDateString(eDate) : undefined,
+        assignedTo: values.assignedTo || undefined,
+      } as any).unwrap();
+      setEditTaskOpened(false);
+      setEditingTask(null);
+    } catch (e) {
+      console.error('Failed to update task', e);
+    }
+  };
+
+  const handleOpenDeleteTask = (task: any) => {
+    setDeleteTaskTarget({ id: task._id, title: task.title });
+  };
+
+  const confirmDeleteTask = async () => {
+    if (deleteTaskTarget) {
+      try {
+        await deleteTask(deleteTaskTarget.id).unwrap();
+        setDeleteTaskTarget(null);
+      } catch (e) {
+        console.error('Failed to delete task', e);
+      }
+    }
+  };
+
+  const handleOpenLogTime = (task: any) => {
+    setLogTimeTask(task);
+    setLogTimeHours(1);
+    setLogTimeDescription('');
+    setLogTimeOpened(true);
+  };
+
+  const handleSaveManualTime = async () => {
+    if (!logTimeTask) return;
+    const hours = Number(logTimeHours);
+    if (!hours || hours <= 0) return;
+    try {
+      await createManualTimeLog({
+        taskId: logTimeTask._id,
+        hours,
+        description: logTimeDescription || 'Manual time entry',
+      }).unwrap();
+      setLogTimeOpened(false);
+      setLogTimeTask(null);
+    } catch (e) {
+      console.error('Failed to log manual time', e);
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId: string, status: string) => {
+    try {
+      await updateTask({ _id: taskId, status } as any).unwrap();
+    } catch (e) {
+      console.error('Failed to update task status', e);
+    }
+  };
+
   const handleCreateMilestone = async (values: typeof milestoneForm.values) => {
     try {
+      const sDate = parseLocalDateString(values.startDate);
+      const eDate = parseLocalDateString(values.endDate);
       await createMilestone({
         ...values,
         project: id,
         status: values.status as any,
-        startDate: values.startDate ? new Date(values.startDate).toISOString() : undefined,
-        endDate: values.endDate ? new Date(values.endDate).toISOString() : undefined
+        startDate: sDate ? formatLocalDateString(sDate) : undefined,
+        endDate: eDate ? formatLocalDateString(eDate) : undefined
       }).unwrap();
       setMilestoneDrawerOpened(false);
       milestoneForm.reset();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleOpenEditMilestone = (milestone: any) => {
+    setEditingMilestone(milestone);
+    const startStr = milestone.startDate ? formatLocalDateString(parseLocalDateString(milestone.startDate)) : '';
+    const endStr = milestone.endDate ? formatLocalDateString(parseLocalDateString(milestone.endDate)) : '';
+    editMilestoneForm.setValues({
+      title: milestone.title || '',
+      estimatedHours: milestone.estimatedHours || 10,
+      startDate: startStr,
+      endDate: endStr,
+      status: milestone.status || 'not_started',
+    });
+    setEditMilestoneOpened(true);
+  };
+
+  const handleUpdateMilestone = async (values: typeof editMilestoneForm.values) => {
+    if (!editingMilestone) return;
+    try {
+      const sDate = parseLocalDateString(values.startDate);
+      const eDate = parseLocalDateString(values.endDate);
+      await updateMilestone({
+        _id: editingMilestone._id,
+        project: id!,
+        title: values.title,
+        estimatedHours: values.estimatedHours,
+        startDate: sDate ? formatLocalDateString(sDate) : undefined,
+        endDate: eDate ? formatLocalDateString(eDate) : undefined,
+        status: values.status as any,
+      }).unwrap();
+      setEditMilestoneOpened(false);
+      setEditingMilestone(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleOpenDeleteMilestone = (milestone: any) => {
+    setDeletingMilestone(milestone);
+    setDeleteMilestoneModalOpened(true);
+  };
+
+  const handleDeleteMilestoneConfirm = async () => {
+    if (!deletingMilestone) return;
+    try {
+      await deleteMilestone(deletingMilestone._id).unwrap();
+      setDeleteMilestoneModalOpened(false);
+      setDeletingMilestone(null);
     } catch (e) {
       console.error(e);
     }
@@ -123,11 +303,14 @@ export const ProjectDetails = () => {
         }
       }
 
+      const sDate = parseLocalDateString(values.startDate);
+      const eDate = parseLocalDateString(values.endDate);
+
       await createTask({
         ...values,
         department: values.department as any,
-        startDate: values.startDate ? new Date(values.startDate).toISOString() : undefined,
-        endDate: values.endDate ? new Date(values.endDate).toISOString() : undefined,
+        startDate: sDate ? formatLocalDateString(sDate) : undefined,
+        endDate: eDate ? formatLocalDateString(eDate) : undefined,
         assignedTo: values.assignedTo || undefined,
         attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
       }).unwrap();
@@ -203,9 +386,16 @@ export const ProjectDetails = () => {
               <div style={{ flex: 1 }}>
                 <Group justify="space-between" mb={6}>
                   <Text size="xs" fw={600} style={{ color: '#64748b' }}>Project Progress (Hours)</Text>
-                  <Text size="xs" fw={700} style={{ color: '#2563eb' }}>{Math.round((projectSpentHours / (projectEstHours || 1)) * 100)}%</Text>
+                  <Text size="xs" fw={700} style={{ color: projectSpentHours >= projectEstHours && projectEstHours > 0 ? '#10b981' : '#2563eb' }}>
+                    {Math.min(Math.round((projectSpentHours / (projectEstHours || 1)) * 100), 100)}%
+                  </Text>
                 </Group>
-                <Progress value={(projectSpentHours / (projectEstHours || 1)) * 100} color="blue" size="sm" radius="xl" />
+                <Progress
+                  value={Math.min((projectSpentHours / (projectEstHours || 1)) * 100, 100)}
+                  color={projectSpentHours >= projectEstHours && projectEstHours > 0 ? 'green' : 'blue'}
+                  size="sm"
+                  radius="xl"
+                />
               </div>
             </Group>
           </div>
@@ -263,7 +453,7 @@ export const ProjectDetails = () => {
               <Title order={3} mb="md">Project Information</Title>
               <Stack gap="sm">
                 <Group justify="space-between"><Text c="dimmed">Project Type</Text><Text fw={500}>{project.type || 'Standard'}</Text></Group>
-                <Group justify="space-between"><Text c="dimmed">Created At</Text><Text fw={500}>{new Date(project.createdAt).toLocaleDateString()}</Text></Group>
+                <Group justify="space-between"><Text c="dimmed">Created At</Text><Text fw={500}>{formatDateDisplay(project.createdAt)}</Text></Group>
                 <Group justify="space-between"><Text c="dimmed">Client Source</Text><Badge variant="light">{project.client?.source || 'direct'}</Badge></Group>
               </Stack>
             </Card>
@@ -313,10 +503,10 @@ export const ProjectDetails = () => {
                   <Table.Thead style={{ backgroundColor: '#f8faff' }}>
                     <Table.Tr>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>MILESTONE</Table.Th>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>TASKS</Table.Th>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
                       <Table.Th ta="right" style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIONS</Table.Th>
                     </Table.Tr>
@@ -327,6 +517,13 @@ export const ProjectDetails = () => {
                         key={milestone._id}
                         milestone={milestone}
                         onAddTask={openTaskDrawer}
+                        onEdit={handleOpenEditMilestone}
+                        onDelete={handleOpenDeleteMilestone}
+                        canManage={isAdminOrPM}
+                        onEditTask={handleOpenEditTask}
+                        onDeleteTask={handleOpenDeleteTask}
+                        onLogTimeTask={handleOpenLogTime}
+                        onUpdateTaskStatus={handleUpdateTaskStatus}
                       />
                     ))}
                   </Table.Tbody>
@@ -381,19 +578,23 @@ export const ProjectDetails = () => {
             <Group grow>
               <DatePickerInput
                 label="Start Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
+                maxDate={parseLocalDateString(milestoneForm.values.endDate) || undefined}
                 leftSection={<Calendar size={16} color="#64748b" />}
-                value={milestoneForm.values.startDate ? new Date(milestoneForm.values.startDate) : null}
-                onChange={(val) => milestoneForm.setFieldValue('startDate', val ? val.toISOString().split('T')[0] : '')}
+                value={parseLocalDateString(milestoneForm.values.startDate)}
+                onChange={(val) => milestoneForm.setFieldValue('startDate', formatLocalDateString(val))}
                 clearable
                 radius="md"
               />
               <DatePickerInput
                 label="End Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
+                minDate={parseLocalDateString(milestoneForm.values.startDate) || undefined}
                 leftSection={<Calendar size={16} color="#64748b" />}
-                value={milestoneForm.values.endDate ? new Date(milestoneForm.values.endDate) : null}
-                onChange={(val) => milestoneForm.setFieldValue('endDate', val ? val.toISOString().split('T')[0] : '')}
+                value={parseLocalDateString(milestoneForm.values.endDate)}
+                onChange={(val) => milestoneForm.setFieldValue('endDate', formatLocalDateString(val))}
                 clearable
                 radius="md"
               />
@@ -450,19 +651,23 @@ export const ProjectDetails = () => {
             <Group grow>
               <DatePickerInput
                 label="Start Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
+                maxDate={parseLocalDateString(taskForm.values.endDate) || undefined}
                 leftSection={<Calendar size={16} color="#64748b" />}
-                value={taskForm.values.startDate ? new Date(taskForm.values.startDate) : null}
-                onChange={(val) => taskForm.setFieldValue('startDate', val ? val.toISOString().split('T')[0] : '')}
+                value={parseLocalDateString(taskForm.values.startDate)}
+                onChange={(val) => taskForm.setFieldValue('startDate', formatLocalDateString(val))}
                 clearable
                 radius="md"
               />
               <DatePickerInput
                 label="End Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
+                minDate={parseLocalDateString(taskForm.values.startDate) || undefined}
                 leftSection={<Calendar size={16} color="#64748b" />}
-                value={taskForm.values.endDate ? new Date(taskForm.values.endDate) : null}
-                onChange={(val) => taskForm.setFieldValue('endDate', val ? val.toISOString().split('T')[0] : '')}
+                value={parseLocalDateString(taskForm.values.endDate)}
+                onChange={(val) => taskForm.setFieldValue('endDate', formatLocalDateString(val))}
                 clearable
                 radius="md"
               />
@@ -484,11 +689,182 @@ export const ProjectDetails = () => {
           </Stack>
         </form>
       </Drawer>
+
+      {/* Edit Milestone Drawer */}
+      <Drawer opened={editMilestoneOpened} onClose={() => setEditMilestoneOpened(false)} position="right" title={<Text fw={600}>Edit Milestone</Text>} padding="xl">
+        <form onSubmit={editMilestoneForm.onSubmit(handleUpdateMilestone)}>
+          <Stack>
+            <TextInput required label="Milestone Title" placeholder="e.g. Phase 1 Design" {...editMilestoneForm.getInputProps('title')} />
+            <NumberInput required label="Estimated Hours" min={1} onFocus={(e) => e.target.select()} {...editMilestoneForm.getInputProps('estimatedHours')} />
+            <Group grow>
+              <DatePickerInput
+                label="Start Date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
+                maxDate={parseLocalDateString(editMilestoneForm.values.endDate) || undefined}
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={parseLocalDateString(editMilestoneForm.values.startDate)}
+                onChange={(val) => editMilestoneForm.setFieldValue('startDate', formatLocalDateString(val))}
+                clearable
+                radius="md"
+              />
+              <DatePickerInput
+                label="End Date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
+                minDate={parseLocalDateString(editMilestoneForm.values.startDate) || undefined}
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={parseLocalDateString(editMilestoneForm.values.endDate)}
+                onChange={(val) => editMilestoneForm.setFieldValue('endDate', formatLocalDateString(val))}
+                clearable
+                radius="md"
+              />
+            </Group>
+            <Select
+              label="Status"
+              data={[
+                { value: 'not_started', label: 'Not Started' },
+                { value: 'in_progress', label: 'In Progress' },
+                { value: 'on_hold', label: 'On Hold' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'cancelled', label: 'Cancelled' },
+              ]}
+              {...editMilestoneForm.getInputProps('status')}
+            />
+            <Button type="submit" fullWidth loading={isUpdatingMilestone} mt="md">
+              Update Milestone
+            </Button>
+          </Stack>
+        </form>
+      </Drawer>
+
+      {/* Delete Milestone Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={deleteMilestoneModalOpened}
+        onClose={() => setDeleteMilestoneModalOpened(false)}
+        onConfirm={handleDeleteMilestoneConfirm}
+        title="Delete Milestone"
+        itemName={deletingMilestone?.title}
+        description="Are you sure you want to delete this milestone? All associated tasks will also be affected."
+        loading={isDeletingMilestone}
+      />
+
+      {/* Edit Task Drawer */}
+      <Drawer opened={editTaskOpened} onClose={() => setEditTaskOpened(false)} position="right" size="lg" title={<Text fw={600}>Edit Task</Text>} padding="xl">
+        <form onSubmit={editTaskForm.onSubmit(handleUpdateTask)}>
+          <Stack gap="sm">
+            <TextInput required label="Task Title" placeholder="e.g. Wireframe Homepage" {...editTaskForm.getInputProps('title')} />
+            <Textarea label="Description" placeholder="Task details..." minRows={3} {...editTaskForm.getInputProps('description')} />
+            <Group grow gap="md">
+              <Select required label="Department" data={DEPARTMENT_OPTIONS} {...editTaskForm.getInputProps('department')} />
+              <NumberInput required label="Estimated Hours" min={0.5} step={0.5} onFocus={(e) => e.target.select()} {...editTaskForm.getInputProps('estimatedHours')} />
+            </Group>
+            <Group grow gap="md">
+              <DatePickerInput
+                label="Start Date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
+                maxDate={parseLocalDateString(editTaskForm.values.endDate) || undefined}
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={parseLocalDateString(editTaskForm.values.startDate)}
+                onChange={(val) => editTaskForm.setFieldValue('startDate', formatLocalDateString(val))}
+                clearable
+                radius="md"
+              />
+              <DatePickerInput
+                label="End Date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
+                minDate={parseLocalDateString(editTaskForm.values.startDate) || undefined}
+                leftSection={<Calendar size={16} color="#64748b" />}
+                value={parseLocalDateString(editTaskForm.values.endDate)}
+                onChange={(val) => editTaskForm.setFieldValue('endDate', formatLocalDateString(val))}
+                clearable
+                radius="md"
+              />
+            </Group>
+            <Select label="Assign To" placeholder="Leave empty for unassigned" data={teamOptions} searchable clearable {...editTaskForm.getInputProps('assignedTo')} />
+
+            <Button type="submit" fullWidth loading={isUpdatingTask} mt="md">
+              Update Task
+            </Button>
+          </Stack>
+        </form>
+      </Drawer>
+
+      {/* Delete Task Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTaskTarget}
+        onClose={() => setDeleteTaskTarget(null)}
+        onConfirm={confirmDeleteTask}
+        title="Delete Task"
+        itemName={deleteTaskTarget?.title}
+        description="Are you sure you want to delete this task? This action cannot be undone."
+        loading={isDeletingTask}
+      />
+
+      {/* Log Time Manually Modal */}
+      <Modal opened={logTimeOpened} onClose={() => setLogTimeOpened(false)} title={<Text fw={700}>Log Time Manually</Text>} radius="md">
+        <Stack gap="sm">
+          <Text size="sm" c="dimmed">Log spent hours directly for <strong>{logTimeTask?.title}</strong>.</Text>
+          <NumberInput
+            label="Hours Spent"
+            placeholder="e.g. 1.5"
+            min={0.1}
+            max={100}
+            step={0.5}
+            value={logTimeHours}
+            onChange={(val) => setLogTimeHours(typeof val === 'number' ? val : 0)}
+            onFocus={(e) => e.target.select()}
+            withAsterisk
+          />
+          <TextInput
+            label="Description / Work Notes"
+            placeholder="What did you work on?"
+            value={logTimeDescription}
+            onChange={(e) => setLogTimeDescription(e.currentTarget.value)}
+          />
+          <Button color="blue" onClick={handleSaveManualTime} loading={isLoggingTime} mt="md">
+            Save Time Log
+          </Button>
+        </Stack>
+      </Modal>
     </Container>
   );
 };
 
-const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask: (milestoneId: string, est: number, alloc: number) => void }) => {
+const formatDateDDMMYYYY = (dateStr?: string) => {
+  if (!dateStr) return '-';
+  const d = parseLocalDateString(dateStr);
+  if (!d) return '-';
+  const day = String(d.getDate()).padStart(2, '0');
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthStr = monthNames[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${monthStr}, ${year}`;
+};
+
+const MilestoneTableRow = ({
+  milestone,
+  onAddTask,
+  onEdit,
+  onDelete,
+  canManage = true,
+  onEditTask,
+  onDeleteTask,
+  onLogTimeTask,
+  onUpdateTaskStatus,
+}: {
+  milestone: any;
+  onAddTask: (milestoneId: string, est: number, alloc: number) => void;
+  onEdit?: (milestone: any) => void;
+  onDelete?: (milestone: any) => void;
+  canManage?: boolean;
+  onEditTask?: (task: any) => void;
+  onDeleteTask?: (task: any) => void;
+  onLogTimeTask?: (task: any) => void;
+  onUpdateTaskStatus?: (taskId: string, status: string) => void;
+}) => {
   const [expanded, setExpanded] = useState(false);
   const { data: tasksData, isLoading } = useGetTasksByMilestoneQuery(milestone._id);
   const tasks = tasksData?.data || [];
@@ -498,11 +874,37 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
 
   const [deptFilter, setDeptFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [liveElapsed, setLiveElapsed] = useState(0);
 
   const activeTimer = activeTimerData?.data;
-  const spentHours = tasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (activeTimer?.startTime) {
+      const startMs = new Date(activeTimer.startTime).getTime();
+      setLiveElapsed(Math.floor((Date.now() - startMs) / 1000));
+      interval = setInterval(() => {
+        setLiveElapsed(Math.floor((Date.now() - startMs) / 1000));
+      }, 1000);
+    } else {
+      setLiveElapsed(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeTimer?.startTime]);
+
+  const activeTaskInMilestone = tasks.find((t: any) =>
+    activeTimer?.task === t._id || (activeTimer?.task as any)?._id === t._id
+  );
+  const activeBonusHours = activeTaskInMilestone ? liveElapsed / 3600 : 0;
+  const spentHours = tasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0) + activeBonusHours;
   const allocatedHours = tasks.reduce((sum: number, t: any) => sum + (t.estimatedHours || 0), 0);
   const progressPercent = Math.min((spentHours / (milestone.estimatedHours || 1)) * 100, 100);
+
+  const isMilestoneMaxed = spentHours >= (milestone.estimatedHours || 0) && (milestone.estimatedHours || 0) > 0;
+  const areAllTasksDone = tasks.length > 0 && tasks.every((t: any) => t.status === 'completed');
+  const effectiveStatus = (isMilestoneMaxed || areAllTasksDone) ? 'completed' : milestone.status;
 
   const filteredTasks = useMemo(() => {
     let result = tasks;
@@ -519,6 +921,15 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
     try { await stopTimer({}).unwrap(); } catch (e) { console.error(e); }
   };
 
+  // Auto-stop timer when active task hits 100% progress
+  useEffect(() => {
+    if (!activeTimer || !activeTaskInMilestone) return;
+    const totalSpent = (activeTaskInMilestone.spentHours || 0) + liveElapsed / 3600;
+    if (totalSpent >= activeTaskInMilestone.estimatedHours) {
+      handleStopTimer();
+    }
+  }, [liveElapsed]);
+
   return (
     <>
       <Table.Tr style={{ backgroundColor: expanded ? '#F8FAFC' : 'white', cursor: 'pointer' }}>
@@ -531,44 +942,44 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
             <div>
               <Text fw={700} size="sm" style={{ color: '#0f172a' }}>{milestone.title}</Text>
               <Text size="xs" c="dimmed">
-                {milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '-'} to {milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : '-'}
+                {formatDateDisplay(milestone.startDate)} to {formatDateDisplay(milestone.endDate)}
               </Text>
             </div>
           </Group>
         </Table.Td>
 
-        {/* 2. Status */}
-        <Table.Td onClick={() => setExpanded(!expanded)}>
-          <Badge
-            variant="light"
-            radius="sm"
-            size="sm"
-            fw={600}
-            color={milestone.status === 'completed' ? 'green' : milestone.status === 'in_progress' ? 'blue' : 'gray'}
-          >
-            {milestone.status ? milestone.status.replace('_', ' ') : 'not started'}
-          </Badge>
-        </Table.Td>
-
-        {/* 3. Tasks Count */}
+        {/* 2. Tasks Count */}
         <Table.Td onClick={() => setExpanded(!expanded)}>
           <Badge variant="outline" color="blue" size="sm" radius="sm">
             {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
           </Badge>
         </Table.Td>
 
-        {/* 4. Est. Hours */}
+        {/* 3. Est. Hours */}
         <Table.Td onClick={() => setExpanded(!expanded)}>
           <Text size="sm" fw={600} style={{ color: '#475569' }}>
             {milestone.estimatedHours || 0}h
           </Text>
         </Table.Td>
 
-        {/* 5. Active Hours */}
+        {/* 4. Active Hours */}
         <Table.Td onClick={() => setExpanded(!expanded)}>
           <Text size="sm" fw={600} style={{ color: spentHours > milestone.estimatedHours ? '#dc2626' : '#2563eb' }}>
-            {Number(spentHours.toFixed(1))}h
+            {Number(spentHours.toFixed(2))}h
           </Text>
+        </Table.Td>
+
+        {/* 5. Status */}
+        <Table.Td onClick={() => setExpanded(!expanded)}>
+          <Badge
+            variant="light"
+            radius="sm"
+            size="sm"
+            fw={600}
+            color={effectiveStatus === 'completed' ? 'green' : effectiveStatus === 'in_progress' ? 'blue' : 'gray'}
+          >
+            {effectiveStatus ? effectiveStatus.replace('_', ' ') : 'not started'}
+          </Badge>
         </Table.Td>
 
         {/* 6. Progress */}
@@ -577,13 +988,13 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
             <Text size="xs" fw={700} style={{ width: 32 }} ta="right">
               {Math.round(progressPercent)}%
             </Text>
-            <Progress value={progressPercent} color={spentHours > milestone.estimatedHours ? 'red' : 'blue'} size="sm" radius="xl" style={{ flex: 1 }} />
+            <Progress value={progressPercent} color={effectiveStatus === 'completed' ? 'green' : (spentHours > milestone.estimatedHours ? 'red' : 'blue')} size="sm" radius="xl" style={{ flex: 1 }} />
           </Group>
         </Table.Td>
 
         {/* 7. Actions */}
-        <Table.Td>
-          <Group gap="xs" justify="flex-end" wrap="nowrap">
+        <Table.Td style={{ whiteSpace: 'nowrap' }}>
+          <Group gap={6} justify="flex-end" wrap="nowrap">
             <Button
               size="xs"
               variant="light"
@@ -595,6 +1006,34 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
             >
               Add Task
             </Button>
+            {canManage && (
+              <>
+                <ActionIcon
+                  variant="subtle"
+                  color="blue"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(milestone);
+                  }}
+                  title="Edit Milestone"
+                >
+                  <Edit size={16} />
+                </ActionIcon>
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.(milestone);
+                  }}
+                  title="Delete Milestone"
+                >
+                  <Trash size={16} />
+                </ActionIcon>
+              </>
+            )}
           </Group>
         </Table.Td>
       </Table.Tr>
@@ -607,7 +1046,7 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
               <Group justify="space-between" mb="md">
                 <Group>
                   <Select placeholder="Filter Department" leftSection={<Filter size={14} />} data={DEPARTMENT_OPTIONS} value={deptFilter} onChange={setDeptFilter} clearable size="xs" w={160} />
-                  <Select placeholder="Filter Status" leftSection={<Filter size={14} />} data={['assigned', 'in_progress', 'in_review', 'completed']} value={statusFilter} onChange={setStatusFilter} clearable size="xs" w={150} />
+                  <Select placeholder="Filter Status" leftSection={<Filter size={14} />} data={['assigned', 'in_progress', 'in_review', 'completed', 'on_hold']} value={statusFilter} onChange={setStatusFilter} clearable size="xs" w={150} />
                 </Group>
                 <Text size="xs" fw={600} c="dimmed">
                   Allocated: {allocatedHours}h / {milestone.estimatedHours}h
@@ -624,6 +1063,7 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
                       <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>DEPARTMENT</Table.Th>
                       <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ASSIGNED TO</Table.Th>
                       <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>EST. TIME</Table.Th>
+                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ACTIVE HOURS</Table.Th>
                       <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>STATUS</Table.Th>
                       <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>PROGRESS</Table.Th>
                       <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }} ta="right">ACTION</Table.Th>
@@ -631,18 +1071,29 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
                   </Table.Thead>
                   <Table.Tbody>
                     {filteredTasks.map((task: any) => {
-                      const isTimerActive = activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id;
+                      const isTimerActive = (activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id) && task.status !== 'completed';
+                      const taskBonusHours = isTimerActive ? liveElapsed / 3600 : 0;
+                      const rawSpent = (task.spentHours || 0) + taskBonusHours;
+                      const spent = rawSpent;
+                      const taskProgressPercent = Math.min((rawSpent / (task.estimatedHours || 1)) * 100, 100);
+                      const isMaxed = (task.spentHours || 0) >= task.estimatedHours;
+
                       return (
                         <Table.Tr key={task._id}>
+                          {/* TASK TITLE & DATE */}
                           <Table.Td>
                             <Text fw={600} size="sm">{task.title}</Text>
                             {(task.startDate || task.endDate) && (
                               <Text size="xs" color="dimmed">
-                                {task.startDate ? new Date(task.startDate).toLocaleDateString() : '-'} - {task.endDate ? new Date(task.endDate).toLocaleDateString() : '-'}
+                                {formatDateDisplay(task.startDate)} to {formatDateDisplay(task.endDate)}
                               </Text>
                             )}
                           </Table.Td>
+
+                          {/* DEPARTMENT */}
                           <Table.Td><Badge variant="outline" color="gray" size="sm">{task.department || 'N/A'}</Badge></Table.Td>
+
+                          {/* ASSIGNED TO */}
                           <Table.Td>
                             {task.assignedTo ? (
                               <Tooltip label={task.assignedTo.role?.replace('_', ' ')} withArrow>
@@ -655,21 +1106,86 @@ const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask
                               <Badge variant="light" color="orange" size="sm">Unassigned</Badge>
                             )}
                           </Table.Td>
+
+                          {/* EST. TIME */}
                           <Table.Td><Text size="sm" fw={600}>{task.estimatedHours}h</Text></Table.Td>
+
+                          {/* ACTIVE HOURS (LOGGED TIME) */}
                           <Table.Td>
-                            <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light" size="sm">{task.status.replace('_', ' ')}</Badge>
+                            <Text size="sm" fw={700} style={{ color: spent > task.estimatedHours ? '#dc2626' : spent > 0 ? '#2563eb' : '#94a3b8' }}>
+                              {spent.toFixed(2)}h
+                            </Text>
                           </Table.Td>
+
+                          {/* QUICK TASK STATUS CHANGE MENU */}
+                          <Table.Td>
+                            <Menu shadow="md" width={140} position="bottom-start">
+                              <Menu.Target>
+                                <Badge
+                                  color={
+                                    task.status === 'completed'
+                                      ? 'green'
+                                      : task.status === 'in_progress'
+                                      ? 'blue'
+                                      : task.status === 'in_review'
+                                      ? 'yellow'
+                                      : task.status === 'on_hold'
+                                      ? 'red'
+                                      : 'gray'
+                                  }
+                                  variant="light"
+                                  size="sm"
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  {task.status?.replace('_', ' ') || 'assigned'} ▾
+                                </Badge>
+                              </Menu.Target>
+
+                              <Menu.Dropdown>
+                                <Menu.Label>Change Status</Menu.Label>
+                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'assigned')}>Assigned</Menu.Item>
+                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'in_progress')}>In Progress</Menu.Item>
+                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'in_review')}>In Review</Menu.Item>
+                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'completed')}>Completed</Menu.Item>
+                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'on_hold')}>On Hold</Menu.Item>
+                              </Menu.Dropdown>
+                            </Menu>
+                          </Table.Td>
+
+                          {/* PROGRESS */}
                           <Table.Td style={{ minWidth: 120 }}>
-                            <Tooltip label={`${(task.spentHours || 0).toFixed(1)}h / ${task.estimatedHours}h (${Math.round(((task.spentHours || 0) / task.estimatedHours) * 100)}%)`}>
-                              <Progress value={((task.spentHours || 0) / task.estimatedHours) * 100} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} radius="xl" />
+                            <Tooltip label={`${spent.toFixed(2)}h / ${task.estimatedHours}h (${Math.round(taskProgressPercent)}%)`}>
+                              <Progress value={taskProgressPercent} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} radius="xl" animated={isTimerActive && task.status !== 'completed'} />
                             </Tooltip>
                           </Table.Td>
+
+                          {/* ACTION COLUMN: Start/Stop + Log Time + Edit + Delete */}
                           <Table.Td ta="right">
-                            {isTimerActive ? (
-                              <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
-                            ) : (
-                              <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer}>Start</Button>
-                            )}
+                            <Group gap={6} justify="flex-end" wrap="nowrap">
+                              {isTimerActive ? (
+                                <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
+                              ) : (
+                              <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer || task.status === 'completed' || isMaxed}>Start</Button>
+                              )}
+
+                              <Tooltip label="Log Time Manually" withArrow>
+                                <ActionIcon variant="light" color="indigo" size="sm" onClick={() => onLogTimeTask?.(task)}>
+                                  <Clock size={15} />
+                                </ActionIcon>
+                              </Tooltip>
+
+                              <Tooltip label="Edit Task" withArrow>
+                                <ActionIcon variant="light" color="blue" size="sm" onClick={() => onEditTask?.(task)}>
+                                  <Edit size={15} />
+                                </ActionIcon>
+                              </Tooltip>
+
+                              <Tooltip label="Delete Task" withArrow>
+                                <ActionIcon variant="light" color="red" size="sm" onClick={() => onDeleteTask?.(task)}>
+                                  <Trash size={15} />
+                                </ActionIcon>
+                              </Tooltip>
+                            </Group>
                           </Table.Td>
                         </Table.Tr>
                       );
@@ -712,7 +1228,7 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
 
   const totalEstimated = projectTasks.reduce((sum: number, t: any) => sum + (t.estimatedHours || 0), 0);
   const totalSpent = projectTasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
-  const hoursPercent = totalEstimated > 0 ? Math.round((totalSpent / totalEstimated) * 100) : 0;
+  const hoursPercent = totalEstimated > 0 ? Math.min(Math.round((totalSpent / totalEstimated) * 100), 100) : 0;
 
   return (
     <Stack gap="xl" style={{ marginTop: '20px' }}>
@@ -798,7 +1314,7 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
                       <Table.Td style={{ whiteSpace: 'nowrap' }}>
                         <Text fw={700} size="sm">{m.title}</Text>
                         <Text size="xs" c="dimmed">
-                          {m.startDate ? new Date(m.startDate).toLocaleDateString() : '-'} to {m.endDate ? new Date(m.endDate).toLocaleDateString() : '-'}
+                          {formatDateDDMMYYYY(m.startDate)} to {formatDateDDMMYYYY(m.endDate)}
                         </Text>
                       </Table.Td>
                       <Table.Td style={{ whiteSpace: 'nowrap' }}>
@@ -847,11 +1363,26 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
   const [deptFilter, setDeptFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [milestoneFilter, setMilestoneFilter] = useState<string | null>(null);
+  const [liveElapsed, setLiveElapsed] = useState(0);
 
   const navigate = useNavigate();
 
   const activeTimer = activeTimerData?.data;
   const allTasks = tasksData?.data || [];
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (activeTimer?.startTime) {
+      const startMs = new Date(activeTimer.startTime).getTime();
+      setLiveElapsed(Math.floor((Date.now() - startMs) / 1000));
+      interval = setInterval(() => {
+        setLiveElapsed(Math.floor((Date.now() - startMs) / 1000));
+      }, 1000);
+    } else {
+      setLiveElapsed(0);
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [activeTimer?.startTime]);
 
   const projectMilestoneIds = useMemo(() => milestones.map(m => m._id), [milestones]);
   const projectTasks = useMemo(() => {
@@ -894,6 +1425,19 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
   const handleStopTimer = async () => {
     try { await stopTimer({}).unwrap(); } catch (e) { console.error(e); }
   };
+
+  // Auto-stop timer when active task hits 100% progress
+  useEffect(() => {
+    if (!activeTimer) return;
+    const activeTask = allTasks.find((t: any) =>
+      activeTimer.task === t._id || (activeTimer.task as any)?._id === t._id
+    );
+    if (!activeTask) return;
+    const totalSpent = (activeTask.spentHours || 0) + liveElapsed / 3600;
+    if (totalSpent >= activeTask.estimatedHours) {
+      handleStopTimer();
+    }
+  }, [liveElapsed]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -953,6 +1497,7 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
             <Table.Th>Department</Table.Th>
             <Table.Th>Assigned To</Table.Th>
             <Table.Th>Est. Time</Table.Th>
+            <Table.Th>Active Hours</Table.Th>
             <Table.Th>Status</Table.Th>
             <Table.Th>Progress</Table.Th>
             <Table.Th w={150}></Table.Th>
@@ -962,7 +1507,12 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
           {filteredTasks.map((task) => {
             const milestone = typeof task.milestone === 'object' ? task.milestone : null;
             const assignee = typeof task.assignedTo === 'object' ? task.assignedTo : null;
-            const isTimerActive = activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id;
+            const isTimerActive = (activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id) && task.status !== 'completed';
+            const bonusHours = isTimerActive ? liveElapsed / 3600 : 0;
+            const rawSpent = (task.spentHours || 0) + bonusHours;
+            const liveSpent = Math.min(rawSpent, task.estimatedHours * 1.5); // allow slight overflow display
+            const liveProgress = Math.min((rawSpent / (task.estimatedHours || 1)) * 100, 100);
+            const isMaxed = (task.spentHours || 0) >= task.estimatedHours;
 
             return (
               <Table.Tr key={task._id}>
@@ -991,13 +1541,18 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
                   <Text size="sm" fw={600}>{task.estimatedHours}h</Text>
                 </Table.Td>
                 <Table.Td>
+                  <Text size="sm" fw={600} style={{ color: rawSpent > task.estimatedHours ? '#dc2626' : '#2563eb' }}>
+                    {Number(rawSpent.toFixed(2))}h
+                  </Text>
+                </Table.Td>
+                <Table.Td>
                   <Badge color={getStatusColor(task.status)} variant="light">
                     {task.status.replace('_', ' ')}
                   </Badge>
                 </Table.Td>
                 <Table.Td>
-                  <Tooltip label={`${(task.spentHours || 0).toFixed(1)}h / ${task.estimatedHours}h`}>
-                    <Progress value={((task.spentHours || 0) / task.estimatedHours) * 100} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} />
+                  <Tooltip label={`${liveSpent.toFixed(2)}h / ${task.estimatedHours}h (${Math.round(liveProgress)}%)`}>
+                    <Progress value={liveProgress} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} animated={isTimerActive && task.status !== 'completed'} />
                   </Tooltip>
                 </Table.Td>
                 <Table.Td>
@@ -1005,7 +1560,14 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
                     {isTimerActive ? (
                       <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
                     ) : (
-                      <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer || task.status === 'completed'}>Start</Button>
+                      <Button
+                        size="xs"
+                        variant="light"
+                        leftSection={<Play size={14} />}
+                        onClick={() => handleStartTimer(task._id)}
+                        disabled={!!activeTimer || task.status === 'completed' || isMaxed}
+                        title={isMaxed ? 'Estimated hours reached' : ''}
+                      >Start</Button>
                     )}
                   </Group>
                 </Table.Td>
@@ -1289,7 +1851,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
                   <Text size="sm">{member?.name || 'Unassigned'}</Text>
                 </Table.Td>
                 <Table.Td>
-                  <Text size="sm">{new Date(release.releaseDate).toLocaleDateString()}</Text>
+                  <Text size="sm">{formatDateDisplay(release.releaseDate)}</Text>
                 </Table.Td>
                 <Table.Td>
                   <Badge
@@ -1352,10 +1914,11 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
             />
             <DatePickerInput
               label="Release Date"
-              placeholder="Select date"
+              placeholder="DD Month, YYYY"
+              valueFormat="DD MMMM, YYYY"
               leftSection={<Calendar size={16} color="#64748b" />}
-              value={releaseForm.values.releaseDate ? new Date(releaseForm.values.releaseDate) : null}
-              onChange={(val) => releaseForm.setFieldValue('releaseDate', val ? val.toISOString().split('T')[0] : '')}
+              value={parseLocalDateString(releaseForm.values.releaseDate)}
+              onChange={(val) => releaseForm.setFieldValue('releaseDate', formatLocalDateString(val))}
               clearable
               withAsterisk
               radius="md"
@@ -1548,8 +2111,8 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
           {invoices.map((inv) => (
             <Table.Tr key={inv._id}>
               <Table.Td fw={600}>{inv.invoiceNumber}</Table.Td>
-              <Table.Td>{new Date(inv.issueDate).toLocaleDateString()}</Table.Td>
-              <Table.Td>{new Date(inv.dueDate).toLocaleDateString()}</Table.Td>
+              <Table.Td>{formatDateDisplay(inv.issueDate)}</Table.Td>
+              <Table.Td>{formatDateDisplay(inv.dueDate)}</Table.Td>
               <Table.Td>${inv.totalAmount.toLocaleString()}</Table.Td>
               <Table.Td>${inv.receivedAmount.toLocaleString()}</Table.Td>
               <Table.Td fw={600} c={inv.pendingAmount > 0 ? 'orange' : 'dimmed'}>
@@ -1604,20 +2167,22 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
             <Group grow>
               <DatePickerInput
                 label="Issue Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
                 leftSection={<Calendar size={16} color="#64748b" />}
-                value={invoiceForm.values.issueDate ? new Date(invoiceForm.values.issueDate) : null}
-                onChange={(val) => invoiceForm.setFieldValue('issueDate', val ? val.toISOString().split('T')[0] : '')}
+                value={parseLocalDateString(invoiceForm.values.issueDate)}
+                onChange={(val) => invoiceForm.setFieldValue('issueDate', formatLocalDateString(val))}
                 clearable
                 withAsterisk
                 radius="md"
               />
               <DatePickerInput
                 label="Due Date"
-                placeholder="Select date"
+                placeholder="DD Month, YYYY"
+                valueFormat="DD MMMM, YYYY"
                 leftSection={<Calendar size={16} color="#64748b" />}
-                value={invoiceForm.values.dueDate ? new Date(invoiceForm.values.dueDate) : null}
-                onChange={(val) => invoiceForm.setFieldValue('dueDate', val ? val.toISOString().split('T')[0] : '')}
+                value={parseLocalDateString(invoiceForm.values.dueDate)}
+                onChange={(val) => invoiceForm.setFieldValue('dueDate', formatLocalDateString(val))}
                 clearable
                 withAsterisk
                 radius="md"
@@ -1669,10 +2234,11 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
           />
           <DatePickerInput
             label="Payment Date"
-            placeholder="Select date"
+            placeholder="DD Month, YYYY"
+            valueFormat="DD MMMM, YYYY"
             leftSection={<Calendar size={16} color="#64748b" />}
-            value={paymentDate ? new Date(paymentDate) : null}
-            onChange={(val) => setPaymentDate(val ? val.toISOString().split('T')[0] : '')}
+            value={parseLocalDateString(paymentDate)}
+            onChange={(val) => setPaymentDate(formatLocalDateString(val))}
             clearable
             radius="md"
           />

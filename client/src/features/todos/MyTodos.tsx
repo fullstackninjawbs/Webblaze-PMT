@@ -2,6 +2,7 @@ import React from 'react';
 import { Container, Title, Text, Card, Group, Badge, SimpleGrid, ActionIcon, Menu, Button } from '@mantine/core';
 import { CheckCircle, MoreVertical, Clock, AlertCircle } from 'lucide-react';
 import { useGetTodosQuery, useUpdateTodoMutation } from './todo.slice';
+import { formatDateDisplay } from '../../utils/dateUtils';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 
@@ -102,7 +103,7 @@ export const MyTodos: React.FC = () => {
                 <Group gap="xs">
                   <Clock size={14} color={overdue ? '#ef4444' : '#9ca3af'} />
                   <Text size="xs" color={overdue ? 'red' : 'dimmed'} fw={overdue ? 600 : 400}>
-                    {todo.dueDate ? new Date(todo.dueDate).toLocaleDateString() : 'No date'}
+                    {formatDateDisplay(todo.dueDate)}
                   </Text>
                   {overdue && <AlertCircle size={14} color="#ef4444" />}
                 </Group>

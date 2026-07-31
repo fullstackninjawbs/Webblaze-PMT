@@ -74,7 +74,20 @@ export const taskApi = baseApi.injectEndpoints({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (result) => result ? [{ type: 'Task', id: result.data._id }] : [],
+      invalidatesTags: (result) =>
+        result
+          ? [
+              { type: 'Task', id: result.data._id },
+              { type: 'Task', id: 'LIST-ALL' },
+              {
+                type: 'Task',
+                id: `LIST-MILESTONE-${
+                  typeof result.data.milestone === 'object' ? result.data.milestone._id : result.data.milestone
+                }`,
+              },
+              'Milestone',
+            ]
+          : ['Task', 'Milestone'],
     }),
     deleteTask: builder.mutation<{ success: boolean; data: null; message: string }, string>({
       query: (id) => ({
