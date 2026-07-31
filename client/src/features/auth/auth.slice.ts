@@ -17,10 +17,26 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
+const getInitialUser = (): User | null => {
+  try {
+    const saved = localStorage.getItem('auth_user');
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getInitialToken = (): string | null => {
+  return localStorage.getItem('auth_token') || null;
+};
+
+const initialUser = getInitialUser();
+const initialToken = getInitialToken();
+
 const initialState: AuthState = {
-  user: null,
-  token: null,
-  isAuthenticated: false,
+  user: initialUser,
+  token: initialToken,
+  isAuthenticated: !!(initialUser && initialToken),
 };
 
 export const authSlice = createSlice({
@@ -31,6 +47,8 @@ export const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_token');
     },
     setCredentials: (
       state,
@@ -39,13 +57,17 @@ export const authSlice = createSlice({
       state.user = action.payload.user;
       state.token = action.payload.accessToken;
       state.isAuthenticated = true;
+      localStorage.setItem('auth_user', JSON.stringify(action.payload.user));
+      localStorage.setItem('auth_token', action.payload.accessToken);
     },
     updateToken: (state, action: PayloadAction<string>) => {
       state.token = action.payload;
+      localStorage.setItem('auth_token', action.payload);
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
       state.isAuthenticated = true;
+      localStorage.setItem('auth_user', JSON.stringify(action.payload));
     },
   },
 });
