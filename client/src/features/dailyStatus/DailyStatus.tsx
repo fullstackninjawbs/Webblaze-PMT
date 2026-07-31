@@ -20,10 +20,10 @@ import {
   Paper,
   SimpleGrid,
   TextInput,
+  Modal,
 } from '@mantine/core';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import {
-  ClipboardList,
   Calendar,
   Users,
   Send,
@@ -47,6 +47,7 @@ export const DailyStatus: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string | null>('my-status');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [submitModalOpened, setSubmitModalOpened] = useState<boolean>(false);
 
   const isManagement =
     user?.role === Role.ADMIN ||
@@ -95,7 +96,7 @@ export const DailyStatus: React.FC = () => {
       }).unwrap();
 
       form.reset();
-      setActiveTab('my-status');
+      setSubmitModalOpened(false);
     } catch (err) {
       console.error('Failed to submit status:', err);
     }
@@ -156,7 +157,7 @@ export const DailyStatus: React.FC = () => {
 
         <Button
           leftSection={<Send size={16} />}
-          onClick={() => setActiveTab('new-status')}
+          onClick={() => setSubmitModalOpened(true)}
           style={{
             background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
             fontWeight: 600,
@@ -250,9 +251,6 @@ export const DailyStatus: React.FC = () => {
           <Tabs.Tab value="my-status" leftSection={<Calendar size={16} />}>
             My Status History
           </Tabs.Tab>
-          <Tabs.Tab value="new-status" leftSection={<ClipboardList size={16} />}>
-            Submit Daily Check-in
-          </Tabs.Tab>
           {isManagement && (
             <Tabs.Tab value="team-status" leftSection={<Users size={16} />}>
               Team Updates Feed ({teamLogs.length})
@@ -297,7 +295,7 @@ export const DailyStatus: React.FC = () => {
                 variant="light"
                 color="blue"
                 leftSection={<Send size={16} />}
-                onClick={() => setActiveTab('new-status')}
+                onClick={() => setSubmitModalOpened(true)}
                 radius="md"
                 fw={600}
               >
@@ -391,86 +389,89 @@ export const DailyStatus: React.FC = () => {
           )}
         </Tabs.Panel>
 
-        {/* Tab 2: Submit Daily Status */}
-        <Tabs.Panel value="new-status">
-          <Paper
-            p="xl"
-            radius="xl"
-            withBorder
-            style={{
-              maxWidth: '720px',
-              margin: '0 auto',
-              borderColor: '#e8ecf4',
-              background: '#ffffff',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-            }}
-          >
-            <Title order={3} style={{ color: '#0f172a' }} mb="xs">
+      {/* Modal: Submit Daily Status */}
+      <Modal
+        opened={submitModalOpened}
+        onClose={() => setSubmitModalOpened(false)}
+        title={
+          <Group gap="xs">
+            <Paper p={6} radius="md" bg="#eff6ff">
+              <Sparkles size={18} color="#2563eb" />
+            </Paper>
+            <Title order={4} style={{ color: '#0f172a', fontWeight: 800 }}>
               Submit Daily Check-in
             </Title>
-            <Text size="sm" style={{ color: '#64748b' }} mb="xl">
-              Fill out your daily work status update for your project lead and teammates.
-            </Text>
+          </Group>
+        }
+        size="lg"
+        radius="xl"
+        centered
+      >
+        <Text size="sm" style={{ color: '#64748b' }} mb="lg">
+          Fill out your daily work status update for your project lead and teammates.
+        </Text>
 
-            <form onSubmit={form.onSubmit(handleSubmit)}>
-              <Stack gap="lg">
-                <Select
-                  label="Associated Project (Optional)"
-                  placeholder="Select a project you worked on..."
-                  data={projectOptions}
-                  clearable
-                  radius="md"
-                  {...form.getInputProps('project')}
-                />
+        <form onSubmit={form.onSubmit(handleSubmit)}>
+          <Stack gap="md">
+            <Select
+              label="Associated Project (Optional)"
+              placeholder="Select a project you worked on..."
+              data={projectOptions}
+              clearable
+              radius="md"
+              {...form.getInputProps('project')}
+            />
 
-                <Textarea
-                  required
-                  label="Work Completed Today"
-                  placeholder="Describe key achievements, tasks finished, PRs created, or bugs resolved..."
-                  minRows={4}
-                  radius="md"
-                  {...form.getInputProps('workDone')}
-                  withAsterisk
-                />
+            <Textarea
+              required
+              label="Work Completed Today"
+              placeholder="Describe key achievements, tasks finished, PRs created, or bugs resolved..."
+              minRows={4}
+              radius="md"
+              {...form.getInputProps('workDone')}
+              withAsterisk
+            />
 
-                <Textarea
-                  required
-                  label="Planned Work for Tomorrow / Next Session"
-                  placeholder="Detail your goals for the upcoming session..."
-                  minRows={3}
-                  radius="md"
-                  {...form.getInputProps('plannedWork')}
-                  withAsterisk
-                />
+            <Textarea
+              required
+              label="Planned Work for Tomorrow / Next Session"
+              placeholder="Detail your goals for the upcoming session..."
+              minRows={3}
+              radius="md"
+              {...form.getInputProps('plannedWork')}
+              withAsterisk
+            />
 
-                <Textarea
-                  label="Blockers or Obstacles (Optional)"
-                  placeholder="List any impediments, pending approvals, or dependencies..."
-                  minRows={2}
-                  radius="md"
-                  {...form.getInputProps('blockers')}
-                />
+            <Textarea
+              label="Blockers or Obstacles (Optional)"
+              placeholder="List any impediments, pending approvals, or dependencies..."
+              minRows={2}
+              radius="md"
+              {...form.getInputProps('blockers')}
+            />
 
-                <Group justify="flex-end" mt="md">
-                  <Button
-                    type="submit"
-                    leftSection={<Send size={16} />}
-                    loading={isSubmitting}
-                    size="md"
-                    radius="md"
-                    style={{
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                      fontWeight: 600,
-                      boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-                    }}
-                  >
-                    Submit Check-in
-                  </Button>
-                </Group>
-              </Stack>
-            </form>
-          </Paper>
-        </Tabs.Panel>
+            <Group justify="flex-end" mt="md">
+              <Button variant="light" color="gray" onClick={() => setSubmitModalOpened(false)} radius="md">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                leftSection={<Send size={16} />}
+                loading={isSubmitting}
+                size="md"
+                radius="md"
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                }}
+              >
+                Submit Check-in
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
 
         {/* Tab 3: Team Updates Feed */}
         {isManagement && (

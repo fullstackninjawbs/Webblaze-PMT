@@ -1,9 +1,38 @@
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../app/store';
-import { Container, Title, Text, Card, Group, Stack, TextInput, Button, Select, Alert, Badge, Grid, UnstyledButton } from '@mantine/core';
+import {
+  Container,
+  Title,
+  Text,
+  Group,
+  Stack,
+  TextInput,
+  PasswordInput,
+  Button,
+  Select,
+  Alert,
+  Badge,
+  Grid,
+  UnstyledButton,
+  Paper,
+  Divider,
+} from '@mantine/core';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { User as UserIcon, Lock, Settings as SettingsIcon, AlertCircle, Check, Shield, Globe, Coins } from 'lucide-react';
+import {
+  User as UserIcon,
+  Lock,
+  Settings as SettingsIcon,
+  AlertCircle,
+  Check,
+  ShieldCheck,
+  Globe,
+  Coins,
+  Mail,
+  Shield,
+  Sparkles,
+  KeyRound,
+} from 'lucide-react';
 import { useUpdateUserMutation } from '../users/user.slice';
 import { useChangePasswordMutation, setUser } from '../auth/auth.slice';
 
@@ -13,16 +42,16 @@ export const SettingsPage: React.FC = () => {
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<string>('profile');
-  
+
   // Profile State
   const [profileName, setProfileName] = useState(user?.name || '');
   const [profileEmail, setProfileEmail] = useState(user?.email || '');
-  
+
   // Password State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
   // Preference States
   const [currency, setCurrency] = useState(localStorage.getItem('pref_currency') || 'USD');
   const [timezone, setTimezone] = useState(localStorage.getItem('pref_timezone') || 'UTC');
@@ -48,11 +77,11 @@ export const SettingsPage: React.FC = () => {
     try {
       const res = await updateUser({
         id: user._id,
-        data: { name: profileName, email: profileEmail }
+        data: { name: profileName, email: profileEmail },
       }).unwrap();
-      
+
       if (res.success) {
-        setProfileSuccess('Profile updated successfully!');
+        setProfileSuccess('Profile details updated successfully!');
         dispatch(setUser(res.data));
       }
     } catch (err: any) {
@@ -79,7 +108,7 @@ export const SettingsPage: React.FC = () => {
         setConfirmPassword('');
       }
     } catch (err: any) {
-      setPasswordError(err?.data?.error?.message || 'Failed to update password. Verify current password.');
+      setPasswordError(err?.data?.error?.message || 'Failed to update password. Please verify your current password.');
     }
   };
 
@@ -93,178 +122,155 @@ export const SettingsPage: React.FC = () => {
   };
 
   const sidebarItems = [
-    { id: 'profile', label: 'My Profile', icon: UserIcon, desc: 'Manage your personal details' },
-    { id: 'security', label: 'Security & Sign-in', icon: Lock, desc: 'Change password & credentials' },
-    { id: 'preferences', label: 'Preferences', icon: SettingsIcon, desc: 'Workspace & display setups' },
+    { id: 'profile', label: 'My Profile', icon: UserIcon, desc: 'Personal info & details' },
+    { id: 'security', label: 'Security & Password', icon: Lock, desc: 'Password & credentials' },
+    { id: 'preferences', label: 'Preferences', icon: SettingsIcon, desc: 'Display & localization' },
   ];
 
   return (
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      {/* Banner / Header Card */}
-      <Card
+      {/* Top Page Header */}
+      <Group justify="space-between" align="center" mb="xl">
+        <div>
+          <Title
+            order={1}
+            style={{
+              color: '#0f172a',
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              letterSpacing: '-0.03em',
+            }}
+          >
+            Account & Settings
+          </Title>
+          <Text size="sm" mt={4} style={{ color: '#64748b' }}>
+            Manage your personal profile, security credentials, and workspace preferences.
+          </Text>
+        </div>
+      </Group>
+
+      {/* User Header Profile Card */}
+      <Paper
+        p="xl"
         radius="xl"
+        withBorder
         mb="xl"
-        p={0}
         style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-          color: '#ffffff',
-          boxShadow: '0 12px 32px rgba(59, 130, 246, 0.3)',
-          overflow: 'hidden',
-          position: 'relative',
+          borderColor: '#e8ecf4',
+          background: '#ffffff',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.03)',
         }}
       >
-        {/* Decorative circles */}
-        <div style={{
-          position: 'absolute', top: '-40px', right: '-40px',
-          width: '200px', height: '200px', borderRadius: '50%',
-          background: 'rgba(255,255,255,0.06)',
-        }} />
-        <div style={{
-          position: 'absolute', bottom: '-60px', right: '120px',
-          width: '160px', height: '160px', borderRadius: '50%',
-          background: 'rgba(255,255,255,0.04)',
-        }} />
-        <div style={{ padding: '28px 32px', position: 'relative', zIndex: 1 }}>
-          <Group align="center" gap="xl" wrap="nowrap">
-            <UserAvatar
-              size={72}
-              name={user?.name}
-              email={user?.email}
-              avatarUrl={user?.avatarUrl}
-              style={{ border: '3px solid rgba(255, 255, 255, 0.35)', flexShrink: 0 }}
-            />
-            <div>
-              <Title
-                order={3}
-                style={{
-                  fontWeight: 700,
-                  fontSize: '1.375rem',
-                  letterSpacing: '-0.025em',
-                  lineHeight: 1.25,
-                  color: '#ffffff',
-                }}
-              >
+        <Group align="center" gap="xl" wrap="nowrap">
+          <UserAvatar
+            size={72}
+            name={user?.name}
+            avatarUrl={user?.avatarUrl}
+          />
+          <div style={{ flex: 1 }}>
+            <Group gap="sm" mb={4} align="center">
+              <Title order={3} style={{ color: '#0f172a', fontWeight: 800, fontSize: '1.25rem' }}>
                 {user?.name}
               </Title>
-              <Text
-                size="sm"
-                style={{
-                  color: 'rgba(255, 255, 255, 0.75)',
-                  marginTop: '4px',
-                  marginBottom: '10px',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {user?.email}
-              </Text>
-              <Group gap="xs">
-                <Badge
-                  color="white"
-                  variant="white"
-                  size="sm"
-                  style={{
-                    color: '#3b82f6',
-                    fontWeight: 700,
-                    fontSize: '0.6875rem',
-                  }}
-                >
-                  {user?.role.replace('_', ' ')}
+              <Badge variant="filled" color="blue" size="md" radius="sm">
+                {user?.role?.replace('_', ' ').toUpperCase()}
+              </Badge>
+              {user?.department && (
+                <Badge variant="light" color="gray" size="md" radius="sm">
+                  {user?.department.toUpperCase()}
                 </Badge>
-                {user?.department && (
-                  <Badge
-                    variant="outline"
-                    size="sm"
-                    style={{
-                      color: '#ffffff',
-                      borderColor: 'rgba(255, 255, 255, 0.4)',
-                      fontSize: '0.6875rem',
-                    }}
-                  >
-                    {user?.department}
-                  </Badge>
-                )}
+              )}
+            </Group>
+            <Group gap="md">
+              <Group gap="xs">
+                <Mail size={14} color="#64748b" />
+                <Text size="sm" style={{ color: '#64748b' }}>{user?.email}</Text>
               </Group>
-            </div>
-          </Group>
-        </div>
-      </Card>
+              <Group gap="xs">
+                <ShieldCheck size={14} color="#10b981" />
+                <Text size="sm" fw={600} style={{ color: '#10b981' }}>Active Account</Text>
+              </Group>
+            </Group>
+          </div>
+        </Group>
+      </Paper>
 
+      {/* Main Grid Content */}
       <Grid gutter="xl">
         {/* Left Navigation Sidebar */}
         <Grid.Col span={{ base: 12, md: 4 }}>
-          <Stack gap="xs">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <UnstyledButton
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    padding: '14px 16px',
-                    borderRadius: '12px',
-                    backgroundColor: isActive ? '#eff6ff' : 'transparent',
-                    borderLeft: isActive ? '3px solid #3b82f6' : '3px solid transparent',
-                    transition: 'all 0.18s ease',
-                    border: isActive ? '1px solid #dbeafe' : '1px solid transparent',
-                    borderLeftWidth: isActive ? '3px' : '1px',
-                  }}
-                >
-                  <Group gap="md" wrap="nowrap">
-                    <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
-                      backgroundColor: isActive ? '#3b82f6' : '#f1f5f9',
-                      color: isActive ? '#ffffff' : '#64748b',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+          <Paper p="md" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+            <Stack gap="xs">
+              {sidebarItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <UnstyledButton
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      backgroundColor: isActive ? '#eff6ff' : 'transparent',
+                      border: isActive ? '1px solid #bfdbfe' : '1px solid transparent',
                       transition: 'all 0.18s ease',
-                      flexShrink: 0,
-                      boxShadow: isActive ? '0 4px 10px rgba(59,130,246,0.3)' : 'none',
-                    }}>
-                      <Icon size={17} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Text
-                        fw={isActive ? 600 : 500}
+                    }}
+                  >
+                    <Group gap="md" wrap="nowrap">
+                      <Paper
+                        p={8}
+                        radius="md"
+                        bg={isActive ? '#2563eb' : '#f1f5f9'}
                         style={{
-                          fontSize: '0.875rem',
-                          color: isActive ? '#1d4ed8' : '#475569',
-                          letterSpacing: '-0.01em',
-                          lineHeight: 1.3,
+                          color: isActive ? '#ffffff' : '#64748b',
+                          transition: 'all 0.18s ease',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
                       >
-                        {item.label}
-                      </Text>
-                      <Text
-                        style={{
-                          fontSize: '0.75rem',
-                          color: '#94a3b8',
-                          marginTop: '2px',
-                        }}
-                      >
-                        {item.desc}
-                      </Text>
-                    </div>
-                  </Group>
-                </UnstyledButton>
-              );
-            })}
-          </Stack>
+                        <Icon size={18} color={isActive ? '#ffffff' : '#64748b'} />
+                      </Paper>
+                      <div style={{ flex: 1 }}>
+                        <Text
+                          fw={isActive ? 700 : 500}
+                          style={{
+                            fontSize: '0.875rem',
+                            color: isActive ? '#1d4ed8' : '#334155',
+                            lineHeight: 1.3,
+                          }}
+                        >
+                          {item.label}
+                        </Text>
+                        <Text style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '2px' }}>
+                          {item.desc}
+                        </Text>
+                      </div>
+                    </Group>
+                  </UnstyledButton>
+                );
+              })}
+            </Stack>
+          </Paper>
         </Grid.Col>
 
-        {/* Right Active Panel */}
+        {/* Right Content Panel */}
         <Grid.Col span={{ base: 12, md: 8 }}>
           {activeTab === 'profile' && (
-            <Card withBorder shadow="sm" p="xl" radius="lg">
-              <Group gap="sm" mb="lg">
-                <UserIcon size={20} color="#3b82f6" />
-                <Title order={4} style={{ color: '#111827' }}>Profile Settings</Title>
+            <Paper p="xl" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+              <Group gap="xs" mb="xs">
+                <Paper p={6} radius="md" bg="#eff6ff">
+                  <UserIcon size={18} color="#2563eb" />
+                </Paper>
+                <Title order={4} style={{ color: '#0f172a', fontWeight: 800 }}>
+                  Profile Information
+                </Title>
               </Group>
+              <Text size="sm" style={{ color: '#64748b' }} mb="xl">
+                Update your personal name and communication email address.
+              </Text>
 
               <form onSubmit={handleUpdateProfile}>
                 <Stack gap="md">
@@ -281,42 +287,69 @@ export const SettingsPage: React.FC = () => {
 
                   <TextInput
                     label="Full Name"
-                    placeholder="e.g. John Doe"
+                    placeholder="Enter your full name"
                     value={profileName}
                     onChange={(e) => setProfileName(e.target.value)}
                     required
+                    radius="md"
+                    leftSection={<UserIcon size={16} color="#64748b" />}
                   />
 
                   <TextInput
                     label="Email Address"
-                    placeholder="e.g. johndoe@company.com"
+                    placeholder="Enter email address"
                     value={profileEmail}
                     onChange={(e) => setProfileEmail(e.target.value)}
                     required
                     type="email"
+                    radius="md"
+                    leftSection={<Mail size={16} color="#64748b" />}
                   />
 
                   <TextInput
-                    label="Role"
-                    value={user?.role.replace('_', ' ') || ''}
+                    label="Assigned System Role"
+                    value={user?.role?.replace('_', ' ').toUpperCase() || ''}
                     disabled
-                    description="Contact Administrator to adjust role settings."
+                    radius="md"
+                    leftSection={<Shield size={16} color="#94a3b8" />}
+                    description="Roles and system permissions are managed by Administrators."
                   />
 
-                  <Button type="submit" loading={isUpdatingProfile} mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
-                    Save Changes
-                  </Button>
+                  <Divider my="xs" style={{ borderColor: '#f1f5f9' }} />
+
+                  <Group justify="flex-end">
+                    <Button
+                      type="submit"
+                      loading={isUpdatingProfile}
+                      size="md"
+                      radius="md"
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                        fontWeight: 600,
+                        boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                      }}
+                    >
+                      Save Changes
+                    </Button>
+                  </Group>
                 </Stack>
               </form>
-            </Card>
+            </Paper>
           )}
 
           {activeTab === 'security' && (
-            <Card withBorder shadow="sm" p="xl" radius="lg">
-              <Group gap="sm" mb="lg">
-                <Shield size={20} color="#3b82f6" />
-                <Title order={4} style={{ color: '#111827' }}>Security & Credentials</Title>
+            <Paper p="xl" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+              <Group gap="xs" mb="xs">
+                <Paper p={6} radius="md" bg="#eff6ff">
+                  <KeyRound size={18} color="#2563eb" />
+                </Paper>
+                <Title order={4} style={{ color: '#0f172a', fontWeight: 800 }}>
+                  Security & Password
+                </Title>
               </Group>
+              <Text size="sm" style={{ color: '#64748b' }} mb="xl">
+                Ensure your account is using a strong password to protect your workspace data.
+              </Text>
 
               <form onSubmit={handleChangePassword}>
                 <Stack gap="md">
@@ -331,47 +364,71 @@ export const SettingsPage: React.FC = () => {
                     </Alert>
                   )}
 
-                  <TextInput
+                  <PasswordInput
                     label="Current Password"
                     placeholder="Enter current password"
-                    type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
+                    radius="md"
+                    leftSection={<Lock size={16} color="#64748b" />}
                   />
 
-                  <TextInput
+                  <PasswordInput
                     label="New Password"
-                    placeholder="Minimum 6 characters"
-                    type="password"
+                    placeholder="At least 6 characters"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
+                    radius="md"
+                    leftSection={<Lock size={16} color="#64748b" />}
                   />
 
-                  <TextInput
+                  <PasswordInput
                     label="Confirm New Password"
-                    placeholder="Repeat new password"
-                    type="password"
+                    placeholder="Re-enter new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
+                    radius="md"
+                    leftSection={<Lock size={16} color="#64748b" />}
                   />
 
-                  <Button type="submit" loading={isChangingPassword} mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
-                    Update Password
-                  </Button>
+                  <Divider my="xs" style={{ borderColor: '#f1f5f9' }} />
+
+                  <Group justify="flex-end">
+                    <Button
+                      type="submit"
+                      loading={isChangingPassword}
+                      size="md"
+                      radius="md"
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                        fontWeight: 600,
+                        boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                      }}
+                    >
+                      Update Password
+                    </Button>
+                  </Group>
                 </Stack>
               </form>
-            </Card>
+            </Paper>
           )}
 
           {activeTab === 'preferences' && (
-            <Card withBorder shadow="sm" p="xl" radius="lg">
-              <Group gap="sm" mb="lg">
-                <Globe size={20} color="#3b82f6" />
-                <Title order={4} style={{ color: '#111827' }}>Workspace Customization</Title>
+            <Paper p="xl" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+              <Group gap="xs" mb="xs">
+                <Paper p={6} radius="md" bg="#eff6ff">
+                  <Sparkles size={18} color="#2563eb" />
+                </Paper>
+                <Title order={4} style={{ color: '#0f172a', fontWeight: 800 }}>
+                  Workspace Preferences
+                </Title>
               </Group>
+              <Text size="sm" style={{ color: '#64748b' }} mb="xl">
+                Customize local currency and time zone formats for your view.
+              </Text>
 
               <form onSubmit={handleSavePreferences}>
                 <Stack gap="md">
@@ -382,22 +439,23 @@ export const SettingsPage: React.FC = () => {
                   )}
 
                   <Select
-                    label="Default Currency Symbol"
-                    description="Preferred currency symbol used inside project details & billing."
+                    label="Default Currency Format"
+                    description="Used across total project amounts, invoices, and billing screens."
                     data={[
-                      { value: 'USD', label: 'USD ($)' },
-                      { value: 'EUR', label: 'EUR (€)' },
-                      { value: 'GBP', label: 'GBP (£)' },
-                      { value: 'INR', label: 'INR (₹)' },
+                      { value: 'USD', label: 'USD ($) - US Dollar' },
+                      { value: 'EUR', label: 'EUR (€) - Euro' },
+                      { value: 'GBP', label: 'GBP (£) - British Pound' },
+                      { value: 'INR', label: 'INR (₹) - Indian Rupee' },
                     ]}
                     value={currency}
                     onChange={(val) => setCurrency(val || 'USD')}
-                    leftSection={<Coins size={16} />}
+                    leftSection={<Coins size={16} color="#64748b" />}
+                    radius="md"
                   />
 
                   <Select
-                    label="Workspace Timezone"
-                    description="Adjust default time formats for automatic timelogs."
+                    label="Workspace Time Zone"
+                    description="Adjust time formats for automatic time tracking and log entries."
                     data={[
                       { value: 'UTC', label: 'UTC (GMT+00:00)' },
                       { value: 'IST', label: 'Asia/Kolkata (GMT+05:30)' },
@@ -406,15 +464,29 @@ export const SettingsPage: React.FC = () => {
                     ]}
                     value={timezone}
                     onChange={(val) => setTimezone(val || 'UTC')}
-                    leftSection={<Globe size={16} />}
+                    leftSection={<Globe size={16} color="#64748b" />}
+                    radius="md"
                   />
 
-                  <Button type="submit" mt="sm" radius="md" style={{ alignSelf: 'flex-start' }}>
-                    Save Preferences
-                  </Button>
+                  <Divider my="xs" style={{ borderColor: '#f1f5f9' }} />
+
+                  <Group justify="flex-end">
+                    <Button
+                      type="submit"
+                      size="md"
+                      radius="md"
+                      style={{
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                        fontWeight: 600,
+                        boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                      }}
+                    >
+                      Save Preferences
+                    </Button>
+                  </Group>
                 </Stack>
               </form>
-            </Card>
+            </Paper>
           )}
         </Grid.Col>
       </Grid>
