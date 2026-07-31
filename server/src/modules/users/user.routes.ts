@@ -7,7 +7,12 @@ import { PERMISSIONS } from '../../config/permissions';
 const router = Router();
 
 router.use(authMiddleware);
-router.use(rbacMiddleware(PERMISSIONS['users:manage'])); // Only admins/PMs as defined
+
+// Any authenticated user can view a profile
+router.get('/:id', userController.getUserById);
+
+// Only admins/PMs can manage users
+router.use(rbacMiddleware(PERMISSIONS['users:manage']));
 
 router.get('/', userController.getUsers);
 router.patch('/:id', userController.updateUser);

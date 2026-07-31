@@ -56,3 +56,36 @@ export const getTeamTimeLogs = asyncHandler(async (req: Request, res: Response) 
     data: timeLogs,
   });
 });
+
+export const createManualLog = asyncHandler(async (req: Request, res: Response) => {
+  const { taskId, hours, description } = req.body;
+  const userId = (req as any).user._id || (req as any).user.id;
+  
+  const timeLog = await timeLogService.createManualLog(userId, taskId, Number(hours), description);
+  
+  res.status(201).json({
+    success: true,
+    data: timeLog,
+    message: 'Time logged successfully',
+  });
+});
+
+export const deleteTimeLog = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  await timeLogService.deleteTimeLog(id);
+  res.status(200).json({
+    success: true,
+    data: {},
+    message: 'Time log deleted successfully',
+  });
+});
+
+export const clearTaskTimeLogs = asyncHandler(async (req: Request, res: Response) => {
+  const { taskId } = req.params;
+  await timeLogService.clearTaskTimeLogs(taskId);
+  res.status(200).json({
+    success: true,
+    data: {},
+    message: 'All time logs for task cleared successfully',
+  });
+});

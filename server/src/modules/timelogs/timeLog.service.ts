@@ -1,6 +1,7 @@
 import { TimeLog, ITimeLog } from './timeLog.model';
 import { Task } from '../tasks/task.model';
 import { Milestone } from '../milestones/milestone.model';
+import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
 import { ApiError } from '../../utils/ApiError';
 
 export const startTimer = async (userId: string, taskId: string, description?: string): Promise<ITimeLog> => {
@@ -53,15 +54,24 @@ export const stopTimer = async (userId: string, description?: string): Promise<I
   // Increment spentHours on the Task and Milestone
   const durationHours = durationSeconds / 3600;
   const taskDoc: any = activeTimer.task;
-  
-  await Task.findByIdAndUpdate(taskDoc._id, {
-    $inc: { spentHours: durationHours }
-  });
+
+  const updatedTask = await Task.findByIdAndUpdate(
+    taskDoc._id,
+    { $inc: { spentHours: durationHours } },
+    { new: true }
+  );
+
+  // Auto-complete task if spentHours has reached or exceeded estimatedHours
+  if (updatedTask && updatedTask.spentHours >= updatedTask.estimatedHours && updatedTask.status !== 'completed') {
+    await Task.findByIdAndUpdate(taskDoc._id, { status: 'completed' });
+  }
 
   if (taskDoc.milestone) {
-    await Milestone.findByIdAndUpdate(taskDoc.milestone, {
+    const milestoneId = typeof taskDoc.milestone === 'object' ? taskDoc.milestone._id : taskDoc.milestone;
+    await Milestone.findByIdAndUpdate(milestoneId, {
       $inc: { spentHours: durationHours }
     });
+    await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
   }
 
   return activeTimer;
@@ -111,4 +121,119 @@ export const getTeamTimeLogs = async (): Promise<ITimeLog[]> => {
     })
     .sort({ startTime: -1 })
     .limit(100);
+};
+
+export const createManualLog = async (userId: string, taskId: string, hours: number, description?: string): Promise<ITimeLog> => {
+  const task = await Task.findById(taskId);
+  if (!task) {
+    throw new ApiError(404, 'Task not found');
+  }
+
+  const durationSeconds = Math.round(hours * 3600);
+  const now = new Date();
+  const startTime = new Date(now.getTime() - durationSeconds * 1000);
+
+  const newLog = await TimeLog.create({
+    user: userId,
+    task: taskId,
+    startTime,
+    endTime: now,
+    durationSeconds,
+    description: description || 'Manual time log',
+  });
+
+  const updatedTask = await Task.findByIdAndUpdate(
+    taskId,
+    { $inc: { spentHours: hours } },
+    { new: true }
+  );
+
+  if (updatedTask && updatedTask.spentHours >= updatedTask.estimatedHours && updatedTask.status !== 'completed') {
+    await Task.findByIdAndUpdate(taskId, { status: 'completed' });
+  }
+
+  if (task.milestone) {
+    const milestoneId = typeof task.milestone === 'object' ? (task.milestone as any)._id : task.milestone;
+    await Milestone.findByIdAndUpdate(milestoneId, {
+      $inc: { spentHours: hours }
+    });
+    await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
+  }
+
+  return newLog;
+};
+
+export const deleteTimeLog = async (logId: string): Promise<void> => {
+  const log = await TimeLog.findById(logId);
+  if (!log) {
+    throw new ApiError(404, 'Time log not found');
+  }
+
+  const durationHours = (log.durationSeconds || 0) / 3600;
+  const taskId = typeof log.task === 'object' ? (log.task as any)._id : log.task;
+
+  await TimeLog.findByIdAndDelete(logId);
+
+  if (taskId) {
+    const updatedTask = await Task.findByIdAndUpdate(
+      taskId,
+      { $inc: { spentHours: -durationHours } },
+      { new: true }
+    );
+
+    if (updatedTask) {
+      if (updatedTask.spentHours < 0) {
+        await Task.findByIdAndUpdate(taskId, { spentHours: 0 });
+        updatedTask.spentHours = 0;
+      }
+
+      if (updatedTask.spentHours < updatedTask.estimatedHours && updatedTask.status === 'completed') {
+        const newStatus = updatedTask.spentHours > 0 ? 'in_progress' : 'assigned';
+        await Task.findByIdAndUpdate(taskId, { status: newStatus });
+      }
+
+      if (updatedTask.milestone) {
+        const milestoneId = typeof updatedTask.milestone === 'object' ? (updatedTask.milestone as any)._id : updatedTask.milestone;
+        await Milestone.findByIdAndUpdate(milestoneId, {
+          $inc: { spentHours: -durationHours }
+        });
+        const updatedMilestone = await Milestone.findById(milestoneId);
+        if (updatedMilestone && updatedMilestone.spentHours < 0) {
+          await Milestone.findByIdAndUpdate(milestoneId, { spentHours: 0 });
+        }
+        await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
+      }
+    }
+  }
+};
+
+export const clearTaskTimeLogs = async (taskId: string): Promise<void> => {
+  const task = await Task.findById(taskId);
+  if (!task) {
+    throw new ApiError(404, 'Task not found');
+  }
+
+  const logs = await TimeLog.find({ task: taskId });
+  const totalDurationSeconds = logs.reduce((sum, log) => sum + (log.durationSeconds || 0), 0);
+  const totalDurationHours = totalDurationSeconds / 3600;
+
+  await TimeLog.deleteMany({ task: taskId });
+
+  await Task.findByIdAndUpdate(taskId, { spentHours: 0 });
+
+  if (task.status === 'completed') {
+    await Task.findByIdAndUpdate(taskId, { status: 'assigned' });
+  }
+
+  if (task.milestone) {
+    const milestoneId = typeof task.milestone === 'object' ? (task.milestone as any)._id : task.milestone;
+    await Milestone.findByIdAndUpdate(milestoneId, {
+      $inc: { spentHours: -totalDurationHours }
+    });
+    const updatedMilestone = await Milestone.findById(milestoneId);
+    if (updatedMilestone && updatedMilestone.spentHours < 0) {
+      await Milestone.findByIdAndUpdate(milestoneId, { spentHours: 0 });
+    }
+    await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
+  }
 };

@@ -10,7 +10,7 @@ export interface ITask extends Document {
   startDate?: Date;
   endDate?: Date;
   assignedTo?: Types.ObjectId;
-  status: 'assigned' | 'in_progress' | 'in_review' | 'completed';
+  status: 'assigned' | 'in_progress' | 'in_review' | 'completed' | 'on_hold';
   attachments?: Types.ObjectId[];
   createdBy: Types.ObjectId;
   createdAt: Date;
@@ -58,7 +58,7 @@ const taskSchema = new Schema<ITask>(
     },
     status: {
       type: String,
-      enum: ['assigned', 'in_progress', 'in_review', 'completed'],
+      enum: ['assigned', 'in_progress', 'in_review', 'completed', 'on_hold'],
       default: 'assigned',
     },
     attachments: [

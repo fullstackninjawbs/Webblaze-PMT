@@ -5,6 +5,9 @@ import {
   getActiveTimer,
   getTimeLogsByTask,
   getTeamTimeLogs,
+  createManualLog,
+  deleteTimeLog,
+  clearTaskTimeLogs,
 } from './timeLog.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
@@ -19,12 +22,15 @@ router.use(authMiddleware);
 // Any authenticated user can start/stop their own timer
 router.post('/start', validate(startTimerSchema), startTimer);
 router.post('/stop', validate(stopTimerSchema), stopTimer);
+router.post('/manual', createManualLog);
 router.get('/active', getActiveTimer);
 
 // Admin/PM only team view
 router.get('/team', rbacMiddleware([Role.ADMIN, Role.PM]), getTeamTimeLogs);
 
-// View logs for a specific task
+// View & Clear logs for a specific task
 router.get('/task/:taskId', getTimeLogsByTask);
+router.delete('/task/:taskId/clear', clearTaskTimeLogs);
+router.delete('/:id', deleteTimeLog);
 
 export default router;

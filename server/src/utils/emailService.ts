@@ -214,3 +214,173 @@ export const sendInviteEmail = async ({
     // Non-blocking error for user creation
   }
 };
+
+interface SendTaskAssignmentParams {
+  to: string;
+  assigneeName: string;
+  taskTitle: string;
+  taskDescription?: string;
+  estimatedHours: number;
+  department?: string;
+  taskUrl: string;
+}
+
+export const sendTaskAssignmentEmail = async ({
+  to,
+  assigneeName,
+  taskTitle,
+  taskDescription,
+  estimatedHours,
+  department,
+  taskUrl,
+}: SendTaskAssignmentParams): Promise<void> => {
+  const transporter = createTransporter();
+  const from = process.env.SMTP_FROM || '"WebBlaze PMS" <no-reply@webblaze.com>';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>New Task Assigned - WebBlaze PMS</title>
+      <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #0f172a; }
+        .container { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e8ecf4; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #173775 0%, #2563eb 50%, #4f46e5 100%); padding: 32px 24px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+        .header p { margin: 6px 0 0; font-size: 14px; opacity: 0.9; }
+        .body { padding: 32px 28px; }
+        .greeting { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+        .text { font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px; }
+        .card { background: #f8fafc; border: 1px solid #e8ecf4; border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; }
+        .card-item { font-size: 14px; color: #475569; margin-bottom: 6px; }
+        .card-item strong { color: #0f172a; }
+        .cta-box { text-align: center; margin: 32px 0; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); color: #ffffff !important; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35); }
+        .footer { border-top: 1px solid #f1f4f9; padding: 20px 28px; font-size: 12px; color: #94a3b8; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>WebBlaze PMS</h1>
+          <p>Task Assignment Notice</p>
+        </div>
+        <div class="body">
+          <div class="greeting">Hello ${assigneeName},</div>
+          <p class="text">
+            A new task has been assigned to you in WebBlaze PMS:
+          </p>
+
+          <div class="card">
+            <div class="card-item"><strong>Task:</strong> ${taskTitle}</div>
+            ${department ? `<div class="card-item"><strong>Department:</strong> ${department}</div>` : ''}
+            <div class="card-item"><strong>Estimated Time:</strong> ${estimatedHours}h</div>
+            ${taskDescription ? `<div class="card-item"><strong>Description:</strong> ${taskDescription}</div>` : ''}
+          </div>
+
+          <div class="cta-box">
+            <a href="${taskUrl}" class="btn" target="_blank">View Task & Start Work</a>
+          </div>
+        </div>
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} WebBlaze PMS. All rights reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from,
+      to,
+      subject: `New Task Assigned: ${taskTitle}`,
+      html,
+    });
+    logger.info(`Task assignment email dispatched successfully to ${to}`);
+  } catch (error) {
+    logger.error('Error sending task assignment email:', error);
+  }
+};
+
+interface SendTaskStatusChangeParams {
+  to: string;
+  recipientName: string;
+  taskTitle: string;
+  oldStatus: string;
+  newStatus: string;
+  taskUrl: string;
+}
+
+export const sendTaskStatusChangeEmail = async ({
+  to,
+  recipientName,
+  taskTitle,
+  oldStatus,
+  newStatus,
+  taskUrl,
+}: SendTaskStatusChangeParams): Promise<void> => {
+  const transporter = createTransporter();
+  const from = process.env.SMTP_FROM || '"WebBlaze PMS" <no-reply@webblaze.com>';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Task Status Updated - WebBlaze PMS</title>
+      <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #0f172a; }
+        .container { max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e8ecf4; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #173775 0%, #2563eb 50%, #4f46e5 100%); padding: 32px 24px; text-align: center; color: #ffffff; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; }
+        .header p { margin: 6px 0 0; font-size: 14px; opacity: 0.9; }
+        .body { padding: 32px 28px; }
+        .greeting { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+        .text { font-size: 15px; line-height: 1.6; color: #334155; margin-bottom: 24px; }
+        .card { background: #f8fafc; border: 1px solid #e8ecf4; border-radius: 12px; padding: 18px 20px; margin-bottom: 24px; }
+        .card-item { font-size: 14px; color: #475569; margin-bottom: 6px; }
+        .card-item strong { color: #0f172a; }
+        .cta-box { text-align: center; margin: 32px 0; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); color: #ffffff !important; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 10px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35); }
+        .footer { border-top: 1px solid #f1f4f9; padding: 20px 28px; font-size: 12px; color: #94a3b8; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>WebBlaze PMS</h1>
+          <p>Task Update Notification</p>
+        </div>
+        <div class="body">
+          <div class="greeting">Hello ${recipientName},</div>
+          <p class="text">
+            The status of task <strong>${taskTitle}</strong> has changed from <strong>${oldStatus.replace('_', ' ')}</strong> to <strong>${newStatus.replace('_', ' ')}</strong>.
+          </p>
+
+          <div class="cta-box">
+            <a href="${taskUrl}" class="btn" target="_blank">View Task</a>
+          </div>
+        </div>
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} WebBlaze PMS. All rights reserved.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from,
+      to,
+      subject: `Task Status Update: ${taskTitle} is now ${newStatus.replace('_', ' ')}`,
+      html,
+    });
+    logger.info(`Task status change email dispatched successfully to ${to}`);
+  } catch (error) {
+    logger.error('Error sending task status change email:', error);
+  }
+};
+

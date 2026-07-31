@@ -6,6 +6,12 @@ export class UserService {
     return User.find().select('-password').sort({ createdAt: -1 });
   }
 
+  static async getUserById(id: string) {
+    const user = await User.findById(id).select('-password');
+    if (!user) throw new ApiError(404, 'User not found');
+    return user;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async updateUser(id: string, data: any) {
     if (data.password) delete data.password; // Do not update password here
