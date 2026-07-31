@@ -192,17 +192,18 @@ export const DashboardLayout: React.FC = () => {
                     width: 28,
                     height: 28,
                     borderRadius: '8px',
-                    backgroundColor: active ? '#eff6ff' : 'transparent',
-                    color: active ? '#2563eb' : '#64748b',
+                    backgroundColor: active ? 'rgba(255, 255, 255, 0.22)' : 'transparent',
+                    color: active ? '#ffffff' : '#64748b',
                     marginRight: 10,
+                    flexShrink: 0,
                   }}
                 >
-                  <item.icon size={18} />
+                  <item.icon size={18} color={active ? '#ffffff' : undefined} />
                 </div>
                 <Text
                   size="sm"
-                  fw={active ? 700 : 500}
-                  style={{ color: active ? '#1e40af' : '#475569', fontSize: '0.875rem' }}
+                  fw={active ? 600 : 500}
+                  style={{ color: active ? '#ffffff' : '#475569', fontSize: '0.875rem' }}
                 >
                   {item.name}
                 </Text>

@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Container, Title, Text, Group, Card, Badge, Stack, SimpleGrid,
+  Container, Title, Text, Group, Badge, Stack, SimpleGrid,
   Tabs, Table, Progress, Loader, Center, Button, Paper,
-  ThemeIcon, RingProgress,
+  RingProgress,
 } from '@mantine/core';
 import {
   ArrowLeft, Mail, CheckCircle2, Clock, Briefcase, CheckSquare,
@@ -32,22 +32,39 @@ const statusColor = (s: string) => {
   return 'gray';
 };
 
+const bgColors: Record<string, { bg: string; iconColor: string }> = {
+  blue: { bg: '#eff6ff', iconColor: '#2563eb' },
+  green: { bg: '#f0fdf4', iconColor: '#16a34a' },
+  violet: { bg: '#faf5ff', iconColor: '#9333ea' },
+  orange: { bg: '#fff7ed', iconColor: '#ea580c' },
+};
+
 const StatCard = ({
   label, value, sub, icon: Icon, color,
-}: { label: string; value: string | number; sub?: string; icon: any; color: string }) => (
-  <Paper withBorder radius="md" p="md" style={{ borderTop: `3px solid var(--mantine-color-${color}-6)` }}>
-    <Group justify="space-between" align="flex-start">
-      <div>
-        <Text size="xs" c="dimmed" fw={600} tt="uppercase" mb={4}>{label}</Text>
-        <Text size="xl" fw={800} style={{ color: '#0f172a', lineHeight: 1 }}>{value}</Text>
-        {sub && <Text size="xs" c="dimmed" mt={4}>{sub}</Text>}
-      </div>
-      <ThemeIcon size={40} radius="md" variant="light" color={color}>
-        <Icon size={20} />
-      </ThemeIcon>
-    </Group>
-  </Paper>
-);
+}: { label: string; value: string | number; sub?: string; icon: any; color: string }) => {
+  const theme = bgColors[color] || { bg: '#f8fafc', iconColor: '#475569' };
+  return (
+    <Paper
+      p="lg"
+      radius="xl"
+      withBorder
+      style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+    >
+      <Group justify="space-between" mb="xs" align="flex-start">
+        <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+          {label}
+        </Text>
+        <Paper p={8} radius="md" bg={theme.bg}>
+          <Icon size={18} color={theme.iconColor} />
+        </Paper>
+      </Group>
+      <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+        {value}
+      </Text>
+      {sub && <Text size="xs" style={{ color: '#94a3b8' }} mt={6}>{sub}</Text>}
+    </Paper>
+  );
+};
 
 export const UserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -103,7 +120,7 @@ export const UserProfile: React.FC = () => {
   }
 
   return (
-    <Container size="xl" py="xl">
+    <Container size="xl">
       {/* Back Button */}
       <Button
         variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />}
@@ -113,32 +130,32 @@ export const UserProfile: React.FC = () => {
       </Button>
 
       {/* Header Card */}
-      <Card withBorder shadow="sm" radius="xl" p="xl" mb="xl"
-        style={{ background: 'linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%)', borderColor: '#ddd6fe' }}>
+      <Paper withBorder radius="xl" p="xl" mb="xl"
+        style={{ background: '#ffffff', borderColor: '#e8ecf4', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
         <Group align="center" gap="xl">
-          <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size={80} />
+          <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size={76} />
           <div style={{ flex: 1 }}>
             <Group gap="sm" mb={6} align="center">
-              <Title order={2} style={{ color: '#0f172a' }}>{member.name}</Title>
-              <Badge variant="filled" color={roleColor(member.role)} size="md">
+              <Title order={2} style={{ color: '#0f172a', fontWeight: 800 }}>{member.name}</Title>
+              <Badge variant="filled" color={roleColor(member.role)} size="md" radius="sm">
                 {member.role?.replace('_', ' ').toUpperCase()}
               </Badge>
               {member.department && (
-                <Badge variant="light" color="gray" size="sm">{member.department}</Badge>
+                <Badge variant="light" color="blue" size="md" radius="sm">{member.department.toUpperCase()}</Badge>
               )}
             </Group>
             <Group gap="xl" wrap="wrap">
               <Group gap="xs">
-                <Mail size={14} color="#64748b" />
-                <Text size="sm" c="dimmed">{member.email}</Text>
+                <Mail size={15} color="#64748b" />
+                <Text size="sm" style={{ color: '#64748b' }}>{member.email}</Text>
               </Group>
               <Group gap="xs">
-                <Activity size={14} color="#64748b" />
-                <Text size="sm" c="dimmed">{tasks.length} tasks assigned</Text>
+                <Activity size={15} color="#64748b" />
+                <Text size="sm" style={{ color: '#64748b' }}>{tasks.length} tasks assigned</Text>
               </Group>
               <Group gap="xs">
-                <Briefcase size={14} color="#64748b" />
-                <Text size="sm" c="dimmed">{memberProjects.length} active projects</Text>
+                <Briefcase size={15} color="#64748b" />
+                <Text size="sm" style={{ color: '#64748b' }}>{memberProjects.length} active projects</Text>
               </Group>
             </Group>
           </div>
@@ -146,16 +163,16 @@ export const UserProfile: React.FC = () => {
           {/* Completion Ring */}
           <Stack align="center" gap={4}>
             <RingProgress
-              size={90}
-              thickness={8}
+              size={84}
+              thickness={7}
               roundCaps
               sections={[{ value: completionRate, color: completionRate >= 80 ? 'green' : completionRate >= 50 ? 'blue' : 'orange' }]}
-              label={<Text ta="center" fw={800} size="sm">{completionRate}%</Text>}
+              label={<Text ta="center" fw={800} size="sm" style={{ color: '#0f172a' }}>{completionRate}%</Text>}
             />
-            <Text size="xs" c="dimmed" fw={600}>Completion Rate</Text>
+            <Text size="xs" fw={700} style={{ color: '#64748b', letterSpacing: '0.02em' }}>Completion Rate</Text>
           </Stack>
         </Group>
-      </Card>
+      </Paper>
 
       {/* Stats Row */}
       <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md" mb="xl">
@@ -181,7 +198,7 @@ export const UserProfile: React.FC = () => {
 
         {/* Tasks Tab */}
         <Tabs.Panel value="tasks">
-          <Card withBorder radius="md" p={0}>
+          <Paper withBorder radius="xl" p={0} style={{ borderColor: '#e8ecf4', overflow: 'hidden', background: '#ffffff' }}>
             {tasks.length === 0 ? (
               <Center h={200}>
                 <Stack align="center">
@@ -190,20 +207,22 @@ export const UserProfile: React.FC = () => {
                 </Stack>
               </Center>
             ) : (
-              <Table verticalSpacing="sm" horizontalSpacing="md">
+              <Table verticalSpacing="md" horizontalSpacing="lg">
                 <Table.Thead bg="#f8fafc">
                   <Table.Tr>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>TASK</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>STATUS</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>DEPT</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>HOURS</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>PROGRESS</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>DUE DATE</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>TASK</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>STATUS</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>DEPT</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>HOURS</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>PROGRESS</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>DUE DATE</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {tasks.map((task) => {
-                    const progress = Math.min(((task.spentHours || 0) / (task.estimatedHours || 1)) * 100, 100);
+                    const spent = task.spentHours ? Number(task.spentHours.toFixed(1)) : 0;
+                    const estimated = task.estimatedHours || 1;
+                    const progress = Math.min((spent / estimated) * 100, 100);
                     const isOverdue = task.endDate && new Date(task.endDate) < new Date() && task.status !== 'completed';
                     return (
                       <Table.Tr key={task._id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/tasks/${task._id}`)}>
@@ -215,14 +234,14 @@ export const UserProfile: React.FC = () => {
                         </Table.Td>
                         <Table.Td>
                           <Badge color={statusColor(task.status)} variant="light" size="sm">
-                            {task.status?.replace('_', ' ')}
+                            {task.status?.replace('_', ' ').toUpperCase()}
                           </Badge>
                         </Table.Td>
                         <Table.Td>
-                          <Badge variant="outline" color="gray" size="sm">{task.department || 'N/A'}</Badge>
+                          <Badge variant="outline" color="gray" size="sm">{task.department ? task.department.toUpperCase() : 'N/A'}</Badge>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" fw={600}>{task.spentHours || 0}h / {task.estimatedHours}h</Text>
+                          <Text size="sm" fw={600} style={{ color: '#0f172a' }}>{spent}h / {estimated}h</Text>
                         </Table.Td>
                         <Table.Td style={{ minWidth: 120 }}>
                           <Progress value={progress} size="sm" radius="xl"
@@ -240,12 +259,12 @@ export const UserProfile: React.FC = () => {
                 </Table.Tbody>
               </Table>
             )}
-          </Card>
+          </Paper>
         </Tabs.Panel>
 
         {/* Time Logs Tab */}
         <Tabs.Panel value="timelogs">
-          <Card withBorder radius="md" p="xl">
+          <Paper withBorder radius="xl" p="xl" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
             {userTimeLogs.length === 0 ? (
               <Center h={200}>
                 <Stack align="center">
@@ -273,8 +292,8 @@ export const UserProfile: React.FC = () => {
 
                   const endFormatted = log.endTime
                     ? new Date(log.endTime).toLocaleString('en-GB', {
-                        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
-                      })
+                      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
+                    })
                     : 'Currently Working (Active Session)';
 
                   return (
@@ -323,12 +342,12 @@ export const UserProfile: React.FC = () => {
                 })}
               </Stack>
             )}
-          </Card>
+          </Paper>
         </Tabs.Panel>
 
         {/* Projects Tab */}
         <Tabs.Panel value="projects">
-          <Card withBorder radius="md" p={0}>
+          <Paper withBorder radius="xl" p={0} style={{ borderColor: '#e8ecf4', overflow: 'hidden', background: '#ffffff' }}>
             {memberProjects.length === 0 ? (
               <Center h={200}>
                 <Stack align="center">
@@ -337,15 +356,15 @@ export const UserProfile: React.FC = () => {
                 </Stack>
               </Center>
             ) : (
-              <Table verticalSpacing="sm" horizontalSpacing="md">
+              <Table verticalSpacing="md" horizontalSpacing="lg">
                 <Table.Thead bg="#f8fafc">
                   <Table.Tr>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>PROJECT</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>CLIENT</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>STATUS</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>BUDGET</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>TEAM SIZE</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ACTION</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>PROJECT</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>CLIENT</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>STATUS</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>TOTAL AMOUNT</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>TEAM SIZE</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.05em' }}>ACTION</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -361,7 +380,7 @@ export const UserProfile: React.FC = () => {
                       </Table.Td>
                       <Table.Td>
                         <Badge color={project.status === 'active' ? 'green' : project.status === 'completed' ? 'blue' : 'gray'} variant="light" size="sm">
-                          {project.status?.replace('_', ' ')}
+                          {project.status?.replace('_', ' ').toUpperCase()}
                         </Badge>
                       </Table.Td>
                       <Table.Td>
@@ -380,7 +399,7 @@ export const UserProfile: React.FC = () => {
                 </Table.Tbody>
               </Table>
             )}
-          </Card>
+          </Paper>
         </Tabs.Panel>
       </Tabs>
     </Container>
