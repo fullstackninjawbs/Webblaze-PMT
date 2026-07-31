@@ -4,11 +4,11 @@ import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation } from '../milestones/milestone.slice';
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Accordion, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper } from '@mantine/core';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock } from 'lucide-react';
+import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus, DEPARTMENT_OPTIONS } from '../../types';
@@ -306,17 +306,34 @@ export const ProjectDetails = () => {
             </Button>
           </Group>
 
-          <Accordion variant="separated" radius="md" multiple>
-            {milestones.map((milestone) => (
-              <MilestoneAccordionItem
-                key={milestone._id}
-                milestone={milestone}
-                onAddTask={openTaskDrawer}
-              />
-            ))}
-          </Accordion>
-
-          {milestones.length === 0 && (
+          {milestones.length > 0 ? (
+            <Card shadow="xs" p={0} radius="xl" withBorder style={{ borderColor: '#e8ecf4', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+              <Table.ScrollContainer minWidth={950}>
+                <Table verticalSpacing="md" horizontalSpacing="lg">
+                  <Table.Thead style={{ backgroundColor: '#f8faff' }}>
+                    <Table.Tr>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>MILESTONE</Table.Th>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>TASKS</Table.Th>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
+                      <Table.Th ta="right" style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIONS</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {milestones.map((milestone) => (
+                      <MilestoneTableRow
+                        key={milestone._id}
+                        milestone={milestone}
+                        onAddTask={openTaskDrawer}
+                      />
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
+            </Card>
+          ) : (
             <Card withBorder padding="xl" radius="md" style={{ textAlign: 'center', backgroundColor: '#F9FAFB' }} mt="md">
               <Text color="dimmed">No milestones created yet. Add one to get started!</Text>
             </Card>
@@ -471,7 +488,8 @@ export const ProjectDetails = () => {
   );
 };
 
-const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAddTask: (milestoneId: string, est: number, alloc: number) => void }) => {
+const MilestoneTableRow = ({ milestone, onAddTask }: { milestone: any; onAddTask: (milestoneId: string, est: number, alloc: number) => void }) => {
+  const [expanded, setExpanded] = useState(false);
   const { data: tasksData, isLoading } = useGetTasksByMilestoneQuery(milestone._id);
   const tasks = tasksData?.data || [];
   const { data: activeTimerData } = useGetActiveTimerQuery();
@@ -484,7 +502,7 @@ const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAd
   const activeTimer = activeTimerData?.data;
   const spentHours = tasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
   const allocatedHours = tasks.reduce((sum: number, t: any) => sum + (t.estimatedHours || 0), 0);
-  const progressPercent = Math.min((spentHours / milestone.estimatedHours) * 100, 100);
+  const progressPercent = Math.min((spentHours / (milestone.estimatedHours || 1)) * 100, 100);
 
   const filteredTasks = useMemo(() => {
     let result = tasks;
@@ -502,115 +520,170 @@ const MilestoneAccordionItem = ({ milestone, onAddTask }: { milestone: any, onAd
   };
 
   return (
-    <Accordion.Item value={milestone._id} style={{ backgroundColor: 'white', marginBottom: '16px', borderRadius: '8px', overflow: 'hidden' }}>
-      <Accordion.Control>
-        <Group justify="space-between" wrap="nowrap">
-          <div style={{ flex: 1 }}>
-            <Group gap="sm" mb={4}>
-              <Text fw={700} size="lg">{milestone.title}</Text>
-              <Badge variant="dot" color={milestone.status === 'completed' ? 'green' : milestone.status === 'in_progress' ? 'blue' : 'gray'}>
-                {milestone.status.replace('_', ' ')}
-              </Badge>
-            </Group>
-            <Group gap="xl">
-              <Text size="xs" color="dimmed">Dates: {milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '-'} to {milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : '-'}</Text>
-              <Text size="xs" color="dimmed">Tasks: {tasks.length}</Text>
-            </Group>
-          </div>
-
-          <div style={{ width: '200px' }}>
-            <Group justify="space-between" mb={4}>
-              <Text size="xs" fw={600}>Hours (Spent / Est)</Text>
-              <Text size="xs" fw={700} color={spentHours > milestone.estimatedHours ? 'red' : 'blue'}>
-                {spentHours} / {milestone.estimatedHours}h
+    <>
+      <Table.Tr style={{ backgroundColor: expanded ? '#F8FAFC' : 'white', cursor: 'pointer' }}>
+        {/* 1. Milestone Title & Dates */}
+        <Table.Td onClick={() => setExpanded(!expanded)}>
+          <Group gap="sm" wrap="nowrap">
+            <ActionIcon variant="subtle" size="sm" color="blue">
+              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </ActionIcon>
+            <div>
+              <Text fw={700} size="sm" style={{ color: '#0f172a' }}>{milestone.title}</Text>
+              <Text size="xs" c="dimmed">
+                {milestone.startDate ? new Date(milestone.startDate).toLocaleDateString() : '-'} to {milestone.endDate ? new Date(milestone.endDate).toLocaleDateString() : '-'}
               </Text>
-            </Group>
-            <Progress value={progressPercent} color={spentHours > milestone.estimatedHours ? 'red' : 'blue'} size="sm" />
-          </div>
-        </Group>
-      </Accordion.Control>
-      <Accordion.Panel>
-        <Card withBorder radius="md" style={{ backgroundColor: '#F9FAFB' }}>
-          <Group justify="space-between" mb="md">
-            <Group>
-              <Select placeholder="Filter Department" leftSection={<Filter size={14} />} data={['design', 'development', 'seo']} value={deptFilter} onChange={setDeptFilter} clearable size="xs" w={150} />
-              <Select placeholder="Filter Status" leftSection={<Filter size={14} />} data={['assigned', 'in_progress', 'in_review', 'completed']} value={statusFilter} onChange={setStatusFilter} clearable size="xs" w={150} />
-            </Group>
-            <Button size="xs" leftSection={<Plus size={14} />} onClick={() => onAddTask(milestone._id, milestone.estimatedHours, allocatedHours)}>
+            </div>
+          </Group>
+        </Table.Td>
+
+        {/* 2. Status */}
+        <Table.Td onClick={() => setExpanded(!expanded)}>
+          <Badge
+            variant="light"
+            radius="sm"
+            size="sm"
+            fw={600}
+            color={milestone.status === 'completed' ? 'green' : milestone.status === 'in_progress' ? 'blue' : 'gray'}
+          >
+            {milestone.status ? milestone.status.replace('_', ' ') : 'not started'}
+          </Badge>
+        </Table.Td>
+
+        {/* 3. Tasks Count */}
+        <Table.Td onClick={() => setExpanded(!expanded)}>
+          <Badge variant="outline" color="blue" size="sm" radius="sm">
+            {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+          </Badge>
+        </Table.Td>
+
+        {/* 4. Est. Hours */}
+        <Table.Td onClick={() => setExpanded(!expanded)}>
+          <Text size="sm" fw={600} style={{ color: '#475569' }}>
+            {milestone.estimatedHours || 0}h
+          </Text>
+        </Table.Td>
+
+        {/* 5. Active Hours */}
+        <Table.Td onClick={() => setExpanded(!expanded)}>
+          <Text size="sm" fw={600} style={{ color: spentHours > milestone.estimatedHours ? '#dc2626' : '#2563eb' }}>
+            {Number(spentHours.toFixed(1))}h
+          </Text>
+        </Table.Td>
+
+        {/* 6. Progress */}
+        <Table.Td onClick={() => setExpanded(!expanded)} style={{ minWidth: 140 }}>
+          <Group gap="xs" wrap="nowrap">
+            <Text size="xs" fw={700} style={{ width: 32 }} ta="right">
+              {Math.round(progressPercent)}%
+            </Text>
+            <Progress value={progressPercent} color={spentHours > milestone.estimatedHours ? 'red' : 'blue'} size="sm" radius="xl" style={{ flex: 1 }} />
+          </Group>
+        </Table.Td>
+
+        {/* 7. Actions */}
+        <Table.Td>
+          <Group gap="xs" justify="flex-end" wrap="nowrap">
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<Plus size={14} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddTask(milestone._id, milestone.estimatedHours, allocatedHours);
+              }}
+            >
               Add Task
             </Button>
           </Group>
+        </Table.Td>
+      </Table.Tr>
 
-          {isLoading ? (
-            <Center h={100}><Loader size="sm" /></Center>
-          ) : filteredTasks.length > 0 ? (
-            <Table verticalSpacing="sm" bg="white" style={{ borderRadius: '8px', overflow: 'hidden' }}>
-              <Table.Thead bg="#F3F4F6">
-                <Table.Tr>
-                  <Table.Th>Task</Table.Th>
-                  <Table.Th>Department</Table.Th>
-                  <Table.Th>Assigned To</Table.Th>
-                  <Table.Th>Est. Time</Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th>Progress</Table.Th>
-                  <Table.Th></Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {filteredTasks.map((task: any) => {
-                  const isTimerActive = activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id;
-                  return (
-                    <Table.Tr key={task._id}>
-                      <Table.Td>
-                        <Text fw={500} size="sm">{task.title}</Text>
-                        {(task.startDate || task.endDate) && (
-                          <Text size="xs" color="dimmed">
-                            {task.startDate ? new Date(task.startDate).toLocaleDateString() : '-'} - {task.endDate ? new Date(task.endDate).toLocaleDateString() : '-'}
-                          </Text>
-                        )}
-                      </Table.Td>
-                      <Table.Td><Badge variant="outline" color="gray">{task.department || 'N/A'}</Badge></Table.Td>
-                      <Table.Td>
-                        {task.assignedTo ? (
-                          <Tooltip label={task.assignedTo.role?.replace('_', ' ')} withArrow>
-                            <Group gap="xs" wrap="nowrap">
-                              <UserAvatar name={task.assignedTo.name} avatarUrl={task.assignedTo.avatarUrl} size="sm" />
-                              <Text size="sm">{task.assignedTo.name}</Text>
-                            </Group>
-                          </Tooltip>
-                        ) : (
-                          <Badge variant="light" color="orange">Unassigned</Badge>
-                        )}
-                      </Table.Td>
-                      <Table.Td><Text size="sm" fw={600}>{task.estimatedHours}h</Text></Table.Td>
-                      <Table.Td>
-                        <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light">{task.status.replace('_', ' ')}</Badge>
-                      </Table.Td>
-                      <Table.Td>
-                        <Tooltip label={`${(task.spentHours || 0).toFixed(1)}h / ${task.estimatedHours}h (${Math.round(((task.spentHours || 0) / task.estimatedHours) * 100)}%)`}>
-                          <Progress value={((task.spentHours || 0) / task.estimatedHours) * 100} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} />
-                        </Tooltip>
-                      </Table.Td>
-                      <Table.Td>
-                        <Group gap={4}>
-                          {isTimerActive ? (
-                            <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
-                          ) : (
-                            <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer}>Start</Button>
-                          )}
-                        </Group>
-                      </Table.Td>
+      {/* Expanded Sub-row for Tasks Table */}
+      {expanded && (
+        <Table.Tr style={{ backgroundColor: '#F8FAFC' }}>
+          <Table.Td colSpan={7} p="md">
+            <Card withBorder radius="md" style={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }}>
+              <Group justify="space-between" mb="md">
+                <Group>
+                  <Select placeholder="Filter Department" leftSection={<Filter size={14} />} data={DEPARTMENT_OPTIONS} value={deptFilter} onChange={setDeptFilter} clearable size="xs" w={160} />
+                  <Select placeholder="Filter Status" leftSection={<Filter size={14} />} data={['assigned', 'in_progress', 'in_review', 'completed']} value={statusFilter} onChange={setStatusFilter} clearable size="xs" w={150} />
+                </Group>
+                <Text size="xs" fw={600} c="dimmed">
+                  Allocated: {allocatedHours}h / {milestone.estimatedHours}h
+                </Text>
+              </Group>
+
+              {isLoading ? (
+                <Center h={100}><Loader size="sm" /></Center>
+              ) : filteredTasks.length > 0 ? (
+                <Table verticalSpacing="sm" horizontalSpacing="md" bg="white" style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
+                  <Table.Thead bg="#F1F5F9">
+                    <Table.Tr>
+                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>TASK</Table.Th>
+                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>DEPARTMENT</Table.Th>
+                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ASSIGNED TO</Table.Th>
+                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>EST. TIME</Table.Th>
+                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>STATUS</Table.Th>
+                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>PROGRESS</Table.Th>
+                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }} ta="right">ACTION</Table.Th>
                     </Table.Tr>
-                  );
-                })}
-              </Table.Tbody>
-            </Table>
-          ) : (
-            <Center h={100}><Text color="dimmed" size="sm">No tasks match criteria.</Text></Center>
-          )}
-        </Card>
-      </Accordion.Panel>
-    </Accordion.Item>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {filteredTasks.map((task: any) => {
+                      const isTimerActive = activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id;
+                      return (
+                        <Table.Tr key={task._id}>
+                          <Table.Td>
+                            <Text fw={600} size="sm">{task.title}</Text>
+                            {(task.startDate || task.endDate) && (
+                              <Text size="xs" color="dimmed">
+                                {task.startDate ? new Date(task.startDate).toLocaleDateString() : '-'} - {task.endDate ? new Date(task.endDate).toLocaleDateString() : '-'}
+                              </Text>
+                            )}
+                          </Table.Td>
+                          <Table.Td><Badge variant="outline" color="gray" size="sm">{task.department || 'N/A'}</Badge></Table.Td>
+                          <Table.Td>
+                            {task.assignedTo ? (
+                              <Tooltip label={task.assignedTo.role?.replace('_', ' ')} withArrow>
+                                <Group gap="xs" wrap="nowrap">
+                                  <UserAvatar name={task.assignedTo.name} avatarUrl={task.assignedTo.avatarUrl} size="sm" />
+                                  <Text size="sm">{task.assignedTo.name}</Text>
+                                </Group>
+                              </Tooltip>
+                            ) : (
+                              <Badge variant="light" color="orange" size="sm">Unassigned</Badge>
+                            )}
+                          </Table.Td>
+                          <Table.Td><Text size="sm" fw={600}>{task.estimatedHours}h</Text></Table.Td>
+                          <Table.Td>
+                            <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light" size="sm">{task.status.replace('_', ' ')}</Badge>
+                          </Table.Td>
+                          <Table.Td style={{ minWidth: 120 }}>
+                            <Tooltip label={`${(task.spentHours || 0).toFixed(1)}h / ${task.estimatedHours}h (${Math.round(((task.spentHours || 0) / task.estimatedHours) * 100)}%)`}>
+                              <Progress value={((task.spentHours || 0) / task.estimatedHours) * 100} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} radius="xl" />
+                            </Tooltip>
+                          </Table.Td>
+                          <Table.Td ta="right">
+                            {isTimerActive ? (
+                              <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
+                            ) : (
+                              <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer}>Start</Button>
+                            )}
+                          </Table.Td>
+                        </Table.Tr>
+                      );
+                    })}
+                  </Table.Tbody>
+                </Table>
+              ) : (
+                <Center h={80}><Text color="dimmed" size="sm">No tasks match filter criteria.</Text></Center>
+              )}
+            </Card>
+          </Table.Td>
+        </Table.Tr>
+      )}
+    </>
   );
 };
 
@@ -621,7 +694,8 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
   if (!project) return null;
 
   const milestoneIds = milestones.map(m => m._id);
-  const projectTasks = (tasksData?.data || []).filter((t: any) => {
+  const allTasks = tasksData?.data || [];
+  const projectTasks = allTasks.filter((t: any) => {
     const milestoneId = typeof t.milestone === 'object' ? t.milestone?._id : t.milestone;
     return milestoneIds.includes(milestoneId);
   });
@@ -668,7 +742,7 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
             <Text size="xs" fw={700} color="dimmed" tt="uppercase">Hours Distribution</Text>
             <Clock size={18} color="#f59e0b" />
           </Group>
-          <Text size="lg" fw={800} color="orange">{totalSpent}h Spent</Text>
+          <Text size="lg" fw={800} color="orange">{Number(totalSpent.toFixed(1))}h Spent</Text>
           <Text size="xs" c="dimmed" mt={4}>Of total {totalEstimated}h estimated</Text>
           <Progress value={Math.min(hoursPercent, 100)} color={hoursPercent > 100 ? 'red' : 'orange'} size="sm" mt="md" radius="xl" />
         </Card>
@@ -690,6 +764,74 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
             <Text size="xs" color="dimmed" fw={500}>Pending Amount: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)</Text>
           </Group>
         </Group>
+      </Card>
+
+      {/* Milestone Performance & Results Summary Table */}
+      <Card shadow="xs" p="xl" radius="lg" withBorder>
+        <Title order={4} mb="md">Milestones Performance & Results</Title>
+        {milestones.length > 0 ? (
+          <Table.ScrollContainer minWidth={700}>
+            <Table verticalSpacing="sm" horizontalSpacing="md">
+              <Table.Thead bg="#F8FAFC">
+                <Table.Tr>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>MILESTONE</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>TASKS DONE</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {milestones.map((m) => {
+                  const mTasks = allTasks.filter((t: any) => {
+                    const id = typeof t.milestone === 'object' ? t.milestone?._id : t.milestone;
+                    return id === m._id;
+                  });
+                  const mDone = mTasks.filter((t: any) => t.status === 'completed').length;
+                  const mSpent = mTasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
+                  const mEst = m.estimatedHours || 0;
+                  const mProgress = mEst > 0 ? Math.min(Math.round((mSpent / mEst) * 100), 100) : 0;
+
+                  return (
+                    <Table.Tr key={m._id}>
+                      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+                        <Text fw={700} size="sm">{m.title}</Text>
+                        <Text size="xs" c="dimmed">
+                          {m.startDate ? new Date(m.startDate).toLocaleDateString() : '-'} to {m.endDate ? new Date(m.endDate).toLocaleDateString() : '-'}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+                        <Badge variant="light" size="sm" color={m.status === 'completed' ? 'green' : m.status === 'in_progress' ? 'blue' : 'gray'}>
+                          {m.status ? m.status.replace('_', ' ') : 'not started'}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+                        <Text size="sm" fw={600}>{mDone} / {mTasks.length} done</Text>
+                      </Table.Td>
+                      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+                        <Text size="sm" fw={600}>{mEst}h</Text>
+                      </Table.Td>
+                      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+                        <Text size="sm" fw={600} style={{ color: mSpent > mEst ? '#dc2626' : '#2563eb' }}>
+                          {Number(mSpent.toFixed(1))}h
+                        </Text>
+                      </Table.Td>
+                      <Table.Td style={{ minWidth: 120 }}>
+                        <Group gap="xs" wrap="nowrap">
+                          <Text size="xs" fw={700} w={30} ta="right">{mProgress}%</Text>
+                          <Progress value={mProgress} color={mSpent > mEst ? 'red' : 'blue'} size="sm" radius="xl" style={{ flex: 1 }} />
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        ) : (
+          <Text size="sm" c="dimmed">No milestones available for this project.</Text>
+        )}
       </Card>
     </Stack>
   );
