@@ -5,7 +5,7 @@ export interface ITeamTodo extends Document {
   title: string;
   relatedProject?: Types.ObjectId;
   estimatedTime?: number;
-  status: 'pending' | 'in_progress' | 'done';
+  status: 'pending' | 'in_progress' | 'blocked' | 'done';
   dueDate?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -33,7 +33,7 @@ const teamTodoSchema = new Schema<ITeamTodo>(
     },
     status: {
       type: String,
-      enum: ['pending', 'in_progress', 'done'],
+      enum: ['pending', 'in_progress', 'blocked', 'done'],
       default: 'pending',
     },
     dueDate: {

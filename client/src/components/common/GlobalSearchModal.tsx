@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Modal, TextInput, Text, Group, Stack, Badge, UnstyledButton, Box, ScrollArea, Kbd, Divider } from '@mantine/core';
 import { Search, Briefcase, CheckSquare, Users, DollarSign, CornerDownLeft, Clock } from 'lucide-react';
@@ -21,6 +21,7 @@ export const GlobalSearchModal = ({ opened, onClose }: GlobalSearchModalProps) =
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const { data: projectsData } = useGetProjectsQuery(undefined, { skip: !opened });
   const { data: tasksData } = useGetAllTasksQuery(undefined, { skip: !opened });
@@ -33,6 +34,16 @@ export const GlobalSearchModal = ({ opened, onClose }: GlobalSearchModalProps) =
   const clients = clientsData?.data || [];
   const invoices = invoicesData?.data || [];
   const users = usersData?.data || [];
+
+  // Scroll active item into view on keyboard navigation
+  useEffect(() => {
+    if (itemRefs.current[selectedIndex]) {
+      itemRefs.current[selectedIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }
+  }, [selectedIndex]);
 
   // Load recent searches
   useEffect(() => {
@@ -242,6 +253,7 @@ export const GlobalSearchModal = ({ opened, onClose }: GlobalSearchModalProps) =
               return (
                 <UnstyledButton
                   key={item.id}
+                  ref={(el) => { itemRefs.current[idx] = el; }}
                   onClick={item.onSelect}
                   style={{
                     display: 'block', width: '100%', padding: '10px 12px', borderRadius: '10px',

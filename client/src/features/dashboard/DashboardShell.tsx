@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../app/store';
-import { Title, Text, Group, TextInput, Badge, SimpleGrid, Card, ActionIcon, Stack, Box } from '@mantine/core';
-import { Search, CheckCircle, CheckSquare, Activity, Clock, Briefcase, ListTodo, Rocket, X } from 'lucide-react';
+import { Title, Text, Group, TextInput, Badge, SimpleGrid, Card, ActionIcon, Stack, Box, Progress } from '@mantine/core';
+import { Search, CheckCircle, CheckSquare, Activity, Clock, Briefcase, ListTodo, Rocket, X, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Role } from '../../types';
 
 import { useGetProjectsQuery } from '../projects/project.slice';
@@ -36,6 +36,32 @@ export const DashboardShell: React.FC = () => {
 
   const openTasksCount = dbTasks.filter(t => t.status !== 'completed').length;
   const myTodosCount = dbTodos.filter(t => (typeof t.user === 'object' ? t.user._id : t.user) === user?._id && t.status !== 'done').length;
+
+  // 1. Total logged hours calculation for team member
+  const totalLoggedHours = useMemo(() => {
+    return dbTasks.reduce((acc: number, t: any) => acc + (t.spentHours || 0), 0);
+  }, [dbTasks]);
+
+  // 2. Overdue / Due Today tasks calculation
+  const overdueTasks = useMemo(() => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return dbTasks.filter((t: any) => {
+      if (t.status === 'completed' || !t.endDate) return false;
+      return new Date(t.endDate) <= today;
+    });
+  }, [dbTasks]);
+
+  // 3. My assigned projects calculation
+  const myProjects = useMemo(() => {
+    if (!user?._id) return [];
+    const assignedProjIds = new Set<string>();
+    dbTasks.forEach((t: any) => {
+      const projId = t.milestone?.project?._id || t.project?._id || t.project;
+      if (projId) assignedProjIds.add(String(projId));
+    });
+    return projects.filter(p => assignedProjIds.has(String(p._id)));
+  }, [projects, dbTasks, user]);
 
   const query = searchQuery.trim().toLowerCase();
 
@@ -127,26 +153,44 @@ export const DashboardShell: React.FC = () => {
     );
   };
 
-  const TMHero = () => (
-    <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" mb="xl">
-      <Card shadow="sm" p="xl" radius="lg" withBorder>
-        <Group justify="space-between" mb="md">
-          <CheckCircle size={32} color="#0EA5E9" />
-          <Badge color="blue" variant="light" size="lg">Personal Workload</Badge>
-        </Group>
-        <Text fw={800} size="32px" color="#111827">{openTasksCount} Open Tasks</Text>
-        <Text size="sm" color="#4B5563">Assigned to you</Text>
-      </Card>
-      <Card shadow="sm" p="xl" radius="lg" withBorder>
-        <Group justify="space-between" mb="md">
-          <CheckSquare size={32} color="#EC4899" />
-          <Badge color="pink" variant="light" size="lg">Today's Focus</Badge>
-        </Group>
-        <Text fw={800} size="32px" color="#111827">{myTodosCount} To-Dos</Text>
-        <Text size="sm" color="#4B5563">Pending for today</Text>
-      </Card>
-    </SimpleGrid>
-  );
+  const TMHero = () => {
+    const weeklyGoalPercent = Math.min(Math.round((totalLoggedHours / 40) * 100), 100);
+
+    return (
+      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg" mb="xl">
+        <Card shadow="sm" p="xl" radius="lg" withBorder>
+          <Group justify="space-between" mb="md">
+            <CheckCircle size={32} color="#0EA5E9" />
+            <Badge color="blue" variant="light" size="lg">Personal Workload</Badge>
+          </Group>
+          <Text fw={800} size="32px" color="#111827">{openTasksCount} Open Tasks</Text>
+          <Text size="sm" color="#4B5563">Assigned to you</Text>
+        </Card>
+
+        <Card shadow="sm" p="xl" radius="lg" withBorder>
+          <Group justify="space-between" mb="md">
+            <CheckSquare size={32} color="#EC4899" />
+            <Badge color="pink" variant="light" size="lg">Today's Focus</Badge>
+          </Group>
+          <Text fw={800} size="32px" color="#111827">{myTodosCount} To-Dos</Text>
+          <Text size="sm" color="#4B5563">Pending for today</Text>
+        </Card>
+
+        <Card shadow="sm" p="xl" radius="lg" withBorder>
+          <Group justify="space-between" mb="md">
+            <Clock size={32} color="#10B981" />
+            <Badge color="teal" variant="light" size="lg">Weekly Hours</Badge>
+          </Group>
+          <Text fw={800} size="32px" color="#111827">{totalLoggedHours.toFixed(1)}h / 40h</Text>
+          <Group justify="space-between" mt="xs" mb={4}>
+            <Text size="xs" color="dimmed">Weekly Goal (40h)</Text>
+            <Text size="xs" fw={700} color="#10B981">{weeklyGoalPercent}%</Text>
+          </Group>
+          <Progress value={weeklyGoalPercent} size="xs" radius="xl" color="teal" />
+        </Card>
+      </SimpleGrid>
+    );
+  };
 
   return (
     <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)', paddingBottom: '48px' }}>
@@ -394,11 +438,126 @@ export const DashboardShell: React.FC = () => {
         </Card>
       )}
 
+      {/* Urgent / Overdue Tasks Alert Banner for Team Members */}
+      {user?.role === Role.TEAM_MEMBER && overdueTasks.length > 0 && (
+        <Card 
+          shadow="sm" 
+          p="md" 
+          radius="lg" 
+          mb="xl" 
+          style={{ 
+            background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', 
+            border: '1px solid #fca5a5',
+            boxShadow: '0 4px 14px rgba(239, 68, 68, 0.12)'
+          }}
+        >
+          <Group justify="space-between" align="center" wrap="wrap" gap="md">
+            <Group gap="md">
+              <Box p={10} style={{ borderRadius: '50%', backgroundColor: '#ef4444', color: '#ffffff', display: 'flex', alignItems: 'center' }}>
+                <AlertTriangle size={22} />
+              </Box>
+              <div>
+                <Group gap={8}>
+                  <Text fw={800} size="md" style={{ color: '#991b1b' }}>
+                    Urgent Action Required ({overdueTasks.length} {overdueTasks.length === 1 ? 'Task' : 'Tasks'} Overdue / Due Today)
+                  </Text>
+                  <Badge color="red" variant="filled" size="sm">High Priority</Badge>
+                </Group>
+                <Text size="xs" style={{ color: '#7f1d1d' }} mt={2}>
+                  You have critical deadlines that need immediate attention. Please review and update work status.
+                </Text>
+              </div>
+            </Group>
+            
+            <Button 
+              size="xs" 
+              color="red" 
+              radius="md" 
+              rightSection={<ArrowRight size={14} />}
+              onClick={() => navigate('/my-tasks')}
+            >
+              View Critical Tasks
+            </Button>
+          </Group>
+        </Card>
+      )}
+
       {(user?.role === Role.ADMIN || user?.role === Role.PM) && (
         <ProjectSummaryCards projects={filteredProjects} />
       )}
       {user?.role === Role.TEAM_LEAD && <TLHero />}
-      {user?.role === Role.TEAM_MEMBER && <TMHero />}
+      {user?.role === Role.TEAM_MEMBER && (
+        <Stack gap="xl">
+          <TMHero />
+          
+          {/* My Assigned Projects Section */}
+          <Box mb="lg">
+            <Group justify="space-between" align="center" mb="md">
+              <Group gap="xs">
+                <Briefcase size={20} color="#2563eb" />
+                <Title order={3} style={{ color: '#0f172a', fontSize: '1.25rem', fontWeight: 700 }}>
+                  My Assigned Projects ({myProjects.length})
+                </Title>
+              </Group>
+              <Text size="xs" c="dimmed">Projects where you have active task assignments</Text>
+            </Group>
+
+            {myProjects.length > 0 ? (
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
+                {myProjects.map((proj: any) => {
+                  const projTasks = dbTasks.filter((t: any) => {
+                    const pId = t.milestone?.project?._id || t.project?._id || t.project;
+                    return String(pId) === String(proj._id);
+                  });
+                  const completedProjTasks = projTasks.filter((t: any) => t.status === 'completed').length;
+                  const projProgress = projTasks.length > 0 ? Math.round((completedProjTasks / projTasks.length) * 100) : 0;
+
+                  return (
+                    <Card 
+                      key={proj._id} 
+                      shadow="sm" 
+                      p="lg" 
+                      radius="lg" 
+                      withBorder 
+                      style={{ 
+                        backgroundColor: '#ffffff', 
+                        borderColor: '#e2e8f0',
+                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                        cursor: 'pointer' 
+                      }}
+                      onClick={() => navigate(`/projects/${proj._id}`)}
+                    >
+                      <Group justify="space-between" mb="xs" align="flex-start">
+                        <Badge color={proj.status === 'active' ? 'green' : 'orange'} variant="light" size="sm">
+                          {(proj.status || 'Active').replace('_', ' ')}
+                        </Badge>
+                        <Text size="xs" c="dimmed" fw={600}>{projTasks.length} Assigned Tasks</Text>
+                      </Group>
+
+                      <Text fw={700} size="md" mb={4} style={{ color: '#0f172a' }} lineClamp={1}>
+                        {proj.name}
+                      </Text>
+                      <Text size="xs" c="dimmed" mb="md" lineClamp={2}>
+                        {proj.description || 'No project description provided.'}
+                      </Text>
+
+                      <Group justify="space-between" mb={4}>
+                        <Text size="xs" fw={600} c="dimmed">My Tasks Progress</Text>
+                        <Text size="xs" fw={700} color="#2563eb">{completedProjTasks} / {projTasks.length} ({projProgress}%)</Text>
+                      </Group>
+                      <Progress value={projProgress} size="sm" radius="xl" color="blue" />
+                    </Card>
+                  );
+                })}
+              </SimpleGrid>
+            ) : (
+              <Card withBorder p="xl" ta="center" radius="md" bg="#F9FAFB">
+                <Text c="dimmed" size="sm">No assigned projects found.</Text>
+              </Card>
+            )}
+          </Box>
+        </Stack>
+      )}
 
       {(user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD) && (
         <TeamTodoOverview todos={filteredTodos} />

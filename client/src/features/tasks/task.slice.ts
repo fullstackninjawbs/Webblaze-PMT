@@ -85,6 +85,13 @@ export const taskApi = baseApi.injectEndpoints({
                   typeof result.data.milestone === 'object' ? result.data.milestone._id : result.data.milestone
                 }`,
               },
+              {
+                type: 'Task',
+                id: `LIST-USER-${
+                  typeof result.data.assignedTo === 'object' ? (result.data.assignedTo as any)._id : result.data.assignedTo
+                }`,
+              },
+              'Task',
               'Milestone',
             ]
           : ['Task', 'Milestone'],

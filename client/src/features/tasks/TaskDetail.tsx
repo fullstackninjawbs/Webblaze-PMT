@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper } from '@mantine/core';
 import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Trash, RotateCcw } from 'lucide-react';
@@ -6,10 +6,15 @@ import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useDeleteTimeLogMutation, useClearTaskTimeLogsMutation } from '../timelogs/timeLog.slice';
 import { useUploadFileMutation } from '../uploads/upload.slice';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
+import { Role } from '../../types';
 
 export const TaskDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isManagement = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
 
   const { data: taskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(id as string);
   const { data: timeLogsData, isLoading: isLogsLoading } = useGetTimeLogsByTaskQuery(id as string);
@@ -21,23 +26,7 @@ export const TaskDetail = () => {
   const [deleteTimeLog] = useDeleteTimeLogMutation();
   const [clearTaskTimeLogs] = useClearTaskTimeLogsMutation();
 
-  const handleDeleteLog = async (logId: string) => {
-    try {
-      await deleteTimeLog({ id: logId, taskId: id }).unwrap();
-    } catch (err) {
-      console.error('Failed to delete time log', err);
-    }
-  };
-
-  const handleClearAllLogs = async () => {
-    if (window.confirm('Are you sure you want to clear all logged time for this task? This will reset logged hours.')) {
-      try {
-        await clearTaskTimeLogs(id as string).unwrap();
-      } catch (err) {
-        console.error('Failed to clear time logs', err);
-      }
-    }
-  };
+  const [ticker, setTicker] = useState(0);
 
   const [statusModalOpened, setStatusModalOpened] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
@@ -50,11 +39,46 @@ export const TaskDetail = () => {
   const timeLogs = timeLogsData?.data || [];
   const activeTimer = activeTimerData?.data;
 
+  const isTimerActiveForThisTask = (activeTimer?.task as any)?._id === task?._id || activeTimer?.task === task?._id;
+
+  // Live timer tick every second to update elapsed hours and progress bar in real-time
+  useEffect(() => {
+    if (!isTimerActiveForThisTask) return;
+    const interval = setInterval(() => {
+      setTicker((t) => t + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isTimerActiveForThisTask]);
+
   if (isTaskLoading || isLogsLoading) return <Center h={400}><Loader color="blue" /></Center>;
   if (!task) return <Center h={400}><Text>Task not found</Text></Center>;
 
-  const isTimerActiveForThisTask = (activeTimer?.task as any)?._id === task._id || activeTimer?.task === task._id;
-  const progressPercent = Math.min(((task.spentHours || 0) / task.estimatedHours) * 100, 100);
+  const activeElapsedHours = isTimerActiveForThisTask && activeTimer?.startTime 
+    ? Math.max(0, (Date.now() - new Date(activeTimer.startTime).getTime()) / 3600000) 
+    : 0;
+
+  const totalSpentHours = (task.spentHours || 0) + activeElapsedHours;
+  const progressPercent = Math.min((totalSpentHours / (task.estimatedHours || 1)) * 100, 100);
+
+  const handleDeleteLog = async (logId: string) => {
+    if (!isManagement) return;
+    try {
+      await deleteTimeLog({ id: logId, taskId: id }).unwrap();
+    } catch (err) {
+      console.error('Failed to delete time log', err);
+    }
+  };
+
+  const handleClearAllLogs = async () => {
+    if (!isManagement) return;
+    if (window.confirm('Are you sure you want to clear all logged time for this task? This will reset logged hours.')) {
+      try {
+        await clearTaskTimeLogs(id as string).unwrap();
+      } catch (err) {
+        console.error('Failed to clear time logs', err);
+      }
+    }
+  };
 
   const handleStartTimer = async () => {
     if (activeTimer && !isTimerActiveForThisTask) {
@@ -149,7 +173,7 @@ export const TaskDetail = () => {
           />
         </Group>
 
-        <Group gap="xl" align="center">
+        <Group gap="xl" align="center" wrap="nowrap">
           {/* Large Play/Stop Button */}
           {task.status !== 'completed' && (
             <ActionIcon 
@@ -164,18 +188,19 @@ export const TaskDetail = () => {
             </ActionIcon>
           )}
 
-          <div style={{ flex: 1 }}>
+          {/* Progress Bar Container — Responsive & Live Updating */}
+          <div style={{ flex: 1, minWidth: '240px', maxWidth: '550px' }}>
             <Group justify="space-between" mb={8}>
               <Text fw={600} size="sm">Task Progress</Text>
-              <Text fw={700} size="sm" color={progressPercent > 100 ? 'red' : 'blue'}>
-                {(task.spentHours || 0).toFixed(2)}h / {task.estimatedHours}h
+              <Text fw={700} size="sm" color={totalSpentHours > task.estimatedHours ? 'red' : 'blue'}>
+                {totalSpentHours.toFixed(2)}h / {task.estimatedHours}h
               </Text>
             </Group>
             <Progress 
               value={progressPercent} 
-              size="xl" 
+              size="lg" 
               radius="xl" 
-              color={task.status === 'completed' ? 'green' : (progressPercent > 100 ? 'red' : 'blue')} 
+              color={task.status === 'completed' ? 'green' : (totalSpentHours > task.estimatedHours ? 'red' : 'blue')} 
               striped={isTimerActiveForThisTask}
               animated={isTimerActiveForThisTask}
             />
@@ -186,7 +211,7 @@ export const TaskDetail = () => {
       {/* Timeline Section */}
       <Group justify="space-between" align="center" mb="md">
         <Title order={4}>Time Log Activity</Title>
-        {timeLogs.length > 0 && (
+        {isManagement && timeLogs.length > 0 && (
           <Button
             variant="light"
             color="red"
@@ -221,15 +246,17 @@ export const TaskDetail = () => {
                     </Text>
                     <Group gap="xs" wrap="nowrap">
                       <Text size="xs" color="dimmed">{new Date(log.startTime).toLocaleString()}</Text>
-                      <ActionIcon
-                        variant="subtle"
-                        color="red"
-                        size="xs"
-                        onClick={() => handleDeleteLog(log._id)}
-                        title="Delete this time log"
-                      >
-                        <Trash size={14} />
-                      </ActionIcon>
+                      {isManagement && (
+                        <ActionIcon
+                          variant="subtle"
+                          color="red"
+                          size="xs"
+                          onClick={() => handleDeleteLog(log._id)}
+                          title="Delete this time log"
+                        >
+                          <Trash size={14} />
+                        </ActionIcon>
+                      )}
                     </Group>
                   </Group>
                 }

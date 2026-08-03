@@ -8,7 +8,7 @@ export interface Todo {
   title: string;
   relatedProject?: Project;
   estimatedTime?: number;
-  status: 'pending' | 'in_progress' | 'done';
+  status: 'pending' | 'in_progress' | 'blocked' | 'done';
   dueDate?: string;
   createdAt: string;
   updatedAt: string;

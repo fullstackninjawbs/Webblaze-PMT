@@ -28,7 +28,7 @@ export const updateTodo = async (id: string, updateData: Partial<ITeamTodo>, use
   }
 
   // Only the assigned user or an Admin/PM can update a todo
-  if (userRole !== Role.ADMIN && userRole !== Role.PM && todo.user.toString() !== userId) {
+  if (userRole !== Role.ADMIN && userRole !== Role.PM && todo.user.toString() !== String(userId)) {
     throw new ApiError(403, 'You do not have permission to update this todo');
   }
 
@@ -45,7 +45,7 @@ export const deleteTodo = async (id: string, userRole: Role, userId: string): Pr
     throw new ApiError(404, 'Todo not found');
   }
 
-  if (userRole !== Role.ADMIN && userRole !== Role.PM && todo.user.toString() !== userId) {
+  if (userRole !== Role.ADMIN && userRole !== Role.PM && todo.user.toString() !== String(userId)) {
     throw new ApiError(403, 'You do not have permission to delete this todo');
   }
 

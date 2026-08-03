@@ -6,7 +6,7 @@ export const createTodoSchema = z.object({
     user: z.string().optional(), // Admin/PM can assign to others, but we'll default to self in controller if omitted
     relatedProject: z.string().optional(),
     estimatedTime: z.number().min(0).optional(),
-    status: z.enum(['pending', 'in_progress', 'done']).optional(),
+    status: z.enum(['pending', 'in_progress', 'blocked', 'done']).optional(),
     dueDate: z.string().optional(),
   }),
 });
