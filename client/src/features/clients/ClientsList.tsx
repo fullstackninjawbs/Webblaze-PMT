@@ -538,7 +538,7 @@ export const ClientsList: React.FC = () => {
           </Text>
         }
         position="right"
-        size="md"
+        size={600}
         padding="xl"
       >
         <form onSubmit={form.onSubmit(onSubmit)}>
@@ -679,7 +679,7 @@ export const ClientsList: React.FC = () => {
           </Text>
         }
         position="right"
-        size="md"
+        size={600}
         padding="xl"
       >
         {selectedClient && (

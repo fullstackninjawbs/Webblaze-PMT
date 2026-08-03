@@ -101,7 +101,7 @@ export const ClientDetail: React.FC = () => {
   const initials = client.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <Container size="xl" py="xl">
+    <Container size="xl">
       {/* Back Button */}
       <Button
         variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />}

@@ -51,7 +51,7 @@ export class ProjectService {
 
     const projects = await Project.find(query)
       .populate('client', 'name companyName email')
-      .populate('team', 'name email role')
+      .populate('team', 'name email role department avatarUrl')
       .populate('createdBy', 'name email')
       .sort({ createdAt: -1 });
 
@@ -65,7 +65,7 @@ export class ProjectService {
   static async getProjectById(id: string, userRole: Role, userId: string) {
     const project = await Project.findById(id)
       .populate('client', 'name companyName email')
-      .populate('team', 'name email role')
+      .populate('team', 'name email role department avatarUrl')
       .populate('createdBy', 'name email');
 
     if (!project) throw new ApiError(404, 'Project not found');
@@ -82,7 +82,7 @@ export class ProjectService {
   static async updateProject(id: string, data: Partial<IProject>) {
     const project = await Project.findByIdAndUpdate(id, data, { new: true })
       .populate('client', 'name companyName email')
-      .populate('team', 'name email role');
+      .populate('team', 'name email role department avatarUrl');
       
     if (!project) throw new ApiError(404, 'Project not found');
     return project;

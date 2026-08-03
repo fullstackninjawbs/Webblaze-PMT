@@ -218,7 +218,7 @@ export const DashboardLayout: React.FC = () => {
   return (
     <AppShell
       navbar={{
-        width: 264,
+        width: 320,
         breakpoint: 'sm',
       }}
       header={activeTimer ? { height: 56 } : undefined}
@@ -228,7 +228,7 @@ export const DashboardLayout: React.FC = () => {
       {activeTimer && (
         <AppShell.Header
           style={{
-            left: 264,
+            left: 320,
             borderBottom: '1px solid #bae6fd',
             backgroundColor: '#f0f9ff',
             display: 'flex',

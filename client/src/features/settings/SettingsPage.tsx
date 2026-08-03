@@ -35,10 +35,13 @@ import {
 } from 'lucide-react';
 import { useUpdateUserMutation } from '../users/user.slice';
 import { useChangePasswordMutation, setUser } from '../auth/auth.slice';
+import { Role } from '../../types';
 
 export const SettingsPage: React.FC = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+
+  const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<string>('profile');
@@ -124,7 +127,7 @@ export const SettingsPage: React.FC = () => {
   const sidebarItems = [
     { id: 'profile', label: 'My Profile', icon: UserIcon, desc: 'Personal info & details' },
     { id: 'security', label: 'Security & Password', icon: Lock, desc: 'Password & credentials' },
-    { id: 'preferences', label: 'Preferences', icon: SettingsIcon, desc: 'Display & localization' },
+    ...(isAdminOrPM ? [{ id: 'preferences', label: 'Preferences', icon: SettingsIcon, desc: 'Display & localization' }] : []),
   ];
 
   return (
@@ -416,7 +419,7 @@ export const SettingsPage: React.FC = () => {
             </Paper>
           )}
 
-          {activeTab === 'preferences' && (
+          {activeTab === 'preferences' && isAdminOrPM && (
             <Paper p="xl" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
               <Group gap="xs" mb="xs">
                 <Paper p={6} radius="md" bg="#eff6ff">

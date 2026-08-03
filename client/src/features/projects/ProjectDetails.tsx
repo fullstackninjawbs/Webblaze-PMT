@@ -557,23 +557,22 @@ export const ProjectDetails = () => {
       </Tabs>
 
       {/* Add Milestone Drawer */}
-      <Drawer opened={milestoneDrawerOpened} onClose={() => setMilestoneDrawerOpened(false)} position="right" title={<Text fw={600}>Add Milestone</Text>} padding="xl">
+      <Drawer opened={milestoneDrawerOpened} onClose={() => setMilestoneDrawerOpened(false)} position="right" size={600} title={<Text fw={600}>Add Milestone</Text>} padding="xl">
         <form onSubmit={milestoneForm.onSubmit(handleCreateMilestone)}>
           <Stack>
             <TextInput required label="Milestone Title" placeholder="e.g. Design Phase" {...milestoneForm.getInputProps('title')} />
             <NumberInput
-              required
-              label={
-                <Group gap={4}>
-                  <Text size="sm" fw={500}>Estimated Hours</Text>
-                  <Tooltip label="Estimated hours define the maximum task hours that can be allocated to this milestone" withArrow multiline w={250}>
-                    <ActionIcon size="xs" radius="xl" variant="subtle" color="gray"><Info size={14} /></ActionIcon>
-                  </Tooltip>
-                </Group>
-              }
               min={0}
               onFocus={(e) => e.target.select()}
               {...milestoneForm.getInputProps('estimatedHours')}
+              label={
+                <Text component="span" size="sm" fw={500} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  Estimated Hours
+                  <Tooltip label="Estimated hours define the maximum task hours that can be allocated to this milestone" withArrow multiline w={250}>
+                    <ActionIcon size="xs" radius="xl" variant="subtle" color="gray"><Info size={14} /></ActionIcon>
+                  </Tooltip>
+                </Text>
+              }
             />
             <Group grow>
               <DatePickerInput
@@ -615,7 +614,7 @@ export const ProjectDetails = () => {
       </Drawer>
 
       {/* Add Task Drawer */}
-      <Drawer opened={taskDrawerOpened} onClose={() => setTaskDrawerOpened(false)} position="right" size="lg" title={<Text fw={600}>Create Task</Text>} padding="xl">
+      <Drawer opened={taskDrawerOpened} onClose={() => setTaskDrawerOpened(false)} position="right" size={720} title={<Text fw={600}>Create Task</Text>} padding="xl">
         {/* Real-time Hour Cap Indicator */}
         <Card withBorder p="md" radius="md" mb="xl" style={{ backgroundColor: '#F8FAFC' }}>
           <Group justify="space-between" mb="xs">
@@ -691,7 +690,7 @@ export const ProjectDetails = () => {
       </Drawer>
 
       {/* Edit Milestone Drawer */}
-      <Drawer opened={editMilestoneOpened} onClose={() => setEditMilestoneOpened(false)} position="right" title={<Text fw={600}>Edit Milestone</Text>} padding="xl">
+      <Drawer opened={editMilestoneOpened} onClose={() => setEditMilestoneOpened(false)} position="right" size={600} title={<Text fw={600}>Edit Milestone</Text>} padding="xl">
         <form onSubmit={editMilestoneForm.onSubmit(handleUpdateMilestone)}>
           <Stack>
             <TextInput required label="Milestone Title" placeholder="e.g. Phase 1 Design" {...editMilestoneForm.getInputProps('title')} />
@@ -750,7 +749,7 @@ export const ProjectDetails = () => {
       />
 
       {/* Edit Task Drawer */}
-      <Drawer opened={editTaskOpened} onClose={() => setEditTaskOpened(false)} position="right" size="lg" title={<Text fw={600}>Edit Task</Text>} padding="xl">
+      <Drawer opened={editTaskOpened} onClose={() => setEditTaskOpened(false)} position="right" size={720} title={<Text fw={600}>Edit Task</Text>} padding="xl">
         <form onSubmit={editTaskForm.onSubmit(handleUpdateTask)}>
           <Stack gap="sm">
             <TextInput required label="Task Title" placeholder="e.g. Wireframe Homepage" {...editTaskForm.getInputProps('title')} />
@@ -1682,7 +1681,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
               </Table.Td>
               <Table.Td>
                 <Badge variant="outline" color="gray">
-                  {member.department || 'N/A'}
+                  {member.department ? member.department.toUpperCase() : 'N/A'}
                 </Badge>
               </Table.Td>
               {isAdminOrPM && (

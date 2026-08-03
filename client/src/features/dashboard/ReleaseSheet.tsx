@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Text, Group, Table, Badge, Button, Select, Modal, Textarea } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { Plus, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { useGetReleasesQuery, useCreateReleaseMutation } from '../releases/release.slice';
 import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
 import { useGetProjectsQuery } from '../projects/project.slice';
@@ -67,32 +67,18 @@ export const ReleaseSheet: React.FC = () => {
     <Card shadow="sm" p="lg" radius="lg" withBorder mb="xl">
       <Group justify="space-between" mb="md">
         <Text fw={700} size="lg" style={{ color: '#111827' }}>Release Sheet</Text>
-        <Group>
-          <Select
-            placeholder="Status"
-            data={[
-              { value: 'scheduled', label: 'Scheduled' },
-              { value: 'in_review', label: 'In Review' },
-              { value: 'released', label: 'Released' }
-            ]}
-            value={filterStatus}
-            onChange={setFilterStatus}
-            clearable
-            styles={{ input: { width: 140 } }}
-          />
-          <Button
-            leftSection={<Plus size={16} />}
-            size="sm"
-            onClick={() => setOpened(true)}
-            style={{
-              background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-              boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
-              fontWeight: 600,
-            }}
-          >
-            Add Release
-          </Button>
-        </Group>
+        <Select
+          placeholder="Status"
+          data={[
+            { value: 'scheduled', label: 'Scheduled' },
+            { value: 'in_review', label: 'In Review' },
+            { value: 'released', label: 'Released' }
+          ]}
+          value={filterStatus}
+          onChange={setFilterStatus}
+          clearable
+          styles={{ input: { width: 140 } }}
+        />
       </Group>
 
       <Table>
