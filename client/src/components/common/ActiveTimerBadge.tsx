@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Group, Text, ActionIcon, Tooltip } from '@mantine/core';
+import { Group, Text, ActionIcon, Tooltip, Badge } from '@mantine/core';
 import { Clock, Square } from 'lucide-react';
 import { useGetActiveTimerQuery, useStopTimerMutation } from '../../features/timelogs/timeLog.slice';
 import { useGetTaskByIdQuery } from '../../features/tasks/task.slice';
@@ -97,78 +97,131 @@ export const ActiveTimerBadge: React.FC = () => {
   };
 
   return (
-    <Group gap="xl" style={{ width: '100%', justifyContent: 'space-between' }}>
-      <Group gap="md">
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            backgroundColor: '#fff',
-            color: progressPct >= 100 ? '#ef4444' : '#3b82f6',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.05)',
-          }}
-        >
-          <Clock size={18} />
-        </div>
-
-        <div>
-          <Text size="xs" color="dimmed" fw={600} style={{ lineHeight: 1.2 }}>
-            Tracking: {projectTitle}
-          </Text>
-          <Text
-            size="sm"
-            fw={700}
+    <>
+      <style>{`
+        @keyframes timerPulseGlow {
+          0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+          70% { box-shadow: 0 0 0 8px rgba(37, 99, 235, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+        @keyframes liveDotPulse {
+          0% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.85); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes clockRotate {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      <Group gap="md" style={{ width: '100%', justifyContent: 'space-between' }} wrap="nowrap">
+        <Group gap="sm" wrap="nowrap">
+          <div
             style={{
-              maxWidth: 300,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              color: '#111827',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              backgroundColor: '#ffffff',
+              color: progressPct >= 100 ? '#ef4444' : '#2563eb',
+              boxShadow: '0 2px 6px rgba(37,99,235,0.15)',
+              animation: 'timerPulseGlow 2s infinite ease-in-out',
+              flexShrink: 0,
             }}
           >
-            {taskTitle}
-          </Text>
-          {activeTask && (
-            <Text size="xs" style={{ color: progressPct >= 100 ? '#ef4444' : '#64748b' }}>
-              {progressPct >= 100 ? '⚠ Estimated hours reached — auto-stopping…' : formatTimeShort(remainingSec)}
-            </Text>
-          )}
-        </div>
-      </Group>
+            <Clock
+              size={17}
+              style={{
+                animation: 'clockRotate 12s linear infinite',
+              }}
+            />
+          </div>
 
-      <Group gap="lg">
-        <Text
-          fw={700}
-          size="xl"
-          style={{
-            fontFamily: 'monospace',
-            color: progressPct >= 100 ? '#ef4444' : '#1e293b',
-            minWidth: '90px',
-            textAlign: 'right',
-            letterSpacing: '1px',
-          }}
-        >
-          {formatTime(elapsed)}
-        </Text>
+          <div>
+            <Group gap={6} align="center" wrap="nowrap" mb={1}>
+              <div
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  backgroundColor: progressPct >= 100 ? '#ef4444' : '#10b981',
+                  animation: 'liveDotPulse 1.5s infinite ease-in-out',
+                }}
+              />
+              <Text size="xs" fw={700} style={{ color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.1 }}>
+                Tracking
+              </Text>
+              {projectTitle && (
+                <Text size="xs" fw={600} style={{ color: '#64748b', lineHeight: 1.1 }}>
+                  • {projectTitle}
+                </Text>
+              )}
+            </Group>
+            <Group gap="xs" align="center" wrap="nowrap">
+              <Text
+                size="sm"
+                fw={700}
+                style={{
+                  maxWidth: 360,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  color: '#0f172a',
+                  lineHeight: 1.2,
+                }}
+              >
+                {taskTitle}
+              </Text>
+              {activeTask && (
+                <Badge
+                  size="xs"
+                  variant="light"
+                  color={progressPct >= 100 ? 'red' : 'blue'}
+                  radius="sm"
+                >
+                  {progressPct >= 100 ? '⚠ Cap Reached' : formatTimeShort(remainingSec)}
+                </Badge>
+              )}
+            </Group>
+          </div>
+        </Group>
 
-        <Tooltip label="Stop Timer">
-          <ActionIcon
-            color="red"
-            variant="filled"
-            size="lg"
-            radius="md"
-            onClick={handleStop}
-            loading={isLoading}
-            style={{ boxShadow: '0 2px 5px rgba(239,68,68,0.3)' }}
+        <Group gap="md" wrap="nowrap">
+          <Text
+            fw={700}
+            size="md"
+            style={{
+              fontFamily: 'monospace',
+              color: progressPct >= 100 ? '#ef4444' : '#0369a1',
+              letterSpacing: '0.5px',
+              background: 'rgba(224, 242, 254, 0.75)',
+              padding: '3px 10px',
+              borderRadius: '6px',
+              border: '1px solid #bae6fd',
+              display: 'inline-block',
+              lineHeight: 1.2,
+            }}
           >
-            <Square size={16} fill="currentColor" />
-          </ActionIcon>
-        </Tooltip>
+            {formatTime(elapsed)}
+          </Text>
+
+          <Tooltip label="Stop Timer">
+            <ActionIcon
+              color="red"
+              variant="filled"
+              size="md"
+              radius="md"
+              onClick={handleStop}
+              loading={isLoading}
+              style={{ boxShadow: '0 2px 6px rgba(239,68,68,0.3)' }}
+            >
+              <Square size={14} fill="currentColor" />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
       </Group>
-    </Group>
+    </>
   );
 };

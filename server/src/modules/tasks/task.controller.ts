@@ -40,7 +40,7 @@ export const getTaskById = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateTask = asyncHandler(async (req: Request, res: Response) => {
-  const task = await taskService.updateTask(req.params.id, req.body);
+  const task = await taskService.updateTask(req.params.id, req.body, (req as any).user);
   res.status(200).json({
     success: true,
     data: task,

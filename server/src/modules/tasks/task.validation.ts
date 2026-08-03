@@ -12,6 +12,8 @@ export const createTaskSchema = z.object({
     endDate: z.string().optional().nullable(),
     assignedTo: z.string().optional().nullable(),
     status: z.enum(['assigned', 'in_progress', 'in_review', 'completed', 'on_hold']).optional(),
+    workSummary: z.string().optional().nullable(),
+    prLink: z.string().optional().nullable(),
     attachments: z.array(z.string()).optional(),
   }),
 });
@@ -27,6 +29,8 @@ export const updateTaskSchema = z.object({
     endDate: z.string().optional().nullable(),
     assignedTo: z.string().optional().nullable(),
     status: z.enum(['assigned', 'in_progress', 'in_review', 'completed', 'on_hold']).optional(),
+    workSummary: z.string().optional().nullable(),
+    prLink: z.string().optional().nullable(),
     attachments: z.array(z.string()).optional(),
   }),
 });

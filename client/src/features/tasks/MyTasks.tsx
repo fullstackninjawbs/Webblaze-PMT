@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { 
   Container, Title, Text, Card, Group, Badge, Stack, Button, Progress, Loader, 
-  Center, Grid, TextInput, Textarea, Select, SegmentedControl, Table, Box, Flex, Modal
+  Center, Grid, TextInput, Textarea, Select, SegmentedControl, Table, Box, Modal
 } from '@mantine/core';
 import { 
   Play, Square, Eye, Clock, AlertCircle, Search, Calendar, MessageSquare, 
@@ -270,19 +270,23 @@ export const MyTasks = () => {
           value={viewMode}
           onChange={(val) => setViewMode(val as 'kanban' | 'list')}
           data={[
-            { label: (
-                <Center gap={6}>
+            {
+              label: (
+                <Center inline style={{ gap: 6 }}>
                   <LayoutGrid size={14} />
                   <span>Kanban</span>
                 </Center>
-              ), value: 'kanban' 
+              ),
+              value: 'kanban',
             },
-            { label: (
-                <Center gap={6}>
+            {
+              label: (
+                <Center inline style={{ gap: 6 }}>
                   <ListIcon size={14} />
                   <span>List View</span>
                 </Center>
-              ), value: 'list' 
+              ),
+              value: 'list',
             },
           ]}
         />

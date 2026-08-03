@@ -34,7 +34,11 @@ export const loginUser = async (
     throw new ApiError(401, 'Invalid email or password');
   }
 
-  const tokens = generateTokens((user._id as any).toString(), user.tokenVersion || 0);
+  // Increment tokenVersion on login to invalidate all older active sessions on other devices/systems
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
+  await user.save();
+
+  const tokens = generateTokens((user._id as any).toString(), user.tokenVersion);
   return { user, tokens };
 };
 
@@ -78,7 +82,10 @@ export const acceptInviteToken = async (
       throw new ApiError(401, 'User account not found or disabled');
     }
 
-    const tokens = generateTokens((user._id as any).toString(), user.tokenVersion || 0);
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    const tokens = generateTokens((user._id as any).toString(), user.tokenVersion);
     return { user, tokens };
   } catch (error) {
     throw new ApiError(401, 'Invalid or expired invitation token');

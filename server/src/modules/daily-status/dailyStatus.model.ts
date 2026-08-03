@@ -4,7 +4,7 @@ export interface IDailyStatus extends Document {
   user: Types.ObjectId;
   project?: Types.ObjectId;
   workDone: string;
-  plannedWork: string;
+  plannedWork?: string;
   blockers?: string;
   date: Date;
   createdAt: Date;
@@ -29,8 +29,8 @@ const dailyStatusSchema = new Schema<IDailyStatus>(
     },
     plannedWork: {
       type: String,
-      required: [true, 'Planned work description is required'],
       trim: true,
+      default: '',
     },
     blockers: {
       type: String,

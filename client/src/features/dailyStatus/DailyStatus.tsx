@@ -166,7 +166,7 @@ export const DailyStatus: React.FC = () => {
           size="md"
           radius="md"
         >
-          Submit Check-in
+          Submit EOD Report
         </Button>
       </Group>
 
@@ -289,7 +289,7 @@ export const DailyStatus: React.FC = () => {
                 No Daily Statuses Logged Yet
               </Title>
               <Text size="sm" style={{ color: '#64748b', maxWidth: '420px', margin: '0 auto' }} mb="lg">
-                Submit your first daily work log to keep your team informed on your progress and goals.
+                Submit your end-of-day summary to keep your project lead and team updated on your work.
               </Text>
               <Button
                 variant="light"
@@ -299,7 +299,7 @@ export const DailyStatus: React.FC = () => {
                 radius="md"
                 fw={600}
               >
-                Submit Your First Check-in
+                Submit First EOD Report
               </Button>
             </Paper>
           ) : (
@@ -399,7 +399,7 @@ export const DailyStatus: React.FC = () => {
               <Sparkles size={18} color="#2563eb" />
             </Paper>
             <Title order={4} style={{ color: '#0f172a', fontWeight: 800 }}>
-              Submit Daily Check-in
+              Submit End-of-Day (EOD) Report
             </Title>
           </Group>
         }
@@ -408,14 +408,14 @@ export const DailyStatus: React.FC = () => {
         centered
       >
         <Text size="sm" style={{ color: '#64748b' }} mb="lg">
-          Fill out your daily work status update for your project lead and teammates.
+          Provide your end-of-day summary of accomplishments, tomorrow's targets, and any active blockers.
         </Text>
 
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
             <Select
-              label="Associated Project (Optional)"
-              placeholder="Select a project you worked on..."
+              label="Select Project (Optional)"
+              placeholder="Select a project you worked on today..."
               data={projectOptions}
               clearable
               radius="md"
@@ -424,8 +424,8 @@ export const DailyStatus: React.FC = () => {
 
             <Textarea
               required
-              label="Work Completed Today"
-              placeholder="Describe key achievements, tasks finished, PRs created, or bugs resolved..."
+              label="Work Completed Today (EOD Summary)"
+              placeholder="Describe key accomplishments, tasks finished, PRs merged, or bugs resolved today..."
               minRows={4}
               radius="md"
               {...form.getInputProps('workDone')}
@@ -433,18 +433,16 @@ export const DailyStatus: React.FC = () => {
             />
 
             <Textarea
-              required
-              label="Planned Work for Tomorrow / Next Session"
-              placeholder="Detail your goals for the upcoming session..."
+              label="Plans for Tomorrow (Optional)"
+              placeholder="Detail your planned tasks and focus goals for tomorrow..."
               minRows={3}
               radius="md"
               {...form.getInputProps('plannedWork')}
-              withAsterisk
             />
 
             <Textarea
-              label="Blockers or Obstacles (Optional)"
-              placeholder="List any impediments, pending approvals, or dependencies..."
+              label="Blockers / Dependencies (Optional)"
+              placeholder="List any obstacles, pending code reviews, or technical dependencies holding you back..."
               minRows={2}
               radius="md"
               {...form.getInputProps('blockers')}
@@ -466,7 +464,7 @@ export const DailyStatus: React.FC = () => {
                   boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
                 }}
               >
-                Submit Check-in
+                Submit EOD Report
               </Button>
             </Group>
           </Stack>

@@ -4,6 +4,7 @@ import { User } from '../users/user.model';
 import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
 import { sendTaskAssignmentEmail, sendTaskStatusChangeEmail } from '../../utils/emailService';
 import { ApiError } from '../../utils/ApiError';
+import { Role } from '../../types';
 
 const enforceHourCap = async (milestoneId: string, estimatedHours: number, currentTaskId?: string) => {
   const milestone = await Milestone.findById(milestoneId);
@@ -99,9 +100,21 @@ export const getTaskById = async (id: string): Promise<ITask> => {
   return task;
 };
 
-export const updateTask = async (id: string, updateData: Partial<ITask>): Promise<ITask> => {
+export const updateTask = async (
+  id: string,
+  updateData: Partial<ITask>,
+  user?: { id?: string; _id?: string; role?: Role }
+): Promise<ITask> => {
   const task = await getTaskById(id);
-  
+
+  if (user && user.role === Role.TEAM_MEMBER) {
+    const currentUserId = (user.id || user._id)?.toString();
+    const assignedId = task.assignedTo ? (typeof task.assignedTo === 'object' ? (task.assignedTo as any)._id?.toString() : String(task.assignedTo)) : null;
+    if (!assignedId || assignedId !== currentUserId) {
+      throw new ApiError(403, 'Forbidden: You can only update tasks assigned to you');
+    }
+  }
+
   if (updateData.estimatedHours !== undefined && updateData.estimatedHours !== task.estimatedHours) {
     await enforceHourCap(task.milestone as unknown as string, updateData.estimatedHours, id);
   }

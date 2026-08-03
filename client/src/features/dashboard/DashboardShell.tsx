@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../app/store';
-import { Title, Text, Group, TextInput, Badge, SimpleGrid, Card, ActionIcon, Stack, Box, Progress } from '@mantine/core';
+import { Title, Text, Group, TextInput, Badge, SimpleGrid, Card, ActionIcon, Stack, Box, Progress, Button } from '@mantine/core';
 import { Search, CheckCircle, CheckSquare, Activity, Clock, Briefcase, ListTodo, Rocket, X, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Role } from '../../types';
 

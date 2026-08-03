@@ -26,8 +26,7 @@ export const TaskDetail = () => {
   const [deleteTimeLog] = useDeleteTimeLogMutation();
   const [clearTaskTimeLogs] = useClearTaskTimeLogsMutation();
 
-  const [ticker, setTicker] = useState(0);
-
+  const [, setTicker] = useState<number>(0);
   const [statusModalOpened, setStatusModalOpened] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [statusComment, setStatusComment] = useState('');
