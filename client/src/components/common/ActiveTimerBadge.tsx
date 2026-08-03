@@ -44,15 +44,7 @@ export const ActiveTimerBadge: React.FC = () => {
     };
   }, [activeTimer]);
 
-  // Auto-stop when progress reaches 100%
-  useEffect(() => {
-    if (!activeTimer || !activeTask || autoStoppedRef.current) return;
-    const totalSpent = (activeTask.spentHours || 0) + elapsed / 3600;
-    if (totalSpent >= activeTask.estimatedHours && activeTask.status !== 'completed') {
-      autoStoppedRef.current = true;
-      stopTimer({}).catch(console.error);
-    }
-  }, [elapsed]);
+  // Format timer displays
 
   const handleStop = async () => {
     try {

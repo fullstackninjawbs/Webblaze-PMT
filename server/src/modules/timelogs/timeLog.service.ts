@@ -5,11 +5,10 @@ import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.servic
 import { ApiError } from '../../utils/ApiError';
 
 export const startTimer = async (userId: string, taskId: string, description?: string): Promise<ITimeLog> => {
-  // Check if user already has an active timer
+  // If user already has an active timer, auto-stop it cleanly first
   const activeTimer = await TimeLog.findOne({ user: userId, endTime: { $exists: false } });
-  
   if (activeTimer) {
-    throw new ApiError(400, 'You already have an active timer. Please stop it first.');
+    await stopTimer(userId, 'Auto-stopped on starting new timer');
   }
 
   // Ensure task exists
