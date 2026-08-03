@@ -191,10 +191,10 @@ export const UsersList: React.FC = () => {
             user.role === Role.ADMIN
               ? 'red'
               : user.role === Role.PM
-              ? 'grape'
-              : user.role === Role.TEAM_LEAD
-              ? 'blue'
-              : 'gray'
+                ? 'grape'
+                : user.role === Role.TEAM_LEAD
+                  ? 'blue'
+                  : 'gray'
           }
         >
           {user.role.replace('_', ' ')}
@@ -578,11 +578,6 @@ export const UsersList: React.FC = () => {
           <Alert color="green" variant="light" radius="md">
             Team member <strong>{invitedUserSuccess?.name}</strong> ({invitedUserSuccess?.email}) was successfully registered and invited!
           </Alert>
-
-          <Text size="xs" c="dimmed">
-            If your real SMTP details (e.g. Gmail/SendGrid) are configured in <code>server/.env</code>, an email was sent directly to their inbox.
-          </Text>
-
           <Button color="blue" radius="md" onClick={() => setInvitedUserSuccess(null)}>
             Done
           </Button>
