@@ -3,16 +3,14 @@ import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { RootState } from '../../app/store';
 import { Title, Text, Group, TextInput, Badge, SimpleGrid, Card, ActionIcon, Stack, Box, Progress, Button } from '@mantine/core';
-import { Search, CheckCircle, CheckSquare, Activity, Clock, Briefcase, ListTodo, Rocket, X, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Search, CheckCircle, Activity, Clock, Briefcase, ListTodo, Rocket, X, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Role } from '../../types';
 
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetTasksByUserQuery, useGetAllTasksQuery } from '../tasks/task.slice';
-import { useGetTodosQuery } from '../todos/todo.slice';
 import { useGetReleasesQuery } from '../releases/release.slice';
 
 import { ProjectSummaryCards } from './ProjectSummaryCards';
-import { TeamTodoOverview } from './TeamTodoOverview';
 import { ReleaseSheet } from './ReleaseSheet';
 import { TeamTimeTrackingPanel } from './TeamTimeTrackingPanel';
 
@@ -24,18 +22,15 @@ export const DashboardShell: React.FC = () => {
   const { data: projectsData } = useGetProjectsQuery();
   const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id });
   const { data: allTasksData } = useGetAllTasksQuery(undefined, { skip: user?.role === Role.TEAM_MEMBER });
-  const { data: todosData } = useGetTodosQuery();
   const { data: releasesData } = useGetReleasesQuery();
 
   const [searchQuery, setSearchQuery] = useState('');
 
   const projects = projectsData?.data || [];
-  const dbTodos = todosData?.data || [];
   const dbTasks = tasksData?.data || [];
   const releases = releasesData?.data || [];
 
   const openTasksCount = dbTasks.filter(t => t.status !== 'completed').length;
-  const myTodosCount = dbTodos.filter(t => (typeof t.user === 'object' ? t.user._id : t.user) === user?._id && t.status !== 'done').length;
 
   // 1. Total logged hours calculation for team member
   const totalLoggedHours = useMemo(() => {
@@ -85,15 +80,6 @@ export const DashboardShell: React.FC = () => {
       )
     : [];
 
-  const matchedTodos = query
-    ? dbTodos.filter(t =>
-        t.title?.toLowerCase().includes(query) ||
-        t.status?.toLowerCase().includes(query) ||
-        (typeof t.user === 'object' && (t.user as any)?.name?.toLowerCase().includes(query)) ||
-        (typeof t.relatedProject === 'object' && (t.relatedProject as any)?.name?.toLowerCase().includes(query))
-      )
-    : [];
-
   const matchedReleases = query
     ? releases.filter(r =>
         r.details?.toLowerCase().includes(query) ||
@@ -103,10 +89,9 @@ export const DashboardShell: React.FC = () => {
       )
     : [];
 
-  const totalMatchCount = matchedProjects.length + matchedTasks.length + matchedTodos.length + matchedReleases.length;
+  const totalMatchCount = matchedProjects.length + matchedTasks.length + matchedReleases.length;
 
   const filteredProjects = query ? matchedProjects : projects;
-  const filteredTodos = query ? matchedTodos : dbTodos;
 
   const getTasksDueThisWeekCount = (tasksList: any[]) => {
     const today = new Date();
@@ -127,6 +112,7 @@ export const DashboardShell: React.FC = () => {
 
   const TLHero = () => {
     const tlTasks = allTasksData?.data || [];
+    const openTLTasks = tlTasks.filter(t => t.status !== 'completed').length;
     const dueThisWeek = getTasksDueThisWeekCount(tlTasks);
 
     return (
@@ -136,8 +122,8 @@ export const DashboardShell: React.FC = () => {
             <Activity size={32} color="#4F46E5" />
             <Badge color="indigo" variant="light" size="lg">Team Workload</Badge>
           </Group>
-          <Text fw={800} size="32px" color="#111827">{filteredTodos.length} Open Team Todos</Text>
-          <Text size="sm" color="#4B5563">Across all active projects</Text>
+          <Text fw={800} size="32px" color="#111827">{openTLTasks} Active Tasks</Text>
+          <Text size="sm" color="#4B5563">Across all assigned projects</Text>
         </Card>
         <Card shadow="sm" p="xl" radius="lg" withBorder>
           <Group justify="space-between" mb="md">
@@ -157,7 +143,7 @@ export const DashboardShell: React.FC = () => {
     const weeklyGoalPercent = Math.min(Math.round((totalLoggedHours / 40) * 100), 100);
 
     return (
-      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg" mb="xl">
+      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg" mb="xl">
         <Card shadow="sm" p="xl" radius="lg" withBorder>
           <Group justify="space-between" mb="md">
             <CheckCircle size={32} color="#0EA5E9" />
@@ -165,15 +151,6 @@ export const DashboardShell: React.FC = () => {
           </Group>
           <Text fw={800} size="32px" color="#111827">{openTasksCount} Open Tasks</Text>
           <Text size="sm" color="#4B5563">Assigned to you</Text>
-        </Card>
-
-        <Card shadow="sm" p="xl" radius="lg" withBorder>
-          <Group justify="space-between" mb="md">
-            <CheckSquare size={32} color="#EC4899" />
-            <Badge color="pink" variant="light" size="lg">Today's Focus</Badge>
-          </Group>
-          <Text fw={800} size="32px" color="#111827">{myTodosCount} To-Dos</Text>
-          <Text size="sm" color="#4B5563">Pending for today</Text>
         </Card>
 
         <Card shadow="sm" p="xl" radius="lg" withBorder>
@@ -362,42 +339,6 @@ export const DashboardShell: React.FC = () => {
                 </div>
               )}
 
-              {/* Todos Results */}
-              {matchedTodos.length > 0 && (
-                <div>
-                  <Group gap="xs" mb="sm">
-                    <CheckSquare size={16} color="#6366f1" />
-                    <Text fw={700} size="sm" style={{ color: '#1e293b' }}>
-                      To-Dos ({matchedTodos.length})
-                    </Text>
-                  </Group>
-                  <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="sm">
-                    {matchedTodos.map((td) => (
-                      <Card
-                        key={td._id}
-                        withBorder
-                        p="sm"
-                        radius="md"
-                        style={{ cursor: 'pointer', transition: 'all 0.2s ease', backgroundColor: '#f8fafc' }}
-                        onClick={() => navigate('/todos/team')}
-                      >
-                        <Group justify="space-between" wrap="nowrap" mb={4}>
-                          <Text fw={600} size="sm" style={{ color: '#4338ca' }} truncate>
-                            {td.title}
-                          </Text>
-                          <Badge size="xs" variant="light" color={td.status === 'done' ? 'green' : 'indigo'}>
-                            {td.status.replace('_', ' ')}
-                          </Badge>
-                        </Group>
-                        <Text size="xs" color="dimmed">
-                          Assigned: {typeof td.user === 'object' ? (td.user as any)?.name : 'Unassigned'}
-                        </Text>
-                      </Card>
-                    ))}
-                  </SimpleGrid>
-                </div>
-              )}
-
               {/* Releases Results */}
               {matchedReleases.length > 0 && (
                 <div>
@@ -559,9 +500,7 @@ export const DashboardShell: React.FC = () => {
         </Stack>
       )}
 
-      {(user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD) && (
-        <TeamTodoOverview todos={filteredTodos} />
-      )}
+
       
       {(user?.role === Role.ADMIN || user?.role === Role.PM) && (
         <>

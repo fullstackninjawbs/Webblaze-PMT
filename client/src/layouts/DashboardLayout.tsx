@@ -4,7 +4,7 @@ import { ActiveTimerBadge } from '../components/common/ActiveTimerBadge';
 import { useSelector } from 'react-redux';
 import { RootState } from '../app/store';
 import { useLogoutMutation, useGetMeQuery } from '../features/auth/auth.slice';
-import { LayoutDashboard, CheckSquare, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity, Search } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity, Search } from 'lucide-react';
 import { Role } from '../types';
 import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge, Kbd } from '@mantine/core';
 import { useGetActiveTimerQuery } from '../features/timelogs/timeLog.slice';
@@ -36,7 +36,6 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'EXECUTION & TASKS',
       items: [
-        { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
         { name: 'Daily Status', href: '/daily-status', icon: Activity },
         { name: 'Releases', href: '/releases', icon: Rocket },
         { name: 'Time Tracking', href: '/team-time', icon: Clock },
@@ -68,7 +67,6 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'EXECUTION & TASKS',
       items: [
-        { name: 'Team Todos', href: '/todos/team', icon: ListTodo },
         { name: 'Daily Status', href: '/daily-status', icon: Activity },
         { name: 'Releases', href: '/releases', icon: Rocket },
         { name: 'Time Tracking', href: '/team-time', icon: Clock },
@@ -99,7 +97,6 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
       title: 'EXECUTION & TASKS',
       items: [
         { name: 'Team Tasks', href: '/team-tasks', icon: ListTodo },
-        { name: 'Team Todos', href: '/todos/team', icon: CheckSquare },
         { name: 'Daily Status', href: '/daily-status', icon: Activity },
         { name: 'Releases', href: '/releases', icon: Rocket },
       ],
@@ -116,7 +113,6 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
       title: 'MY WORK',
       items: [
         { name: 'My Tasks', href: '/my-tasks', icon: ListTodo },
-        { name: 'My Todos', href: '/todos/me', icon: CheckSquare },
       ],
     },
     {

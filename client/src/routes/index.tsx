@@ -9,14 +9,12 @@ import { ClientsList } from '../features/clients/ClientsList';
 import { ProjectsList } from '../features/projects/ProjectsList';
 import { UsersList } from '../features/users/UsersList';
 import { ProjectDetails } from '../features/projects/ProjectDetails';
-import { TodosList } from '../features/todos/TodosList';
 import { TeamTasks } from '../features/tasks/TeamTasks';
 import { MyTasks } from '../features/tasks/MyTasks';
 import { TaskDetail } from '../features/tasks/TaskDetail';
 import { TeamTimeTracking } from '../features/timelogs/TeamTimeTracking';
 import { ReleasesPage } from '../features/releases/ReleasesPage';
 import { InvoicesPage } from '../features/invoices/InvoicesPage';
-import { MyTodos } from '../features/todos/MyTodos';
 import { DailyStatus } from '../features/dailyStatus/DailyStatus';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
@@ -45,8 +43,6 @@ const AppRoutes = () => {
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/projects" element={<ProjectsList />} />
         <Route path="/projects/:id" element={<ProjectDetails />} />
-        <Route path="/todos/team" element={<TodosList />} />
-        <Route path="/todos/me" element={<MyTodos />} />
         <Route path="/team" element={<UsersList />} />
         <Route path="/team/:id" element={<UserProfile />} />
         
