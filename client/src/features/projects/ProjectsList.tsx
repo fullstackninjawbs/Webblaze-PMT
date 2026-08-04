@@ -350,10 +350,12 @@ export const ProjectsList: React.FC = () => {
               letterSpacing: '-0.03em',
             }}
           >
-            Projects Directory
+            {isAdminOrPM ? 'Projects Directory' : 'My Projects'}
           </Title>
           <Text size="sm" mt={4} style={{ color: '#64748b' }}>
-            Manage client deliverables, milestone schedules, team assignments, and total amounts.
+            {isAdminOrPM
+              ? 'Manage client deliverables, milestone schedules, team assignments, and total amounts.'
+              : 'View your assigned projects, milestone schedules, and progress.'}
           </Text>
         </div>
         {isAdminOrPM && (

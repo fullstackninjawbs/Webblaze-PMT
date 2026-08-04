@@ -1,18 +1,27 @@
-import React, { useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
+import { Role } from '../../types';
+import { useForm } from '@mantine/form';
 import {
   Container, Title, Text, Group, Badge, Stack, SimpleGrid,
   Tabs, Table, Progress, Loader, Center, Button, Paper,
-  RingProgress,
+  RingProgress, Modal, Textarea, Select, TextInput,
 } from '@mantine/core';
 import {
   ArrowLeft, Mail, CheckCircle2, Clock, Briefcase, CheckSquare,
-  Activity, AlertCircle, LogIn, LogOut,
+  Activity, AlertCircle, LogIn, LogOut, Send, Sparkles, Search,
 } from 'lucide-react';
 import { useGetUserByIdQuery } from './user.slice';
 import { useGetTasksByUserQuery } from '../tasks/task.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetTeamTimeLogsQuery } from '../timelogs/timeLog.slice';
+import {
+  useGetMyDailyStatusesQuery,
+  useGetTeamDailyStatusesQuery,
+  useSubmitDailyStatusMutation,
+} from '../dailyStatus/dailyStatus.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { formatDateDisplay } from '../../utils/dateUtils';
 
@@ -69,16 +78,86 @@ const StatCard = ({
 export const UserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'projects';
+
+  const { user: currentUser } = useSelector((state: RootState) => state.auth);
+  const isManagement =
+    currentUser?.role === Role.ADMIN ||
+    currentUser?.role === Role.PM ||
+    currentUser?.role === Role.TEAM_LEAD;
 
   const { data: userData, isLoading: isUserLoading } = useGetUserByIdQuery(id!);
   const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByUserQuery(id!, { skip: !id });
   const { data: projectsData } = useGetProjectsQuery();
   const { data: timeLogsData } = useGetTeamTimeLogsQuery();
 
+  const { data: myDailyLogsData, isLoading: isMyLogsLoading } = useGetMyDailyStatusesQuery();
+  const { data: teamLogsData, isLoading: isTeamLogsLoading } = useGetTeamDailyStatusesQuery(
+    undefined,
+    { skip: !isManagement }
+  );
+  const [submitDailyStatus, { isLoading: isSubmittingStatus }] = useSubmitDailyStatusMutation();
+
+  const [submitModalOpened, setSubmitModalOpened] = useState(false);
+  const [dailyStatusSearchQuery, setDailyStatusSearchQuery] = useState('');
+  const [dailyStatusProjectFilter, setDailyStatusProjectFilter] = useState<string | null>(null);
+  const [dailyStatusSubTab, setDailyStatusSubTab] = useState<'my' | 'team'>('my');
+
   const member = userData?.data;
   const tasks = tasksData?.data || [];
   const allProjects = projectsData?.data || [];
   const timeLogs = timeLogsData?.data || [];
+  const myDailyLogs = myDailyLogsData?.data || [];
+  const teamDailyLogs = teamLogsData?.data || [];
+
+  // Filter daily status logs for this user profile
+  const memberDailyLogs = useMemo(() => {
+    return myDailyLogs.filter((log: any) => {
+      const logUserId = typeof log.user === 'object' ? log.user?._id : log.user;
+      return logUserId === id || currentUser?._id === id;
+    });
+  }, [myDailyLogs, id, currentUser]);
+
+  const projectOptions = useMemo(() => {
+    return allProjects.map((p) => ({ value: p._id, label: p.name }));
+  }, [allProjects]);
+
+  const statusForm = useForm({
+    initialValues: {
+      project: '',
+      workDone: '',
+    },
+    validate: {
+      workDone: (val) => (val.trim().length === 0 ? 'Please enter a description' : null),
+    },
+  });
+
+  const handleDailyStatusSubmit = async (values: typeof statusForm.values) => {
+    try {
+      await submitDailyStatus({
+        project: values.project || undefined,
+        workDone: values.workDone,
+      }).unwrap();
+      statusForm.reset();
+      setSubmitModalOpened(false);
+    } catch (err) {
+      console.error('Failed to submit status', err);
+    }
+  };
+
+  const filteredTeamLogs = useMemo(() => {
+    return teamDailyLogs.filter((log: any) => {
+      const userName = log.user?.name || '';
+      const projectName = log.project?.name || '';
+      const matchesQuery =
+        userName.toLowerCase().includes(dailyStatusSearchQuery.toLowerCase()) ||
+        log.workDone.toLowerCase().includes(dailyStatusSearchQuery.toLowerCase()) ||
+        projectName.toLowerCase().includes(dailyStatusSearchQuery.toLowerCase());
+      const matchesProject = !dailyStatusProjectFilter || log.project?._id === dailyStatusProjectFilter;
+      return matchesQuery && matchesProject;
+    });
+  }, [teamDailyLogs, dailyStatusSearchQuery, dailyStatusProjectFilter]);
 
   // Filter time logs for this user
   const userTimeLogs = useMemo(() =>
@@ -176,23 +255,26 @@ export const UserProfile: React.FC = () => {
 
       {/* Stats Row */}
       <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md" mb="xl">
+        <StatCard label="Projects" value={memberProjects.length} sub="member of" icon={Briefcase} color="orange" />
         <StatCard label="Tasks Assigned" value={tasks.length} sub="total tasks" icon={CheckSquare} color="blue" />
         <StatCard label="Tasks Completed" value={completedTasks} sub={`${tasks.length - completedTasks} remaining`} icon={CheckCircle2} color="green" />
         <StatCard label="Hours Logged" value={`${totalLoggedHours}h`} sub="total tracked time" icon={Clock} color="violet" />
-        <StatCard label="Projects" value={memberProjects.length} sub="member of" icon={Briefcase} color="orange" />
       </SimpleGrid>
 
       {/* Tabs */}
-      <Tabs defaultValue="tasks" radius="md">
+      <Tabs value={currentTab} onChange={(val) => setSearchParams({ tab: val || 'projects' })} radius="md">
         <Tabs.List mb="lg">
+          <Tabs.Tab value="projects" leftSection={<Briefcase size={16} />}>
+            Projects <Badge variant="light" size="xs" ml={4}>{memberProjects.length}</Badge>
+          </Tabs.Tab>
+          <Tabs.Tab value="daily-status" leftSection={<Activity size={16} />}>
+            Daily Status <Badge variant="light" size="xs" ml={4}>{memberDailyLogs.length}</Badge>
+          </Tabs.Tab>
           <Tabs.Tab value="tasks" leftSection={<CheckSquare size={16} />}>
             Tasks <Badge variant="light" size="xs" ml={4}>{tasks.length}</Badge>
           </Tabs.Tab>
           <Tabs.Tab value="timelogs" leftSection={<Clock size={16} />}>
             Time Logs <Badge variant="light" size="xs" ml={4}>{userTimeLogs.length}</Badge>
-          </Tabs.Tab>
-          <Tabs.Tab value="projects" leftSection={<Briefcase size={16} />}>
-            Projects <Badge variant="light" size="xs" ml={4}>{memberProjects.length}</Badge>
           </Tabs.Tab>
         </Tabs.List>
 
@@ -401,7 +483,222 @@ export const UserProfile: React.FC = () => {
             )}
           </Paper>
         </Tabs.Panel>
+
+        {/* Daily Status Tab Panel */}
+        <Tabs.Panel value="daily-status">
+          <Paper withBorder radius="xl" p="lg" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+            <Group justify="space-between" align="center" mb="lg">
+              <div>
+                <Title order={3} style={{ color: '#0f172a', fontWeight: 800 }}>Daily Work Status</Title>
+                <Text size="sm" style={{ color: '#64748b' }}>
+                  Track daily accomplishments, upcoming goals, and team roadblocks in real-time.
+                </Text>
+              </div>
+              <Button
+                leftSection={<Send size={16} />}
+                onClick={() => setSubmitModalOpened(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                }}
+                size="sm"
+                radius="md"
+              >
+                Submit EOD Report
+              </Button>
+            </Group>
+
+            {isManagement && (
+              <Group mb="lg">
+                <Button
+                  size="xs"
+                  variant={dailyStatusSubTab === 'my' ? 'filled' : 'light'}
+                  onClick={() => setDailyStatusSubTab('my')}
+                >
+                  Member History ({memberDailyLogs.length})
+                </Button>
+                <Button
+                  size="xs"
+                  variant={dailyStatusSubTab === 'team' ? 'filled' : 'light'}
+                  onClick={() => setDailyStatusSubTab('team')}
+                >
+                  Team Updates Feed ({teamDailyLogs.length})
+                </Button>
+              </Group>
+            )}
+
+            {dailyStatusSubTab === 'my' ? (
+              isMyLogsLoading ? (
+                <Center h={200}><Loader color="blue" /></Center>
+              ) : memberDailyLogs.length === 0 ? (
+                <Paper p="xl" radius="xl" withBorder ta="center" style={{ borderColor: '#e8ecf4', background: '#ffffff', borderStyle: 'dashed' }}>
+                  <Paper p="md" radius="full" bg="#eff6ff" style={{ display: 'inline-flex', marginBottom: '12px' }}>
+                    <Sparkles size={24} color="#2563eb" />
+                  </Paper>
+                  <Text fw={700} style={{ color: '#0f172a' }} mb="xs">No Daily Status Reports Logged Yet</Text>
+                  <Text size="sm" c="dimmed" style={{ maxWidth: 400, margin: '0 auto' }} mb="lg">
+                    Submit end-of-day summary to keep project lead and team updated.
+                  </Text>
+                  <Button variant="light" color="blue" leftSection={<Send size={16} />} onClick={() => setSubmitModalOpened(true)}>
+                    Submit First EOD Report
+                  </Button>
+                </Paper>
+              ) : (
+                <Stack gap="lg">
+                  {memberDailyLogs.map((log: any) => (
+                    <Paper key={log._id} p="lg" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+                      <Group justify="space-between" align="center" mb="sm">
+                        <Group gap="xs">
+                          <Paper p={6} radius="md" bg="#f1f5f9">
+                            <Clock size={16} color="#64748b" />
+                          </Paper>
+                          <Text size="sm" fw={700} style={{ color: '#0f172a' }}>{formatDateDisplay(log.date)}</Text>
+                        </Group>
+                        {log.project && (
+                          <Badge variant="light" color="blue" size="md" radius="sm" leftSection={<Briefcase size={12} />}>
+                            {log.project.name}
+                          </Badge>
+                        )}
+                      </Group>
+                      <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
+                        <Group gap="xs" mb={4}>
+                          <CheckCircle2 size={16} color="#10b981" />
+                          <Text size="xs" fw={700} tt="uppercase" style={{ color: '#059669', letterSpacing: '0.05em' }}>Description</Text>
+                        </Group>
+                        <Text size="sm" style={{ color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{log.workDone}</Text>
+                      </Paper>
+                    </Paper>
+                  ))}
+                </Stack>
+              )
+            ) : (
+              <div>
+                <Paper p="md" radius="lg" withBorder mb="lg" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+                  <Group justify="space-between">
+                    <TextInput
+                      placeholder="Search teammate, project, task..."
+                      leftSection={<Search size={16} color="#94a3b8" />}
+                      value={dailyStatusSearchQuery}
+                      onChange={(e) => setDailyStatusSearchQuery(e.target.value)}
+                      style={{ width: 300 }}
+                      radius="md"
+                    />
+                    <Select
+                      placeholder="All Projects"
+                      value={dailyStatusProjectFilter}
+                      onChange={setDailyStatusProjectFilter}
+                      data={[{ value: '', label: 'All Projects' }, ...projectOptions]}
+                      clearable
+                      style={{ width: 220 }}
+                      radius="md"
+                    />
+                  </Group>
+                </Paper>
+
+                {isTeamLogsLoading ? (
+                  <Center h={200}><Loader color="blue" /></Center>
+                ) : filteredTeamLogs.length === 0 ? (
+                  <Paper p="xl" radius="xl" withBorder ta="center">
+                    <Text color="dimmed" size="sm">No team daily status logs match search criteria.</Text>
+                  </Paper>
+                ) : (
+                  <Stack gap="lg">
+                    {filteredTeamLogs.map((log: any) => (
+                      <Paper key={log._id} p="lg" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
+                        <Group justify="space-between" align="center" mb="sm">
+                          <Group gap="md">
+                            <UserAvatar name={log.user?.name} avatarUrl={log.user?.avatarUrl} size="md" />
+                            <div>
+                              <Text size="sm" fw={700} style={{ color: '#0f172a' }}>{log.user?.name}</Text>
+                              <Text size="xs" style={{ color: '#64748b' }}>{formatDateDisplay(log.date)}</Text>
+                            </div>
+                          </Group>
+                          {log.project && (
+                            <Badge variant="light" color="blue" size="md" leftSection={<Briefcase size={12} />}>
+                              {log.project.name}
+                            </Badge>
+                          )}
+                        </Group>
+                        <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
+                          <Text size="xs" fw={700} tt="uppercase" style={{ color: '#059669' }}>Description</Text>
+                          <Text size="sm" mt={4} style={{ color: '#334155', whiteSpace: 'pre-wrap' }}>{log.workDone}</Text>
+                        </Paper>
+                      </Paper>
+                    ))}
+                  </Stack>
+                )}
+              </div>
+            )}
+          </Paper>
+        </Tabs.Panel>
       </Tabs>
+
+      {/* Modal: Submit Daily Status EOD Report */}
+      <Modal
+        opened={submitModalOpened}
+        onClose={() => setSubmitModalOpened(false)}
+        title={
+          <Group gap="xs">
+            <Paper p={6} radius="md" bg="#eff6ff">
+              <Sparkles size={18} color="#2563eb" />
+            </Paper>
+            <Title order={4} style={{ color: '#0f172a', fontWeight: 800 }}>
+              Submit Daily Status Report
+            </Title>
+          </Group>
+        }
+        size="lg"
+        radius="xl"
+        centered
+      >
+        <Text size="sm" style={{ color: '#64748b' }} mb="lg">
+          Select a project and enter your status description below.
+        </Text>
+
+        <form onSubmit={statusForm.onSubmit(handleDailyStatusSubmit)}>
+          <Stack gap="md">
+            <Select
+              label="Select Project (Optional)"
+              placeholder="Select a project you worked on today..."
+              data={projectOptions}
+              clearable
+              radius="md"
+              {...statusForm.getInputProps('project')}
+            />
+
+            <Textarea
+              required
+              label="Description"
+              placeholder="Describe key accomplishments, tasks finished, PRs merged, or bugs resolved today..."
+              minRows={5}
+              radius="md"
+              {...statusForm.getInputProps('workDone')}
+              withAsterisk
+            />
+
+            <Group justify="flex-end" mt="md">
+              <Button variant="light" color="gray" onClick={() => setSubmitModalOpened(false)} radius="md">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                leftSection={<Send size={16} />}
+                loading={isSubmittingStatus}
+                size="md"
+                radius="md"
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                }}
+              >
+                Submit Status Report
+              </Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
     </Container>
   );
 };
