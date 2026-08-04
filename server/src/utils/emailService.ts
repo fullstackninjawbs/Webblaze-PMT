@@ -14,20 +14,14 @@ const createTransporter = () => {
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const service = process.env.SMTP_SERVICE;
-
-  if (service && user && pass) {
-    return nodemailer.createTransport({
-      service,
-      auth: { user, pass },
-    });
-  }
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
 
   if (host && user && pass) {
+    logger.info(`[Email] Creating SMTP transporter → host=${host}, port=${port}, secure=${secure}, user=${user}`);
     return nodemailer.createTransport({
       host,
       port,
-      secure: process.env.SMTP_SECURE === 'true' || port === 465,
+      secure,
       auth: { user, pass },
       tls: {
         rejectUnauthorized: false,
@@ -35,7 +29,8 @@ const createTransporter = () => {
     });
   }
 
-  // Fallback dev transporter: logs to console
+  // Fallback: dev-mode logger (no real SMTP credentials configured)
+  logger.warn('[Email] SMTP credentials not found (SMTP_HOST / SMTP_USER / SMTP_PASS missing). Falling back to DEV mode — emails will NOT be sent.');
   return {
     sendMail: async (options: any) => {
       logger.info('=============== EMAIL DISPATCHED (DEV MODE) ===============');
@@ -202,16 +197,16 @@ export const sendInviteEmail = async ({
   `;
 
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from,
       to,
       subject: 'You have been invited to WebBlaze PMS',
       html,
     });
-    logger.info(`Invitation email dispatched successfully to ${to}`);
-  } catch (error) {
-    logger.error('Error sending invitation email:', error);
-    // Non-blocking error for user creation
+    logger.info(`[Email] Invitation dispatched successfully to ${to} (messageId: ${info.messageId})`);
+  } catch (error: any) {
+    logger.error(`[Email] Failed to send invitation email to ${to}: ${error?.message || error}`);
+    logger.error('[Email] Full SMTP error:', error);
   }
 };
 
