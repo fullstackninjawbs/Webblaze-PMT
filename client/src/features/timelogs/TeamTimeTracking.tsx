@@ -1,26 +1,77 @@
-import { Container, Title, Text, Card, Table, Badge, Group, SimpleGrid, ActionIcon } from '@mantine/core';
-import { Trash } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Container, Title, Text, Card, Table, Badge, Group, SimpleGrid, ActionIcon, TextInput } from '@mantine/core';
+import { Trash, Search, X } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTeamTimeLogsQuery, useDeleteTimeLogMutation } from './timeLog.slice';
 
 export const TeamTimeTracking = () => {
   const { data: logsData, isLoading } = useGetTeamTimeLogsQuery();
   const [deleteTimeLog] = useDeleteTimeLogMutation();
-  const logs = logsData?.data || [];
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const activeLogs = logs.filter(log => !log.endTime);
-  const historicalLogs = logs.filter(log => log.endTime);
+  const logs = logsData?.data || [];
+  const query = searchQuery.trim().toLowerCase();
 
   const formatDuration = (seconds?: number) => {
-    if (seconds === undefined) return '-';
+    if (seconds === undefined || seconds === null) return '0h 0m';
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     return `${h}h ${m}m`;
   };
 
+  const formatDateTime = (dateStr?: string | Date) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleString('en-GB', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      hour12: true 
+    });
+  };
+
+  const filteredLogs = useMemo(() => {
+    if (!query) return logs;
+    return logs.filter((log) => {
+      const user = typeof log.user === 'object' ? log.user : null;
+      const task = typeof log.task === 'object' ? log.task : null;
+      const milestone = task && typeof task.milestone === 'object' ? task.milestone : null;
+      const project = (milestone as any)?.project || (task as any)?.project;
+
+      // Column 1: TEAM MEMBER
+      const col1_teamMember = `${user?.name || ''} ${user?.role || ''} ${user?.email || ''}`.toLowerCase();
+
+      // Column 2: PROJECT / TASK
+      const col2_projectTask = `${task?.title || ''} ${(task as any)?.name || ''} ${milestone?.title || ''} ${typeof project === 'object' ? project?.name || '' : ''}`.toLowerCase();
+
+      // Column 3: START TIME
+      const col3_startTime = formatDateTime(log.startTime).toLowerCase();
+
+      // Column 4: END TIME
+      const col4_endTime = log.endTime ? formatDateTime(log.endTime).toLowerCase() : 'active running';
+
+      // Column 5: TOTAL LOGGED
+      const durationFormatted = formatDuration(log.durationSeconds).toLowerCase();
+      const col5_totalLogged = `${durationFormatted} ${log.durationSeconds || 0}`.toLowerCase();
+
+      // Search match across all 5 columns
+      return (
+        col1_teamMember.includes(query) ||
+        col2_projectTask.includes(query) ||
+        col3_startTime.includes(query) ||
+        col4_endTime.includes(query) ||
+        col5_totalLogged.includes(query)
+      );
+    });
+  }, [logs, query]);
+
+  const activeLogs = filteredLogs.filter(log => !log.endTime);
+  const historicalLogs = filteredLogs.filter(log => log.endTime);
+
   return (
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-      <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
+      <Group justify="space-between" align="center" mb="xl" style={{ marginBottom: '28px' }} wrap="wrap">
         <div>
           <Title
             order={2}
@@ -42,7 +93,51 @@ export const TeamTimeTracking = () => {
             Monitor active work and historical time logs across the team.
           </Text>
         </div>
+
+        {/* Real-Time Search Bar */}
+        <TextInput
+          placeholder="Search member, task, project, time..."
+          leftSection={<Search size={16} color="#0ea5e9" />}
+          rightSection={
+            searchQuery ? (
+              <ActionIcon variant="subtle" size="sm" onClick={() => setSearchQuery('')} color="gray">
+                <X size={14} />
+              </ActionIcon>
+            ) : null
+          }
+          radius="md"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          w={{ base: '100%', sm: 320 }}
+          styles={{
+            input: {
+              backgroundColor: '#ffffff',
+              border: '1px solid #0ea5e9',
+              fontSize: '0.875rem',
+              color: '#0f172a',
+              fontWeight: 500,
+              boxShadow: '0 2px 8px rgba(14, 165, 233, 0.12)',
+            }
+          }}
+        />
       </Group>
+
+      {/* Visual Search Indicator Banner when Query is Active */}
+      {query !== '' && (
+        <Card shadow="xs" p="sm" radius="md" mb="lg" style={{ backgroundColor: '#f0f9ff', borderColor: '#bae6fd' }} withBorder>
+          <Group justify="space-between" align="center">
+            <Group gap="xs">
+              <Search size={16} color="#0284c7" />
+              <Text size="xs" fw={600} style={{ color: '#0369a1' }}>
+                Showing search results for &quot;{searchQuery}&quot; ({filteredLogs.length} matching logs found)
+              </Text>
+            </Group>
+            <ActionIcon size="xs" variant="subtle" color="blue" onClick={() => setSearchQuery('')}>
+              <X size={14} />
+            </ActionIcon>
+          </Group>
+        </Card>
+      )}
 
       <Title order={4} mb="md" style={{ color: '#1e293b' }}>Active Work</Title>
       <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg" mb="xl">
@@ -69,7 +164,9 @@ export const TeamTimeTracking = () => {
         })}
         {activeLogs.length === 0 && !isLoading && (
           <Card shadow="sm" p="md" radius="md" withBorder style={{ borderStyle: 'dashed' }}>
-            <Text c="dimmed" ta="center">No active timers right now.</Text>
+            <Text c="dimmed" ta="center">
+              {query ? `No active timers matching "${searchQuery}".` : 'No active timers right now.'}
+            </Text>
           </Card>
         )}
       </SimpleGrid>
@@ -88,7 +185,7 @@ export const TeamTimeTracking = () => {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {historicalLogs.slice(0, 20).map((log) => {
+            {historicalLogs.map((log) => {
               const user = typeof log.user === 'object' ? log.user : null;
               const task = typeof log.task === 'object' ? log.task : null;
               const project = (task?.milestone as any)?.project;
@@ -137,8 +234,10 @@ export const TeamTimeTracking = () => {
             })}
             {historicalLogs.length === 0 && !isLoading && (
               <Table.Tr>
-                <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>
-                  <Text color="dimmed">No historical time logs found.</Text>
+                <Table.Td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
+                  <Text color="dimmed">
+                    {query ? `No logged time records matching "${searchQuery}".` : 'No historical time logs found.'}
+                  </Text>
                 </Table.Td>
               </Table.Tr>
             )}

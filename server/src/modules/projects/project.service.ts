@@ -1,5 +1,6 @@
 import { Project, IProject } from './project.model';
 import { Milestone } from '../milestones/milestone.model';
+import { Task } from '../tasks/task.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 
@@ -43,10 +44,17 @@ export class ProjectService {
   }
 
   static async getProjects(userRole: Role, userId: string) {
-    let query = {};
-    // If not Admin/PM, only show projects they are assigned to
+    let query: any = {};
+    // If not Admin/PM, show projects they are assigned to (via project team or assigned tasks)
     if (userRole !== Role.ADMIN && userRole !== Role.PM) {
-      query = { team: userId };
+      const userTasks = await Task.find({ assignedTo: userId }).select('milestone');
+      const milestoneIds = userTasks.map((t) => t.milestone);
+      const userMilestones = await Milestone.find({ _id: { $in: milestoneIds } }).select('project');
+      const projectIdsFromTasks = userMilestones.map((m) => m.project);
+
+      query = {
+        $or: [{ team: userId }, { _id: { $in: projectIdsFromTasks } }],
+      };
     }
 
     const projects = await Project.find(query)
@@ -72,7 +80,14 @@ export class ProjectService {
 
     if (userRole !== Role.ADMIN && userRole !== Role.PM) {
       const isTeamMember = project.team.some((t: any) => t._id.toString() === userId);
-      if (!isTeamMember) throw new ApiError(403, 'You do not have access to this project');
+      if (!isTeamMember) {
+        const milestones = await Milestone.find({ project: id }).select('_id');
+        const milestoneIds = milestones.map((m) => m._id);
+        const hasAssignedTask = await Task.exists({ milestone: { $in: milestoneIds }, assignedTo: userId });
+        if (!hasAssignedTask) {
+          throw new ApiError(403, 'You do not have access to this project');
+        }
+      }
     }
 
     const projectWithProgress = await this.attachProgress(project);

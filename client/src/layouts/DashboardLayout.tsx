@@ -112,6 +112,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'MY WORK',
       items: [
+        { name: 'My Projects', href: '/projects', icon: Briefcase },
         { name: 'My Tasks', href: '/my-tasks', icon: ListTodo },
       ],
     },
