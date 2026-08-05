@@ -65,8 +65,8 @@ export const ReportsPage: React.FC = () => {
   const depts = ['design', 'development', 'seo'] as const;
   const deptMetrics = depts.map((dept) => {
     const deptTasks = tasks.filter((t) => t.department === dept);
-    const estimated = deptTasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0);
-    const spent = deptTasks.reduce((sum, t) => sum + (t.spentHours || 0), 0);
+    const estimated = Math.round(deptTasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0) * 10) / 10;
+    const spent = Math.round(deptTasks.reduce((sum, t) => sum + (t.spentHours || 0), 0) * 10) / 10;
     return {
       dept,
       estimated,

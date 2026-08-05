@@ -45,54 +45,54 @@ import { useGetProjectsQuery } from '../projects/project.slice';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
 const clientSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email').or(z.literal('')),
+  name: z.string().min(1, 'Client name is required').min(2, 'Name must be at least 2 characters'),
+  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
   companyName: z.string().optional(),
-  source: z.enum(['upwork', 'direct']),
-  billingType: z.enum(['hourly', 'fixed']),
+  source: z.enum(['upwork', 'direct'], { required_error: 'Please select a source' }),
+  billingType: z.enum(['hourly', 'fixed'], { required_error: 'Please select billing type' }),
   country: z.string().optional(),
   address: z.string().optional(),
   contactNumber: z.string().optional(),
 });
 
 export const COUNTRY_LIST = [
-  { name: 'India', code: '+91', flag: '🇮🇳' },
-  { name: 'United States', code: '+1', flag: '🇺🇸' },
-  { name: 'United Kingdom', code: '+44', flag: '🇬🇧' },
-  { name: 'Canada', code: '+1', flag: '🇨🇦' },
-  { name: 'Australia', code: '+61', flag: '🇦🇺' },
-  { name: 'Germany', code: '+49', flag: '🇩🇪' },
-  { name: 'France', code: '+33', flag: '🇫🇷' },
-  { name: 'United Arab Emirates', code: '+971', flag: '🇦🇪' },
-  { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦' },
-  { name: 'Singapore', code: '+65', flag: '🇸🇬' },
-  { name: 'Japan', code: '+81', flag: '🇯🇵' },
-  { name: 'China', code: '+86', flag: '🇨🇳' },
-  { name: 'Brazil', code: '+55', flag: '🇧🇷' },
-  { name: 'Mexico', code: '+52', flag: '🇲🇽' },
-  { name: 'Spain', code: '+34', flag: '🇪🇸' },
-  { name: 'Italy', code: '+39', flag: '🇮🇹' },
-  { name: 'Netherlands', code: '+31', flag: '🇳🇱' },
-  { name: 'Switzerland', code: '+41', flag: '🇨🇭' },
-  { name: 'Sweden', code: '+46', flag: '🇸🇪' },
-  { name: 'New Zealand', code: '+64', flag: '🇳🇿' },
-  { name: 'South Africa', code: '+27', flag: '🇿🇦' },
-  { name: 'Pakistan', code: '+92', flag: '🇵🇰' },
-  { name: 'Bangladesh', code: '+880', flag: '🇧🇩' },
-  { name: 'Nepal', code: '+977', flag: '🇳🇵' },
-  { name: 'Sri Lanka', code: '+94', flag: '🇱🇰' },
-  { name: 'Turkey', code: '+90', flag: '🇹🇷' },
-  { name: 'Malaysia', code: '+60', flag: '🇲🇾' },
-  { name: 'Indonesia', code: '+62', flag: '🇮🇩' },
-  { name: 'Philippines', code: '+63', flag: '🇵🇭' },
-  { name: 'Vietnam', code: '+84', flag: '🇻🇳' },
-  { name: 'Thailand', code: '+66', flag: '🇹🇭' },
-  { name: 'Ireland', code: '+353', flag: '🇮🇪' },
-  { name: 'Israel', code: '+972', flag: '🇮🇱' },
-  { name: 'Poland', code: '+48', flag: '🇵🇱' },
-  { name: 'Norway', code: '+47', flag: '🇳🇴' },
-  { name: 'Denmark', code: '+45', flag: '🇩🇰' },
-  { name: 'Finland', code: '+358', flag: '🇫🇮' },
+  { name: 'India', code: '+91', flag: '🇮🇳', phoneLength: 10 },
+  { name: 'United States', code: '+1', flag: '🇺🇸', phoneLength: 10 },
+  { name: 'United Kingdom', code: '+44', flag: '🇬🇧', phoneLength: 10 },
+  { name: 'Canada', code: '+1', flag: '🇨🇦', phoneLength: 10 },
+  { name: 'Australia', code: '+61', flag: '🇦🇺', phoneLength: 9 },
+  { name: 'Germany', code: '+49', flag: '🇩🇪', phoneLength: 11 },
+  { name: 'France', code: '+33', flag: '🇫🇷', phoneLength: 9 },
+  { name: 'United Arab Emirates', code: '+971', flag: '🇦🇪', phoneLength: 9 },
+  { name: 'Saudi Arabia', code: '+966', flag: '🇸🇦', phoneLength: 9 },
+  { name: 'Singapore', code: '+65', flag: '🇸🇬', phoneLength: 8 },
+  { name: 'Japan', code: '+81', flag: '🇯🇵', phoneLength: 10 },
+  { name: 'China', code: '+86', flag: '🇨🇳', phoneLength: 11 },
+  { name: 'Brazil', code: '+55', flag: '🇧🇷', phoneLength: 11 },
+  { name: 'Mexico', code: '+52', flag: '🇲🇽', phoneLength: 10 },
+  { name: 'Spain', code: '+34', flag: '🇪🇸', phoneLength: 9 },
+  { name: 'Italy', code: '+39', flag: '🇮🇹', phoneLength: 10 },
+  { name: 'Netherlands', code: '+31', flag: '🇳🇱', phoneLength: 9 },
+  { name: 'Switzerland', code: '+41', flag: '🇨🇭', phoneLength: 9 },
+  { name: 'Sweden', code: '+46', flag: '🇸🇪', phoneLength: 9 },
+  { name: 'New Zealand', code: '+64', flag: '🇳🇿', phoneLength: 9 },
+  { name: 'South Africa', code: '+27', flag: '🇿🇦', phoneLength: 9 },
+  { name: 'Pakistan', code: '+92', flag: '🇵🇰', phoneLength: 10 },
+  { name: 'Bangladesh', code: '+880', flag: '🇧🇩', phoneLength: 10 },
+  { name: 'Nepal', code: '+977', flag: '🇳🇵', phoneLength: 10 },
+  { name: 'Sri Lanka', code: '+94', flag: '🇱🇰', phoneLength: 9 },
+  { name: 'Turkey', code: '+90', flag: '🇹🇷', phoneLength: 10 },
+  { name: 'Malaysia', code: '+60', flag: '🇲🇾', phoneLength: 10 },
+  { name: 'Indonesia', code: '+62', flag: '🇮🇩', phoneLength: 11 },
+  { name: 'Philippines', code: '+63', flag: '🇵🇭', phoneLength: 10 },
+  { name: 'Vietnam', code: '+84', flag: '🇻🇳', phoneLength: 9 },
+  { name: 'Thailand', code: '+66', flag: '🇹🇭', phoneLength: 9 },
+  { name: 'Ireland', code: '+353', flag: '🇮🇪', phoneLength: 9 },
+  { name: 'Israel', code: '+972', flag: '🇮🇱', phoneLength: 9 },
+  { name: 'Poland', code: '+48', flag: '🇵🇱', phoneLength: 9 },
+  { name: 'Norway', code: '+47', flag: '🇳🇴', phoneLength: 8 },
+  { name: 'Denmark', code: '+45', flag: '🇩🇰', phoneLength: 8 },
+  { name: 'Finland', code: '+358', flag: '🇫🇮', phoneLength: 9 },
 ];
 
 export const UNIQUE_COUNTRY_CODES = Array.from(
@@ -185,9 +185,27 @@ export const ClientsList: React.FC = () => {
     }
   };
 
+  const [phoneError, setPhoneError] = useState('');
+
   const onSubmit = async (values: typeof form.values) => {
     try {
-      const formattedContact = phoneNumber.trim() ? `${phoneCode} ${phoneNumber.trim()}` : '';
+      // Validate phone number if provided
+      const trimmedPhone = phoneNumber.trim();
+      if (trimmedPhone) {
+        if (!/^\d+$/.test(trimmedPhone)) {
+          setPhoneError('Phone number must contain only digits');
+          return;
+        }
+        const selectedCountry = COUNTRY_LIST.find((c) => c.code === phoneCode);
+        const expectedLength = selectedCountry?.phoneLength || 10;
+        if (trimmedPhone.length !== expectedLength) {
+          setPhoneError(`Phone number must be exactly ${expectedLength} digits for ${selectedCountry?.name || 'this country'}`);
+          return;
+        }
+      }
+      setPhoneError('');
+
+      const formattedContact = trimmedPhone ? `${phoneCode} ${trimmedPhone}` : '';
       const payload = {
         ...values,
         contactNumber: formattedContact,
@@ -200,6 +218,8 @@ export const ClientsList: React.FC = () => {
       }
       setDrawerOpened(false);
       form.reset();
+      setPhoneNumber('');
+      setPhoneError('');
     } catch (error) {
       console.error('Failed to save client', error);
     }
@@ -553,16 +573,28 @@ export const ClientsList: React.FC = () => {
                   placeholder="e.g. John Doe"
                   withAsterisk
                   radius="md"
-                  {...form.getInputProps('name')}
+                  maxLength={50}
+                  value={form.values.name}
+                  error={form.errors.name as string}
+                  onChange={(e) => {
+                    const val = e.currentTarget.value.replace(/[^a-zA-Z\s.]/g, '');
+                    form.setFieldValue('name', val);
+                  }}
                 />
                 <TextInput
-                  label="Company Name"
-                  placeholder="e.g. Acme Corp (Optional)"
+                  label="Company Name (Optional)"
+                  placeholder="e.g. Acme Corp"
                   radius="md"
-                  {...form.getInputProps('companyName')}
+                  maxLength={100}
+                  value={form.values.companyName}
+                  error={form.errors.companyName as string}
+                  onChange={(e) => {
+                    const val = e.currentTarget.value.replace(/[^a-zA-Z0-9\s.&\-,]/g, '');
+                    form.setFieldValue('companyName', val);
+                  }}
                 />
                 <Select
-                  label="Country"
+                  label="Country (Optional)"
                   placeholder="Search or select country"
                   data={COUNTRY_LIST.map((c) => ({ value: c.name, label: c.name }))}
                   searchable
@@ -578,10 +610,16 @@ export const ClientsList: React.FC = () => {
                   }}
                 />
                 <TextInput
-                  label="Address"
+                  label="Address (Optional)"
                   placeholder="e.g. 123 Main St, City"
                   radius="md"
-                  {...form.getInputProps('address')}
+                  maxLength={200}
+                  value={form.values.address}
+                  error={form.errors.address as string}
+                  onChange={(e) => {
+                    const val = e.currentTarget.value.replace(/[^a-zA-Z0-9\s.,#\-/]/g, '');
+                    form.setFieldValue('address', val);
+                  }}
                 />
               </Stack>
             </div>
@@ -595,7 +633,9 @@ export const ClientsList: React.FC = () => {
                 <TextInput
                   label="Email Address"
                   placeholder="client@example.com"
+                  withAsterisk
                   radius="md"
+                  maxLength={100}
                   {...form.getInputProps('email')}
                 />
                 <Group gap="xs" wrap="nowrap" align="flex-end">
@@ -609,12 +649,18 @@ export const ClientsList: React.FC = () => {
                     radius="md"
                   />
                   <TextInput
-                    label="Mobile / Phone Number"
-                    placeholder="9876543210"
+                    label="Mobile / Phone Number (Optional)"
+                    placeholder={'0'.repeat(COUNTRY_LIST.find((c) => c.code === phoneCode)?.phoneLength || 10)}
                     radius="md"
                     style={{ flex: 1 }}
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.currentTarget.value)}
+                    maxLength={COUNTRY_LIST.find((c) => c.code === phoneCode)?.phoneLength || 10}
+                    error={phoneError || undefined}
+                    onChange={(e) => {
+                      const val = e.currentTarget.value.replace(/\D/g, '');
+                      setPhoneNumber(val);
+                      if (phoneError) setPhoneError('');
+                    }}
                   />
                 </Group>
               </Stack>
@@ -632,6 +678,7 @@ export const ClientsList: React.FC = () => {
                     { value: 'upwork', label: 'Upwork' },
                     { value: 'direct', label: 'Direct' },
                   ]}
+                  withAsterisk
                   radius="md"
                   {...form.getInputProps('source')}
                 />
@@ -641,6 +688,7 @@ export const ClientsList: React.FC = () => {
                     { value: 'hourly', label: 'Hourly' },
                     { value: 'fixed', label: 'Fixed Price' },
                   ]}
+                  withAsterisk
                   radius="md"
                   {...form.getInputProps('billingType')}
                 />

@@ -12,7 +12,8 @@ export const TeamTimeTrackingPanel: React.FC = () => {
   today.setHours(0, 0, 0, 0);
 
   const logsByMember = logs.reduce((acc: any, log: any) => {
-    const userId = typeof log.user === 'object' ? log.user._id : log.user;
+    const userId = typeof log.user === 'object' ? log.user?._id : log.user;
+    if (!userId) return acc;
     if (!acc[userId]) {
       acc[userId] = {
         user: typeof log.user === 'object' ? log.user : null,
