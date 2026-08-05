@@ -4,11 +4,11 @@ import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation, useUpdateMilestoneMutation, useDeleteMilestoneMutation } from '../milestones/milestone.slice';
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Menu } from '@mantine/core';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Menu, Grid, Box } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock, ChevronDown, ChevronUp, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus, DEPARTMENT_OPTIONS } from '../../types';
@@ -69,6 +69,61 @@ export const ProjectDetails = () => {
 
   const { data: milestonesData, isLoading: isMilestonesLoading } = useGetMilestonesByProjectQuery(id!);
   const milestones = milestonesData?.data || [];
+
+  const { data: allTasksData } = useGetAllTasksQuery();
+  const projectTasks = useMemo(() => {
+    if (!allTasksData?.data) return [];
+    const milestoneIds = new Set(milestones.map((m: any) => String(m._id)));
+    return allTasksData.data.filter((t: any) => {
+      const tMilestoneId = typeof t.milestone === 'object' ? t.milestone?._id : t.milestone;
+      const tProjectId = typeof t.project === 'object' ? t.project?._id : t.project;
+      return String(tProjectId) === String(id) || milestoneIds.has(String(tMilestoneId));
+    });
+  }, [allTasksData, milestones, id]);
+
+  const taskMetrics = useMemo(() => {
+    const total = projectTasks.length;
+    const assigned = projectTasks.filter((t: any) => t.status === 'assigned').length;
+    const inProgress = projectTasks.filter((t: any) => t.status === 'in_progress').length;
+    const inReview = projectTasks.filter((t: any) => t.status === 'in_review').length;
+    const completed = projectTasks.filter((t: any) => t.status === 'completed').length;
+
+    const totalEstHours = projectTasks.reduce((sum: number, t: any) => sum + (t.estimatedHours || 0), 0);
+    const totalSpentHours = projectTasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
+
+    const completedTasks = projectTasks.filter((t: any) => t.status === 'completed');
+    const avgRunTime = completedTasks.length > 0
+      ? (completedTasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0) / completedTasks.length).toFixed(1)
+      : '0.0';
+
+    const overtimeHours = projectTasks.reduce((sum: number, t: any) => {
+      const over = (t.spentHours || 0) - (t.estimatedHours || 0);
+      return sum + (over > 0 ? over : 0);
+    }, 0);
+
+    // Department breakdown
+    const deptMap: Record<string, { count: number; spent: number; est: number }> = {};
+    projectTasks.forEach((t: any) => {
+      const dept = t.department || 'other';
+      if (!deptMap[dept]) deptMap[dept] = { count: 0, spent: 0, est: 0 };
+      deptMap[dept].count += 1;
+      deptMap[dept].spent += (t.spentHours || 0);
+      deptMap[dept].est += (t.estimatedHours || 0);
+    });
+
+    return {
+      total,
+      assigned,
+      inProgress,
+      inReview,
+      completed,
+      totalEstHours,
+      totalSpentHours,
+      avgRunTime,
+      overtimeHours,
+      deptMap,
+    };
+  }, [projectTasks]);
 
   const projectEstHours = milestones.reduce((sum, m) => sum + (m.estimatedHours || 0), 0);
   const projectSpentHours = milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0);
@@ -314,7 +369,7 @@ export const ProjectDetails = () => {
         assignedTo: values.assignedTo || undefined,
         attachments: attachmentIds.length > 0 ? attachmentIds : undefined,
       }).unwrap();
-      
+
       setSelectedFile(null);
       setTaskDrawerOpened(false);
       taskForm.reset();
@@ -448,36 +503,266 @@ export const ProjectDetails = () => {
         </Tabs.List>
 
         <Tabs.Panel value="overview">
-          <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
-            <Card withBorder shadow="sm" p="xl" radius="md">
-              <Title order={3} mb="md">Project Information</Title>
-              <Stack gap="sm">
-                <Group justify="space-between"><Text c="dimmed">Project Type</Text><Text fw={500}>{project.type || 'Standard'}</Text></Group>
-                <Group justify="space-between"><Text c="dimmed">Created At</Text><Text fw={500}>{formatDateDisplay(project.createdAt)}</Text></Group>
-                <Group justify="space-between"><Text c="dimmed">Client Source</Text><Badge variant="light">{project.client?.source || 'direct'}</Badge></Group>
-              </Stack>
-            </Card>
+          <Stack gap="xl">
+            {/* 1. KPI Summary Cards */}
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
+              <Card withBorder shadow="sm" p="lg" radius="lg" bg="#ffffff">
+                <Group justify="space-between" mb="xs">
+                  <Text size="xs" fw={700} c="dimmed" tt="uppercase">Total Tasks</Text>
+                  <Box p={8} style={{ borderRadius: 8, backgroundColor: '#eff6ff' }}>
+                    <FileCheck size={18} color="#2563eb" />
+                  </Box>
+                </Group>
+                <Text fw={800} size="28px" style={{ color: '#0f172a' }}>{taskMetrics.total}</Text>
+                <Group gap={6} mt="xs" wrap="nowrap">
+                  <Badge size="xs" color="blue" variant="light">{taskMetrics.assigned} Assigned</Badge>
+                  <Badge size="xs" color="yellow" variant="light">{taskMetrics.inProgress} In Prog</Badge>
+                  <Badge size="xs" color="green" variant="light">{taskMetrics.completed} Done</Badge>
+                </Group>
+              </Card>
 
-            <Card withBorder shadow="sm" p="xl" radius="md">
-              <Title order={3} mb="md">Team Members</Title>
-              {project.team?.length > 0 ? (
-                <Stack gap="sm">
-                  {project.team.slice(0, 3).map((member: any) => (
-                    <Group key={member._id} gap="sm">
-                      <UserAvatar name={member.name} email={member.email} avatarUrl={member.avatarUrl} size="sm" />
-                      <div>
-                        <Text size="sm" fw={500}>{member.name}</Text>
-                        <Text size="xs" c="dimmed">{member.role.replace('_', ' ')}</Text>
-                      </div>
-                    </Group>
-                  ))}
-                  {project.team.length > 3 && <Text size="sm" c="blue" fw={500}>+ {project.team.length - 3} more members</Text>}
-                </Stack>
+              <Card withBorder shadow="sm" p="lg" radius="lg" bg="#ffffff">
+                <Group justify="space-between" mb="xs">
+                  <Text size="xs" fw={700} c="dimmed" tt="uppercase">Total Task Run Time</Text>
+                  <Box p={8} style={{ borderRadius: 8, backgroundColor: '#f0fdf4' }}>
+                    <Clock size={18} color="#16a34a" />
+                  </Box>
+                </Group>
+                <Text fw={800} size="28px" style={{ color: '#0f172a' }}>
+                  {taskMetrics.totalSpentHours.toFixed(1)}h
+                </Text>
+                <Text size="xs" c="dimmed" mt={4}>
+                  Out of {taskMetrics.totalEstHours.toFixed(1)}h estimated ({taskMetrics.totalEstHours > 0 ? Math.round((taskMetrics.totalSpentHours / taskMetrics.totalEstHours) * 100) : 0}% used)
+                </Text>
+              </Card>
+
+              <Card withBorder shadow="sm" p="lg" radius="lg" bg="#ffffff">
+                <Group justify="space-between" mb="xs">
+                  <Text size="xs" fw={700} c="dimmed" tt="uppercase">Avg Task Run Time</Text>
+                  <Box p={8} style={{ borderRadius: 8, backgroundColor: '#fef3c7' }}>
+                    <TrendingUp size={18} color="#d97706" />
+                  </Box>
+                </Group>
+                <Text fw={800} size="28px" style={{ color: '#0f172a' }}>
+                  {taskMetrics.avgRunTime}h
+                </Text>
+                <Text size="xs" c="dimmed" mt={4}>
+                  Average run time per completed task
+                </Text>
+              </Card>
+
+              <Card withBorder shadow="sm" p="lg" radius="lg" bg="#ffffff">
+                <Group justify="space-between" mb="xs">
+                  <Text size="xs" fw={700} c="dimmed" tt="uppercase">Task Overtime</Text>
+                  <Box p={8} style={{ borderRadius: 8, backgroundColor: taskMetrics.overtimeHours > 0 ? '#fef2f2' : '#f8fafc' }}>
+                    <AlertTriangle size={18} color={taskMetrics.overtimeHours > 0 ? '#dc2626' : '#64748b'} />
+                  </Box>
+                </Group>
+                <Text fw={800} size="28px" style={{ color: taskMetrics.overtimeHours > 0 ? '#dc2626' : '#0f172a' }}>
+                  +{taskMetrics.overtimeHours.toFixed(1)}h
+                </Text>
+                <Text
+                  size="xs" c="dimmed" mt={4}>
+                  {taskMetrics.overtimeHours > 0 ? 'Hours exceeded beyond estimates' : 'All tasks within estimated time'}
+                </Text>
+              </Card>
+            </SimpleGrid>
+
+            {/* 2. Visual Charts Row 1: Task Status Distribution & Department Run Time */}
+            <Grid gutter="xl">
+              {/* Task Status Progress & Breakdown Chart */}
+              <Grid.Col span={{ base: 12, md: 6 }}>
+                <Card withBorder shadow="sm" p="xl" radius="lg" style={{ height: '100%', backgroundColor: '#ffffff' }}>
+                  <Group justify="space-between" mb="md">
+                    <div>
+                      <Text fw={700} size="md" style={{ color: '#0f172a' }}>Task Status Distribution</Text>
+                      <Text size="xs" c="dimmed">Visual breakdown of all project tasks</Text>
+                    </div>
+                    <Badge color="indigo" variant="light">{taskMetrics.total} Total Tasks</Badge>
+                  </Group>
+
+                  {/* Multi-segment Progress Bar Chart */}
+                  <Box mb="xl" mt="md">
+                    <Progress.Root size="24" radius="xl" style={{ backgroundColor: '#f1f5f9' }}>
+                      <Tooltip label={`Assigned: ${taskMetrics.assigned} (${taskMetrics.total > 0 ? Math.round((taskMetrics.assigned / taskMetrics.total) * 100) : 0}%)`}>
+                        <Progress.Section value={taskMetrics.total > 0 ? (taskMetrics.assigned / taskMetrics.total) * 100 : 0} color="#3b82f6" />
+                      </Tooltip>
+                      <Tooltip label={`In Progress: ${taskMetrics.inProgress} (${taskMetrics.total > 0 ? Math.round((taskMetrics.inProgress / taskMetrics.total) * 100) : 0}%)`}>
+                        <Progress.Section value={taskMetrics.total > 0 ? (taskMetrics.inProgress / taskMetrics.total) * 100 : 0} color="#f59e0b" />
+                      </Tooltip>
+                      <Tooltip label={`In Review: ${taskMetrics.inReview} (${taskMetrics.total > 0 ? Math.round((taskMetrics.inReview / taskMetrics.total) * 100) : 0}%)`}>
+                        <Progress.Section value={taskMetrics.total > 0 ? (taskMetrics.inReview / taskMetrics.total) * 100 : 0} color="#6366f1" />
+                      </Tooltip>
+                      <Tooltip label={`Completed: ${taskMetrics.completed} (${taskMetrics.total > 0 ? Math.round((taskMetrics.completed / taskMetrics.total) * 100) : 0}%)`}>
+                        <Progress.Section value={taskMetrics.total > 0 ? (taskMetrics.completed / taskMetrics.total) * 100 : 0} color="#10b981" />
+                      </Tooltip>
+                    </Progress.Root>
+                  </Box>
+
+                  {/* Legend Grid */}
+                  <SimpleGrid cols={2} spacing="md">
+                    <Paper p="sm" radius="md" withBorder style={{ backgroundColor: '#f8fafc' }}>
+                      <Group gap="xs" mb={4}>
+                        <Box style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#3b82f6' }} />
+                        <Text size="xs" fw={600} c="dimmed">Assigned</Text>
+                      </Group>
+                      <Text fw={800} size="lg">{taskMetrics.assigned}</Text>
+                      <Text size="xs" c="dimmed">{taskMetrics.total > 0 ? Math.round((taskMetrics.assigned / taskMetrics.total) * 100) : 0}% of tasks</Text>
+                    </Paper>
+
+                    <Paper p="sm" radius="md" withBorder style={{ backgroundColor: '#f8fafc' }}>
+                      <Group gap="xs" mb={4}>
+                        <Box style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+                        <Text size="xs" fw={600} c="dimmed">In Progress</Text>
+                      </Group>
+                      <Text fw={800} size="lg">{taskMetrics.inProgress}</Text>
+                      <Text size="xs" c="dimmed">{taskMetrics.total > 0 ? Math.round((taskMetrics.inProgress / taskMetrics.total) * 100) : 0}% of tasks</Text>
+                    </Paper>
+
+                    <Paper p="sm" radius="md" withBorder style={{ backgroundColor: '#f8fafc' }}>
+                      <Group gap="xs" mb={4}>
+                        <Box style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#6366f1' }} />
+                        <Text size="xs" fw={600} c="dimmed">In Review</Text>
+                      </Group>
+                      <Text fw={800} size="lg">{taskMetrics.inReview}</Text>
+                      <Text size="xs" c="dimmed">{taskMetrics.total > 0 ? Math.round((taskMetrics.inReview / taskMetrics.total) * 100) : 0}% of tasks</Text>
+                    </Paper>
+
+                    <Paper p="sm" radius="md" withBorder style={{ backgroundColor: '#f8fafc' }}>
+                      <Group gap="xs" mb={4}>
+                        <Box style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#10b981' }} />
+                        <Text size="xs" fw={600} c="dimmed">Completed</Text>
+                      </Group>
+                      <Text fw={800} size="lg">{taskMetrics.completed}</Text>
+                      <Text size="xs" c="dimmed">{taskMetrics.total > 0 ? Math.round((taskMetrics.completed / taskMetrics.total) * 100) : 0}% of tasks</Text>
+                    </Paper>
+                  </SimpleGrid>
+                </Card>
+              </Grid.Col>
+
+              {/* Department Task Run Time & Workload Chart */}
+              <Grid.Col span={{ base: 12, md: 6 }}>
+                <Card withBorder shadow="sm" p="xl" radius="lg" style={{ height: '100%', backgroundColor: '#ffffff' }}>
+                  <Group justify="space-between" mb="md">
+                    <div>
+                      <Text fw={700} size="md" style={{ color: '#0f172a' }}>Department Run Time & Workload</Text>
+                      <Text size="xs" c="dimmed">Logged hours & task count per department</Text>
+                    </div>
+                    <Badge color="blue" variant="light">Department Metrics</Badge>
+                  </Group>
+
+                  <Stack gap="md" mt="sm">
+                    {Object.keys(taskMetrics.deptMap).length > 0 ? (
+                      Object.entries(taskMetrics.deptMap).map(([dept, data]) => {
+                        const deptName = dept.toUpperCase();
+                        const percentOfMax = taskMetrics.totalSpentHours > 0
+                          ? Math.min(Math.round((data.spent / taskMetrics.totalSpentHours) * 100), 100)
+                          : 0;
+                        return (
+                          <Box key={dept}>
+                            <Group justify="space-between" mb={4}>
+                              <Group gap="xs">
+                                <Badge size="xs" variant="filled" color="indigo">{deptName}</Badge>
+                                <Text size="xs" c="dimmed">({data.count} {data.count === 1 ? 'task' : 'tasks'})</Text>
+                              </Group>
+                              <Text size="xs" fw={700} style={{ color: '#0f172a' }}>
+                                {data.spent.toFixed(1)}h / {data.est.toFixed(1)}h
+                              </Text>
+                            </Group>
+                            <Progress value={percentOfMax} size="sm" radius="xl" color="indigo" />
+                          </Box>
+                        );
+                      })
+                    ) : (
+                      <Center p="xl">
+                        <Text size="xs" c="dimmed">No department workload data available yet.</Text>
+                      </Center>
+                    )}
+                  </Stack>
+                </Card>
+              </Grid.Col>
+            </Grid>
+
+            {/* 3. Milestone Run Time Breakdown Chart */}
+            <Card withBorder shadow="sm" p="xl" radius="lg" bg="#ffffff">
+              <Group justify="space-between" mb="lg">
+                <div>
+                  <Text fw={700} size="md" style={{ color: '#0f172a' }}>Milestone Run Time Breakdown</Text>
+                  <Text size="xs" c="dimmed">Comparing active run time vs estimated hours per milestone</Text>
+                </div>
+                <Badge color="teal" variant="light">{milestones.length} Milestones</Badge>
+              </Group>
+
+              {milestones.length > 0 ? (
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+                  {milestones.map((m: any) => {
+                    const mTasks = projectTasks.filter((t: any) => {
+                      const tMId = typeof t.milestone === 'object' ? t.milestone?._id : t.milestone;
+                      return String(tMId) === String(m._id);
+                    });
+                    const mSpent = m.spentHours || mTasks.reduce((acc: number, t: any) => acc + (t.spentHours || 0), 0);
+                    const mEst = m.estimatedHours || mTasks.reduce((acc: number, t: any) => acc + (t.estimatedHours || 0), 0);
+                    const mPercent = mEst > 0 ? Math.min(Math.round((mSpent / mEst) * 100), 100) : 0;
+
+                    return (
+                      <Paper key={m._id} p="md" radius="lg" withBorder style={{ backgroundColor: '#f8fafc' }}>
+                        <Group justify="space-between" mb="xs">
+                          <Text fw={700} size="sm" style={{ color: '#0f172a' }}>{m.title}</Text>
+                          <Badge size="xs" color={m.status === 'completed' ? 'green' : 'blue'} variant="light">
+                            {(m.status || 'in_progress').replace('_', ' ')}
+                          </Badge>
+                        </Group>
+
+                        <Group justify="space-between" mb={4}>
+                          <Text size="xs" c="dimmed">{mTasks.length} tasks assigned</Text>
+                          <Text size="xs" fw={700} c={mSpent > mEst ? 'red' : 'blue'}>
+                            {mSpent.toFixed(1)}h / {mEst.toFixed(1)}h ({mPercent}%)
+                          </Text>
+                        </Group>
+                        <Progress value={mPercent} size="sm" radius="xl" color={mSpent > mEst ? 'red' : 'blue'} />
+                      </Paper>
+                    );
+                  })}
+                </SimpleGrid>
               ) : (
-                <Text c="dimmed">No team members assigned yet.</Text>
+                <Text size="xs" c="dimmed">No milestones created yet.</Text>
               )}
             </Card>
-          </SimpleGrid>
+
+            {/* 4. Project Information & Team Roster Footer */}
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl">
+              <Card withBorder shadow="sm" p="xl" radius="lg" bg="#ffffff">
+                <Title order={4} mb="md">Project Metadata</Title>
+                <Stack gap="sm">
+                  <Group justify="space-between"><Text size="xs" c="dimmed">Project Type</Text><Text size="xs" fw={600}>{project.type || 'Standard'}</Text></Group>
+                  <Group justify="space-between"><Text size="xs" c="dimmed">Created Date</Text><Text size="xs" fw={600}>{formatDateDisplay(project.createdAt)}</Text></Group>
+                  <Group justify="space-between"><Text size="xs" c="dimmed">Client Source</Text><Badge variant="light" size="xs">{project.client?.source || 'direct'}</Badge></Group>
+                </Stack>
+              </Card>
+
+              <Card withBorder shadow="sm" p="xl" radius="lg" bg="#ffffff">
+                <Title order={4} mb="md">Team Roster</Title>
+                {project.team?.length > 0 ? (
+                  <Stack gap="sm">
+                    {project.team.map((member: any) => (
+                      <Group key={member._id} gap="sm" justify="space-between">
+                        <Group gap="xs">
+                          <UserAvatar name={member.name} email={member.email} avatarUrl={member.avatarUrl} size="sm" />
+                          <div>
+                            <Text size="xs" fw={600}>{member.name}</Text>
+                            <Text size="xs" c="dimmed">{member.role?.replace('_', ' ')}</Text>
+                          </div>
+                        </Group>
+                        <Badge size="xs" variant="subtle" color="gray">{member.department || 'General'}</Badge>
+                      </Group>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Text size="xs" c="dimmed">No team members assigned yet.</Text>
+                )}
+              </Card>
+            </SimpleGrid>
+          </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="milestones">
@@ -1125,12 +1410,12 @@ const MilestoneTableRow = ({
                                     task.status === 'completed'
                                       ? 'green'
                                       : task.status === 'in_progress'
-                                      ? 'blue'
-                                      : task.status === 'in_review'
-                                      ? 'yellow'
-                                      : task.status === 'on_hold'
-                                      ? 'red'
-                                      : 'gray'
+                                        ? 'blue'
+                                        : task.status === 'in_review'
+                                          ? 'yellow'
+                                          : task.status === 'on_hold'
+                                            ? 'red'
+                                            : 'gray'
                                   }
                                   variant="light"
                                   size="sm"
@@ -1164,7 +1449,7 @@ const MilestoneTableRow = ({
                               {isTimerActive ? (
                                 <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
                               ) : (
-                              <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer || task.status === 'completed' || isMaxed}>Start</Button>
+                                <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer || task.status === 'completed' || isMaxed}>Start</Button>
                               )}
 
                               <Tooltip label="Log Time Manually" withArrow>
@@ -1205,7 +1490,7 @@ const MilestoneTableRow = ({
 
 const ProjectReports = ({ project, milestones }: { project: any; milestones: any[] }) => {
   const { data: tasksData } = useGetAllTasksQuery();
-  
+
   if (!project) return null;
 
   const milestoneIds = milestones.map(m => m._id);
