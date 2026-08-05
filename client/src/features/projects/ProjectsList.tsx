@@ -55,6 +55,8 @@ const projectSchema = z.object({
   description: z.string().optional(),
   type: z.string().optional(),
   totalBudget: z.number().optional(),
+  costPerHour: z.number().optional(),
+  totalHours: z.number().optional(),
   status: z.nativeEnum(ProjectStatus).optional(),
   team: z.array(z.string()).optional(),
 });
@@ -83,6 +85,8 @@ export const ProjectsList: React.FC = () => {
       description: '',
       type: 'Web App',
       totalBudget: '' as any,
+      costPerHour: '' as any,
+      totalHours: '' as any,
       status: ProjectStatus.ACTIVE,
       team: [] as string[],
     },
@@ -103,6 +107,8 @@ export const ProjectsList: React.FC = () => {
       description: project.description || '',
       type: project.type || 'Web App',
       totalBudget: project.totalBudget ?? '',
+      costPerHour: project.costPerHour ?? '',
+      totalHours: project.totalHours ?? '',
       status: project.status || ProjectStatus.ACTIVE,
       team: project.team?.map((t: any) => t._id || t) || [],
     });
@@ -111,9 +117,18 @@ export const ProjectsList: React.FC = () => {
 
   const onSubmit = async (values: typeof form.values) => {
     try {
+      // For hourly clients: compute totalBudget from costPerHour * totalHours
+      const selectedClient = clientsData?.data.find((c) => c._id === values.client);
+      const isHourly = selectedClient?.billingType === 'hourly';
+      const computedBudget = isHourly
+        ? (Number(values.costPerHour) || 0) * (Number(values.totalHours) || 0)
+        : values.totalBudget;
+
       const payload = {
         ...values,
-        totalBudget: values.totalBudget || undefined,
+        totalBudget: computedBudget || undefined,
+        costPerHour: isHourly ? values.costPerHour || undefined : undefined,
+        totalHours: isHourly ? values.totalHours || undefined : undefined,
         team: values.team.length > 0 ? values.team : undefined,
       };
 
@@ -146,6 +161,13 @@ export const ProjectsList: React.FC = () => {
     usersData?.data
       .filter((u) => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER)
       .map((u) => ({ value: u._id, label: `${u.name} (${u.role ? u.role.replace('_', ' ') : 'Member'})` })) || [];
+
+  // Derived: selected client object and billing type
+  const selectedClient = clientsData?.data.find((c) => c._id === form.values.client);
+  const isHourlyClient = selectedClient?.billingType === 'hourly';
+  const computedTotal = isHourlyClient
+    ? (Number(form.values.costPerHour) || 0) * (Number(form.values.totalHours) || 0)
+    : Number(form.values.totalBudget) || 0;
 
   const getClientName = (id: string) =>
     clientOptions.find((c) => c.value === id)?.label || 'Unknown Client';
@@ -584,16 +606,74 @@ export const ProjectsList: React.FC = () => {
                   />
                 </Group>
 
-                <NumberInput
-                  label="Total Amount ($)"
-                  placeholder="0.00"
-                  leftSection={<DollarSign size={16} color="gray" />}
-                  thousandSeparator=","
-                  min={0}
-                  radius="md"
-                  onFocus={(e) => e.target.select()}
-                  {...form.getInputProps('totalBudget')}
-                />
+                {/* Dynamic billing fields based on selected client billing type */}
+                {!form.values.client ? (
+                  <NumberInput
+                    label="Total Amount ($)"
+                    placeholder="Select a client first to unlock billing fields"
+                    leftSection={<DollarSign size={16} color="gray" />}
+                    disabled
+                    radius="md"
+                  />
+                ) : isHourlyClient ? (
+                  // Hourly client: Cost/hr + Total Hours → auto-calculate total
+                  <Stack gap="sm">
+                    <Group grow gap="md">
+                      <NumberInput
+                        label="Cost / Hour ($)"
+                        placeholder="0.00"
+                        leftSection={<DollarSign size={16} color="gray" />}
+                        thousandSeparator=","
+                        min={0}
+                        radius="md"
+                        decimalScale={2}
+                        onFocus={(e) => e.target.select()}
+                        {...form.getInputProps('costPerHour')}
+                      />
+                      <NumberInput
+                        label="Total Hours"
+                        placeholder="0"
+                        min={0}
+                        radius="md"
+                        decimalScale={1}
+                        onFocus={(e) => e.target.select()}
+                        {...form.getInputProps('totalHours')}
+                      />
+                    </Group>
+                    {/* Auto-computed total */}
+                    <Paper
+                      p="sm"
+                      radius="md"
+                      style={{
+                        background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%)',
+                        border: '1px solid #bfdbfe',
+                      }}
+                    >
+                      <Group justify="space-between">
+                        <Text size="xs" fw={600} c="#1d4ed8">Computed Total Budget</Text>
+                        <Text size="sm" fw={800} c="#1d4ed8">
+                          ${computedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mt={2}>
+                        {form.values.costPerHour || 0} $/hr × {form.values.totalHours || 0} hrs
+                      </Text>
+                    </Paper>
+                  </Stack>
+                ) : (
+                  // Fixed client: single total amount
+                  <NumberInput
+                    label="Total Amount ($)"
+                    placeholder="0.00"
+                    leftSection={<DollarSign size={16} color="gray" />}
+                    thousandSeparator=","
+                    min={0}
+                    radius="md"
+                    decimalScale={2}
+                    onFocus={(e) => e.target.select()}
+                    {...form.getInputProps('totalBudget')}
+                  />
+                )}
 
                 <MultiSelect
                   label="Assign Team"
@@ -687,14 +767,35 @@ export const ProjectsList: React.FC = () => {
                     </Text>
                   </Group>
 
-                  <Group justify="space-between">
-                    <Text size="xs" style={{ color: '#64748b' }}>
-                      Total Amount
-                    </Text>
-                    <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
-                      {form.values.totalBudget ? `$${form.values.totalBudget.toLocaleString()}` : '-'}
-                    </Text>
-                  </Group>
+                  {isHourlyClient ? (
+                    <>
+                      <Group justify="space-between">
+                        <Text size="xs" style={{ color: '#64748b' }}>Cost / Hour</Text>
+                        <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
+                          {form.values.costPerHour ? `$${Number(form.values.costPerHour).toFixed(2)}/hr` : '-'}
+                        </Text>
+                      </Group>
+                      <Group justify="space-between">
+                        <Text size="xs" style={{ color: '#64748b' }}>Total Hours</Text>
+                        <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
+                          {form.values.totalHours ? `${form.values.totalHours} hrs` : '-'}
+                        </Text>
+                      </Group>
+                      <Group justify="space-between">
+                        <Text size="xs" style={{ color: '#64748b' }}>Computed Total</Text>
+                        <Text size="xs" fw={800} style={{ color: '#1d4ed8' }}>
+                          {computedTotal > 0 ? `$${computedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                        </Text>
+                      </Group>
+                    </>
+                  ) : (
+                    <Group justify="space-between">
+                      <Text size="xs" style={{ color: '#64748b' }}>Total Amount</Text>
+                      <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
+                        {form.values.totalBudget ? `$${Number(form.values.totalBudget).toLocaleString()}` : '-'}
+                      </Text>
+                    </Group>
+                  )}
 
                   <Group justify="space-between" align="flex-start">
                     <Text size="xs" style={{ color: '#64748b' }}>
