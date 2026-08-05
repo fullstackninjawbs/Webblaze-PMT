@@ -83,7 +83,7 @@ export const ProjectsList: React.FC = () => {
       name: '',
       client: '',
       description: '',
-      type: 'Web App',
+      type: '',
       totalBudget: '' as any,
       costPerHour: '' as any,
       totalHours: '' as any,
