@@ -4,11 +4,14 @@ import * as authService from './auth.service';
 import { User } from '../users/user.model';
 
 const setRefreshCookie = (res: Response, token: string) => {
-  const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  const isVercel = process.env.VERCEL === '1';
+  // Only use secure + sameSite=none on Vercel (HTTPS).
+  // For plain HTTP deployments (e.g. self-hosted VPS), use lax so the cookie
+  // is actually stored and sent by the browser.
   res.cookie('refreshToken', token, {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
+    secure: isVercel,
+    sameSite: isVercel ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 };
@@ -70,11 +73,11 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const logout = asyncHandler(async (_req: Request, res: Response) => {
-  const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+  const isVercel = process.env.VERCEL === '1';
   res.cookie('refreshToken', '', {
     httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
+    secure: isVercel,
+    sameSite: isVercel ? 'none' : 'lax',
     expires: new Date(0),
   });
   res.status(200).json({
