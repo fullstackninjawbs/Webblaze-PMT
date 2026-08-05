@@ -6,7 +6,6 @@ import {
   useDeleteProjectMutation,
 } from './project.slice';
 import { useGetClientsQuery } from '../clients/client.slice';
-import { useGetUsersQuery } from '../users/user.slice';
 import { useGetReleasesQuery } from '../releases/release.slice';
 import {
   Table,
@@ -21,7 +20,6 @@ import {
   Badge,
   ActionIcon,
   NumberInput,
-  MultiSelect,
   Grid,
   Progress,
   Tabs,
@@ -65,7 +63,6 @@ export const ProjectsList: React.FC = () => {
   const navigate = useNavigate();
   const { data: projectsData } = useGetProjectsQuery();
   const { data: clientsData } = useGetClientsQuery();
-  const { data: usersData } = useGetUsersQuery();
   const { data: releasesData } = useGetReleasesQuery();
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
@@ -87,7 +84,7 @@ export const ProjectsList: React.FC = () => {
       totalBudget: '' as any,
       costPerHour: '' as any,
       totalHours: '' as any,
-      status: ProjectStatus.ACTIVE,
+      status: ProjectStatus.NEW,
       team: [] as string[],
     },
     validate: zodResolver(projectSchema),
@@ -105,11 +102,11 @@ export const ProjectsList: React.FC = () => {
       name: project.name || '',
       client: project.client?._id || project.client || '',
       description: project.description || '',
-      type: project.type || 'Web App',
+      type: project.type || '',
       totalBudget: project.totalBudget ?? '',
       costPerHour: project.costPerHour ?? '',
       totalHours: project.totalHours ?? '',
-      status: project.status || ProjectStatus.ACTIVE,
+      status: project.status || ProjectStatus.NEW,
       team: project.team?.map((t: any) => t._id || t) || [],
     });
     setModalOpened(true);
@@ -157,10 +154,6 @@ export const ProjectsList: React.FC = () => {
   };
 
   const clientOptions = clientsData?.data.map((c) => ({ value: c._id, label: c.name })) || [];
-  const teamOptions =
-    usersData?.data
-      .filter((u) => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER)
-      .map((u) => ({ value: u._id, label: `${u.name} (${u.role ? u.role.replace('_', ' ') : 'Member'})` })) || [];
 
   // Derived: selected client object and billing type
   const selectedClient = clientsData?.data.find((c) => c._id === form.values.client);
@@ -484,6 +477,7 @@ export const ProjectsList: React.FC = () => {
           <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'all')} radius="md">
             <Tabs.List style={{ borderBottom: 'none' }}>
               <Tabs.Tab value="all">All Projects</Tabs.Tab>
+              <Tabs.Tab value={ProjectStatus.NEW}>New</Tabs.Tab>
               <Tabs.Tab value={ProjectStatus.ACTIVE}>Active</Tabs.Tab>
               <Tabs.Tab value={ProjectStatus.ON_HOLD}>On Hold</Tabs.Tab>
               <Tabs.Tab value={ProjectStatus.MAINTENANCE}>Maintenance</Tabs.Tab>
@@ -596,6 +590,7 @@ export const ProjectsList: React.FC = () => {
                   <Select
                     label="Status"
                     data={[
+                      { value: ProjectStatus.NEW, label: 'New' },
                       { value: ProjectStatus.ACTIVE, label: 'Active' },
                       { value: ProjectStatus.ON_HOLD, label: 'On Hold' },
                       { value: ProjectStatus.MAINTENANCE, label: 'Maintenance' },
@@ -675,16 +670,6 @@ export const ProjectsList: React.FC = () => {
                   />
                 )}
 
-                <MultiSelect
-                  label="Assign Team"
-                  placeholder="Select Team Leads and Members"
-                  data={teamOptions}
-                  searchable
-                  clearable
-                  radius="md"
-                  {...form.getInputProps('team')}
-                />
-
                 <TextInput
                   label="Description"
                   placeholder="Brief project description"
@@ -752,9 +737,13 @@ export const ProjectsList: React.FC = () => {
                     <Badge
                       variant="light"
                       radius="sm"
-                      color={form.values.status === ProjectStatus.ACTIVE ? 'green' : 'orange'}
+                      color={
+                        form.values.status === ProjectStatus.NEW || form.values.status === ProjectStatus.ACTIVE
+                          ? 'green'
+                          : 'orange'
+                      }
                     >
-                      {form.values.status ? form.values.status.replace('_', ' ') : '-'}
+                      {form.values.status ? form.values.status.replace('_', ' ').toUpperCase() : '-'}
                     </Badge>
                   </Group>
 
@@ -796,15 +785,6 @@ export const ProjectsList: React.FC = () => {
                       </Text>
                     </Group>
                   )}
-
-                  <Group justify="space-between" align="flex-start">
-                    <Text size="xs" style={{ color: '#64748b' }}>
-                      Team
-                    </Text>
-                    <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
-                      {form.values.team.length > 0 ? `${form.values.team.length} members` : 'Unassigned'}
-                    </Text>
-                  </Group>
                 </Stack>
               </Paper>
             </Grid.Col>

@@ -7,6 +7,7 @@ export enum Role {
 }
 
 export enum ProjectStatus {
+  NEW = 'new',
   ACTIVE = 'active',
   ON_HOLD = 'on_hold',
   MAINTENANCE = 'maintenance',

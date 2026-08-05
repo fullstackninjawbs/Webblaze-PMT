@@ -32,7 +32,7 @@ const projectSchema = new Schema(
     status: {
       type: String,
       enum: Object.values(ProjectStatus),
-      default: ProjectStatus.ACTIVE,
+      default: ProjectStatus.NEW,
     },
     team: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
