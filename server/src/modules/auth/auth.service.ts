@@ -8,13 +8,13 @@ const generateTokens = (userId: string, tokenVersion: number = 0) => {
   const accessToken = jwt.sign(
     { id: userId, tokenVersion },
     process.env.JWT_ACCESS_SECRET as string,
-    { expiresIn: (process.env.JWT_ACCESS_EXPIRES || '15m') as any }
+    { expiresIn: (process.env.JWT_ACCESS_EXPIRES || '30d') as any }
   );
 
   const refreshToken = jwt.sign(
     { id: userId, tokenVersion },
     process.env.JWT_REFRESH_SECRET as string,
-    { expiresIn: (process.env.JWT_REFRESH_EXPIRES || '7d') as any }
+    { expiresIn: (process.env.JWT_REFRESH_EXPIRES || '365d') as any }
   );
 
   return { accessToken, refreshToken };
@@ -34,11 +34,7 @@ export const loginUser = async (
     throw new ApiError(401, 'Invalid email or password');
   }
 
-  // Increment tokenVersion on login to invalidate all older active sessions on other devices/systems
-  user.tokenVersion = (user.tokenVersion || 0) + 1;
-  await user.save();
-
-  const tokens = generateTokens((user._id as any).toString(), user.tokenVersion);
+  const tokens = generateTokens((user._id as any).toString(), user.tokenVersion || 0);
   return { user, tokens };
 };
 
