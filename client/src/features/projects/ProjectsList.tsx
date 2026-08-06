@@ -11,7 +11,6 @@ import {
   Table,
   Button,
   Group,
-  Title,
   Modal,
   TextInput,
   Select,
@@ -26,6 +25,8 @@ import {
   Paper,
   SimpleGrid,
   Stack,
+  Collapse,
+  Box,
 } from '@mantine/core';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
@@ -39,6 +40,7 @@ import {
   Search,
   CheckCircle2,
   Clock,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
@@ -71,6 +73,7 @@ export const ProjectsList: React.FC = () => {
   const [editingProject, setEditingProject] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showOverview, setShowOverview] = useState(false);
   const { user } = useSelector((state: RootState) => state.auth);
 
   const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
@@ -207,23 +210,18 @@ export const ProjectsList: React.FC = () => {
     >
       {/* 1. Project */}
       <Table.Td style={{ whiteSpace: 'nowrap' }}>
-        <Group gap="sm" wrap="nowrap">
-          <div style={{ width: 36, height: 36, borderRadius: '10px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Briefcase size={18} color="#2563eb" />
-          </div>
-          <div>
-            <Text
-              size="sm"
-              fw={700}
-              style={{ color: '#0f172a' }}
-            >
-              {project.name}
-            </Text>
-            <Text size="xs" style={{ color: '#64748b' }}>
-              {project.client?.name || 'Unknown Client'}
-            </Text>
-          </div>
-        </Group>
+        <div>
+          <Text
+            size="sm"
+            fw={700}
+            style={{ color: '#0f172a' }}
+          >
+            {project.name}
+          </Text>
+          <Text size="xs" style={{ color: '#64748b' }}>
+            {project.client?.name || 'Unknown Client'}
+          </Text>
+        </div>
       </Table.Td>
 
       {/* 2. Hours Assists / Est. Hours */}
@@ -354,121 +352,130 @@ export const ProjectsList: React.FC = () => {
   return (
     <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       {/* Header */}
-      <Group justify="space-between" align="center" mb="xl">
-        <div>
-          <Title
-            order={1}
-            style={{
-              color: '#0f172a',
-              fontSize: '1.75rem',
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-            }}
-          >
-            {isAdminOrPM ? 'Projects Directory' : 'My Projects'}
-          </Title>
-          <Text size="sm" mt={4} style={{ color: '#64748b' }}>
-            {isAdminOrPM
-              ? 'Manage client deliverables, milestone schedules, team assignments, and total amounts.'
-              : 'View your assigned projects, milestone schedules, and progress.'}
-          </Text>
-        </div>
-        {isAdminOrPM && (
-          <Button
-            leftSection={<Plus size={16} />}
-            radius="md"
-            size="md"
-            onClick={openCreateModal}
-            style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-              fontWeight: 600,
-              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-            }}
-          >
-            New Project
-          </Button>
-        )}
+      <Group justify="flex-end" align="center" mb="xl">
+        <Group gap="sm">
+          {isAdminOrPM && (
+            <Button
+              size="md"
+              radius="md"
+              leftSection={<LayoutDashboard size={16} />}
+              onClick={() => setShowOverview((prev) => !prev)}
+              style={{
+                background: showOverview
+                  ? 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)'
+                  : '#ffffff',
+                color: showOverview ? '#ffffff' : '#475569',
+                border: showOverview ? 'none' : '1px solid #cbd5e1',
+                fontWeight: 600,
+                boxShadow: showOverview ? '0 4px 14px rgba(59, 130, 246, 0.35)' : '0 2px 6px rgba(0,0,0,0.05)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              Overview
+            </Button>
+          )}
+          {isAdminOrPM && (
+            <Button
+              leftSection={<Plus size={16} />}
+              radius="md"
+              size="md"
+              onClick={openCreateModal}
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                fontWeight: 600,
+                boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+              }}
+            >
+              New Project
+            </Button>
+          )}
+        </Group>
       </Group>
 
-      {/* KPI Cards */}
+      {/* KPI Cards (Hidden by Default, Toggled via Overview Button) */}
       {isAdminOrPM && (
-        <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="md" mb="xl">
-          <Paper
-            p="lg"
-            radius="xl"
-            withBorder
-            style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
-          >
-            <Group justify="space-between" mb="xs">
-              <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-                Active Projects
-              </Text>
-              <Paper p={8} radius="md" bg="#eff6ff">
-                <Briefcase size={18} color="#2563eb" />
+        <Collapse in={showOverview} transitionDuration={350} transitionTimingFunction="cubic-bezier(0.4, 0, 0.2, 1)">
+          <Box mb="xl">
+            <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="md">
+              <Paper
+                p="lg"
+                radius="xl"
+                withBorder
+                style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+              >
+                <Group justify="space-between" mb="xs">
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                    Active Projects
+                  </Text>
+                  <Paper p={8} radius="md" bg="#eff6ff">
+                    <Briefcase size={18} color="#2563eb" />
+                  </Paper>
+                </Group>
+                <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+                  {metrics.activeCount}
+                </Text>
               </Paper>
-            </Group>
-            <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
-              {metrics.activeCount}
-            </Text>
-          </Paper>
 
-          <Paper
-            p="lg"
-            radius="xl"
-            withBorder
-            style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
-          >
-            <Group justify="space-between" mb="xs">
-              <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-                Total Portfolio Amount
-              </Text>
-              <Paper p={8} radius="md" bg="#f0fdf4">
-                <DollarSign size={18} color="#10b981" />
+              <Paper
+                p="lg"
+                radius="xl"
+                withBorder
+                style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+              >
+                <Group justify="space-between" mb="xs">
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                    Total Portfolio Amount
+                  </Text>
+                  <Paper p={8} radius="md" bg="#f0fdf4">
+                    <DollarSign size={18} color="#10b981" />
+                  </Paper>
+                </Group>
+                <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+                  ${metrics.totalBudgetSum.toLocaleString()}
+                </Text>
               </Paper>
-            </Group>
-            <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
-              ${metrics.totalBudgetSum.toLocaleString()}
-            </Text>
-          </Paper>
 
-          <Paper
-            p="lg"
-            radius="xl"
-            withBorder
-            style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
-          >
-            <Group justify="space-between" mb="xs">
-              <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-                Total Received
-              </Text>
-              <Paper p={8} radius="md" bg="#f0fdf4">
-                <CheckCircle2 size={18} color="#10b981" />
+              <Paper
+                p="lg"
+                radius="xl"
+                withBorder
+                style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+              >
+                <Group justify="space-between" mb="xs">
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                    Total Received
+                  </Text>
+                  <Paper p={8} radius="md" bg="#f0fdf4">
+                    <CheckCircle2 size={18} color="#10b981" />
+                  </Paper>
+                </Group>
+                <Text fw={800} style={{ fontSize: '1.75rem', color: '#059669', lineHeight: 1 }}>
+                  ${metrics.totalReceivedSum.toLocaleString()}
+                </Text>
               </Paper>
-            </Group>
-            <Text fw={800} style={{ fontSize: '1.75rem', color: '#059669', lineHeight: 1 }}>
-              ${metrics.totalReceivedSum.toLocaleString()}
-            </Text>
-          </Paper>
 
-          <Paper
-            p="lg"
-            radius="xl"
-            withBorder
-            style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
-          >
-            <Group justify="space-between" mb="xs">
-              <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-                Total Pending
-              </Text>
-              <Paper p={8} radius="md" bg="#fffbeb">
-                <Clock size={18} color="#f59e0b" />
+              <Paper
+                p="lg"
+                radius="xl"
+                withBorder
+                style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+              >
+                <Group justify="space-between" mb="xs">
+                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                    Total Pending
+                  </Text>
+                  <Paper p={8} radius="md" bg="#fffbeb">
+                    <Clock size={18} color="#f59e0b" />
+                  </Paper>
+                </Group>
+                <Text fw={800} style={{ fontSize: '1.75rem', color: '#d97706', lineHeight: 1 }}>
+                  ${metrics.totalPendingSum.toLocaleString()}
+                </Text>
               </Paper>
-            </Group>
-            <Text fw={800} style={{ fontSize: '1.75rem', color: '#d97706', lineHeight: 1 }}>
-              ${metrics.totalPendingSum.toLocaleString()}
-            </Text>
-          </Paper>
-        </SimpleGrid>
+            </SimpleGrid>
+          </Box>
+        </Collapse>
       )}
 
       {/* Tabs & Search Filter Toolbar */}

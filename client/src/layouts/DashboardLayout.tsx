@@ -4,9 +4,9 @@ import { ActiveTimerBadge } from '../components/common/ActiveTimerBadge';
 import { useSelector } from 'react-redux';
 import { RootState } from '../app/store';
 import { useLogoutMutation, useGetMeQuery } from '../features/auth/auth.slice';
-import { LayoutDashboard, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity, Search } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity } from 'lucide-react';
 import { Role } from '../types';
-import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge, Kbd } from '@mantine/core';
+import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge } from '@mantine/core';
 import { useGetActiveTimerQuery } from '../features/timelogs/timeLog.slice';
 import { BlazeLogo } from '../components/common/BlazeLogo';
 import { UserAvatar } from '../components/common/UserAvatar';
@@ -22,6 +22,25 @@ interface NavSection {
   title: string;
   items: NavItem[];
 }
+
+const MIN_SIDEBAR_WIDTH = 180;
+const MAX_SIDEBAR_WIDTH = 420;
+const DEFAULT_SIDEBAR_WIDTH = 240;
+
+const getInitialSidebarWidth = (): number => {
+  try {
+    const saved = localStorage.getItem('sidebar_width');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH && parsed <= MAX_SIDEBAR_WIDTH) {
+        return parsed;
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return DEFAULT_SIDEBAR_WIDTH;
+};
 
 // Categorized sidebar navigation divided into clear module sections
 const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
@@ -135,6 +154,43 @@ export const DashboardLayout: React.FC = () => {
   const activeTimer = activeTimerData?.data;
 
   const [searchModalOpened, setSearchModalOpened] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(getInitialSidebarWidth);
+  const [isResizing, setIsResizing] = useState(false);
+  const [handleHovered, setHandleHovered] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = Math.min(Math.max(e.clientX, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH);
+      setSidebarWidth(newWidth);
+      localStorage.setItem('sidebar_width', String(newWidth));
+    };
+
+    const handleMouseUp = () => {
+      if (isResizing) {
+        setIsResizing(false);
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+      }
+    };
+
+    if (isResizing) {
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'col-resize';
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -215,7 +271,7 @@ export const DashboardLayout: React.FC = () => {
   return (
     <AppShell
       navbar={{
-        width: 320,
+        width: sidebarWidth,
         breakpoint: 'sm',
       }}
       header={activeTimer ? { height: 56 } : undefined}
@@ -225,7 +281,7 @@ export const DashboardLayout: React.FC = () => {
       {activeTimer && (
         <AppShell.Header
           style={{
-            left: 320,
+            left: sidebarWidth,
             borderBottom: '1px solid #bae6fd',
             backgroundColor: '#f0f9ff',
             display: 'flex',
@@ -240,8 +296,11 @@ export const DashboardLayout: React.FC = () => {
 
       <AppShell.Navbar
         style={{
+          width: `${sidebarWidth}px`,
           top: 0,
+          left: 0,
           height: '100vh',
+          position: 'fixed',
           borderRight: '1px solid #e8ecf4',
           backgroundColor: '#ffffff',
           display: 'flex',
@@ -250,35 +309,43 @@ export const DashboardLayout: React.FC = () => {
           zIndex: 101,
         }}
       >
+        {/* Drag Resizable Handle */}
+        <div
+          onMouseDown={handleMouseDown}
+          onMouseEnter={() => setHandleHovered(true)}
+          onMouseLeave={() => setHandleHovered(false)}
+          onDoubleClick={() => {
+            setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+            localStorage.setItem('sidebar_width', String(DEFAULT_SIDEBAR_WIDTH));
+          }}
+          title="Drag to resize sidebar (Double-click to reset)"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: -5,
+            width: 10,
+            height: '100%',
+            cursor: 'col-resize',
+            zIndex: 110,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: isResizing || handleHovered ? 4 : 2,
+              height: '100%',
+              backgroundColor: isResizing || handleHovered ? '#3b82f6' : '#e2e8f0',
+              transition: 'background-color 0.15s ease, width 0.15s ease',
+              borderRadius: '2px',
+            }}
+          />
+        </div>
         {/* WebBlaze PMS Branding Header */}
         <Box px="md" pt="md" pb="xs">
           <BlazeLogo variant="dark" size="md" />
         </Box>
-
-        {/* Global Search Bar Quick Trigger */}
-        <UnstyledButton
-          onClick={() => setSearchModalOpened(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '8px 12px',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            margin: '4px 16px 8px',
-            cursor: 'pointer',
-          }}
-        >
-          <Group gap="xs">
-            <Search size={15} color="#64748b" />
-            <Text size="xs" fw={500} style={{ color: '#64748b' }}>Search PMT...</Text>
-          </Group>
-          <Kbd size="xs">Ctrl K</Kbd>
-        </UnstyledButton>
-
-        {/* Separator */}
-        <div style={{ height: '1px', background: '#f1f4f9', margin: '4px 20px 12px' }} />
 
         {/* Nav Items grouped by Section */}
         <AppShell.Section grow px="md" pb="md" style={{ overflowY: 'auto' }}>
@@ -358,7 +425,7 @@ export const DashboardLayout: React.FC = () => {
         </div>
       </AppShell.Navbar>
 
-      <AppShell.Main>
+      <AppShell.Main style={{ paddingLeft: `${sidebarWidth}px` }}>
         <div style={{ width: '100%', maxWidth: '1920px', margin: '0 auto', padding: '36px 32px' }}>
           <Outlet />
         </div>

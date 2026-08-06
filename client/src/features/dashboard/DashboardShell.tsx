@@ -17,7 +17,7 @@ import { TeamTimeTrackingPanel } from './TeamTimeTrackingPanel';
 export const DashboardShell: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-  const formattedDate = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date());
+
 
   const { data: projectsData } = useGetProjectsQuery();
   const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id });
@@ -172,47 +172,10 @@ export const DashboardShell: React.FC = () => {
   return (
     <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)', paddingBottom: '48px' }}>
       {/* Top Header Section — clean static layout */}
-      <Group justify="space-between" align="center" mb="xl" style={{ marginBottom: '28px' }}>
-        <div>
-          <Title
-            order={2}
-            style={{
-              color: '#0f172a',
-              fontSize: '1.625rem',
-              fontWeight: 800,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.25,
-            }}
-          >
-            Command Center
-          </Title>
-          <Text
-            size="sm"
-            mt={4}
-            style={{
-              color: '#334155',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              letterSpacing: '-0.01em',
-            }}
-          >
-            Good afternoon, {user?.name?.split(' ')[0]}. Here is your high-level view.
-          </Text>
-        </div>
+      <Group justify="flex-end" align="center" mb="xl" style={{ marginBottom: '28px' }}>
         <Group gap="md" align="center">
-          {/* Vibrant Cyan-Blue Brand Gradient Date Badge */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
-            borderRadius: '10px',
-            padding: '7px 16px',
-            boxShadow: '0 4px 14px rgba(14, 165, 233, 0.35)',
-            color: '#ffffff',
-          }}>
-            <span style={{ fontSize: '0.8125rem', color: '#ffffff', fontWeight: 600, letterSpacing: '0.01em' }}>{formattedDate}</span>
-          </div>
+
+
           <TextInput
             placeholder="Search projects, tasks, todos..."
             leftSection={<Search size={15} color="#0ea5e9" />}
@@ -427,10 +390,10 @@ export const DashboardShell: React.FC = () => {
         <ProjectSummaryCards projects={filteredProjects} />
       )}
       {user?.role === Role.TEAM_LEAD && <TLHero />}
+
       {user?.role === Role.TEAM_MEMBER && (
         <Stack gap="xl">
           <TMHero />
-          
           {/* My Assigned Projects Section */}
           <Box mb="lg">
             <Group justify="space-between" align="center" mb="md">

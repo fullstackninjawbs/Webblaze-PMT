@@ -35,13 +35,14 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     <Avatar
       src={avatarUrl || undefined}
       size={size}
-      radius="xl"
+      radius="full"
       variant="gradient"
       gradient={{ from: 'blue', to: 'indigo', deg: 135 }}
       className={`user-avatar-badge ${className || ''}`.trim()}
       style={{
         fontWeight: 700,
         color: '#ffffff',
+        borderRadius: '50%',
         ...style,
       }}
       {...props}

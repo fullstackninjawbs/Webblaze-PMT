@@ -64,6 +64,7 @@ export const UsersList: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
 
   const form = useForm({
     initialValues: {
@@ -148,9 +149,12 @@ export const UsersList: React.FC = () => {
         (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.email.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesRole = !roleFilter || u.role === roleFilter;
-      return matchesQuery && matchesRole;
+      const matchesDepartment =
+        !departmentFilter ||
+        (u.department && u.department.toLowerCase() === departmentFilter.toLowerCase());
+      return matchesQuery && matchesRole && matchesDepartment;
     });
-  }, [users, searchQuery, roleFilter]);
+  }, [users, searchQuery, roleFilter, departmentFilter]);
 
   // Metrics
   const metrics = useMemo(() => {
@@ -359,6 +363,15 @@ export const UsersList: React.FC = () => {
               ]}
               value={roleFilter}
               onChange={setRoleFilter}
+              clearable
+              style={{ width: 180 }}
+              radius="md"
+            />
+            <Select
+              placeholder="Filter Department"
+              data={DEPARTMENT_OPTIONS}
+              value={departmentFilter}
+              onChange={setDepartmentFilter}
               clearable
               style={{ width: 180 }}
               radius="md"

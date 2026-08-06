@@ -7,11 +7,11 @@ import { useForm } from '@mantine/form';
 import {
   Container, Title, Text, Group, Badge, Stack, SimpleGrid,
   Tabs, Table, Progress, Loader, Center, Button, Paper,
-  RingProgress, Modal, Textarea, Select, TextInput,
+  Modal, Textarea, Select, TextInput, UnstyledButton, Menu,
 } from '@mantine/core';
 import {
   ArrowLeft, Mail, CheckCircle2, Clock, Briefcase, CheckSquare,
-  Activity, AlertCircle, LogIn, LogOut, Send, Sparkles, Search,
+  Activity, AlertCircle, LogIn, LogOut, Send, Sparkles, Search, ChevronDown,
 } from 'lucide-react';
 import { useGetUserByIdQuery } from './user.slice';
 import { useGetTasksByUserQuery } from '../tasks/task.slice';
@@ -59,15 +59,15 @@ const StatCard = ({
       withBorder
       style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
     >
-      <Group justify="space-between" mb="xs" align="flex-start">
-        <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-          {label}
-        </Text>
+      <Group align="center" gap="xs" mb="xs" wrap="nowrap">
         <Paper p={8} radius="md" bg={theme.bg}>
           <Icon size={18} color={theme.iconColor} />
         </Paper>
+        <Text size="xs" fw={700} style={{ color: '#0f172a', lineHeight: 1.2 }}>
+          {label}
+        </Text>
       </Group>
-      <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+      <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1, marginTop: 4 }}>
         {value}
       </Text>
       {sub && <Text size="xs" style={{ color: '#94a3b8' }} mt={6}>{sub}</Text>}
@@ -79,7 +79,7 @@ export const UserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'projects';
+  const currentTab = searchParams.get('tab') || 'daily-status';
 
   const { user: currentUser } = useSelector((state: RootState) => state.auth);
   const isManagement =
@@ -178,7 +178,6 @@ export const UserProfile: React.FC = () => {
 
   // Stats
   const completedTasks = tasks.filter(t => t.status === 'completed').length;
-  const completionRate = tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0;
   const totalLoggedSeconds = userTimeLogs.reduce((sum, log) => sum + (log.durationSeconds || 0), 0);
   const totalLoggedHours = Math.round((totalLoggedSeconds / 3600) * 10) / 10;
 
@@ -200,83 +199,89 @@ export const UserProfile: React.FC = () => {
 
   return (
     <Container size="xl">
-      {/* Back Button */}
-      <Button
-        variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />}
-        onClick={() => navigate('/team')} mb="lg" style={{ paddingLeft: 0 }}
-      >
-        Back to Team
-      </Button>
+      {/* Top Header Row: Back Button on Left, User Profile Pill on Right */}
+      <Group justify="space-between" align="center" mb="xl">
+        <Button
+          variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />}
+          onClick={() => navigate('/team')} style={{ paddingLeft: 0 }}
+        >
+          Back to Team
+        </Button>
 
-      {/* Header Card */}
-      <Paper withBorder radius="xl" p="xl" mb="xl"
-        style={{ background: '#ffffff', borderColor: '#e8ecf4', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
-        <Group align="center" gap="xl">
-          <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size={76} />
-          <div style={{ flex: 1 }}>
-            <Group gap="sm" mb={6} align="center">
-              <Title order={2} style={{ color: '#0f172a', fontWeight: 800 }}>{member.name}</Title>
-              <Badge variant="filled" color={roleColor(member.role)} size="md" radius="sm">
-                {member.role?.replace('_', ' ').toUpperCase()}
-              </Badge>
-              {member.department && (
-                <Badge variant="light" color="blue" size="md" radius="sm">{member.department.toUpperCase()}</Badge>
-              )}
-            </Group>
-            <Group gap="xl" wrap="wrap">
-              <Group gap="xs">
-                <Mail size={15} color="#64748b" />
-                <Text size="sm" style={{ color: '#64748b' }}>{member.email}</Text>
+        {/* User Profile Pill Widget matching screenshot */}
+        <Menu position="bottom-end" shadow="md" width={220} offset={6}>
+          <Menu.Target>
+            <UnstyledButton
+              style={{
+                padding: '6px 14px 6px 8px',
+                borderRadius: '16px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <Group wrap="nowrap" gap="sm" align="center">
+                <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size={36} />
+                <div style={{ textAlign: 'left' }}>
+                  <Text size="xs" fw={700} style={{ color: '#0f172a', lineHeight: 1.2 }}>
+                    {member.name}
+                  </Text>
+                  <Badge
+                    size="xs"
+                    variant="filled"
+                    color={roleColor(member.role)}
+                    style={{
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      height: 16,
+                      padding: '0 6px',
+                      marginTop: 2,
+                    }}
+                  >
+                    {member.role?.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+                <ChevronDown size={14} color="#94a3b8" />
               </Group>
-              <Group gap="xs">
-                <Activity size={15} color="#64748b" />
-                <Text size="sm" style={{ color: '#64748b' }}>{tasks.length} tasks assigned</Text>
-              </Group>
-              <Group gap="xs">
-                <Briefcase size={15} color="#64748b" />
-                <Text size="sm" style={{ color: '#64748b' }}>{memberProjects.length} active projects</Text>
-              </Group>
-            </Group>
-          </div>
-
-          {/* Completion Ring */}
-          <Stack align="center" gap={4}>
-            <RingProgress
-              size={84}
-              thickness={7}
-              roundCaps
-              sections={[{ value: completionRate, color: completionRate >= 80 ? 'green' : completionRate >= 50 ? 'blue' : 'orange' }]}
-              label={<Text ta="center" fw={800} size="sm" style={{ color: '#0f172a' }}>{completionRate}%</Text>}
-            />
-            <Text size="xs" fw={700} style={{ color: '#64748b', letterSpacing: '0.02em' }}>Completion Rate</Text>
-          </Stack>
-        </Group>
-      </Paper>
+            </UnstyledButton>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              leftSection={<Mail size={14} />}
+              style={{ fontSize: '0.8125rem', color: '#64748b' }}
+            >
+              {member.email}
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      </Group>
 
       {/* Stats Row */}
       <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md" mb="xl">
-        <StatCard label="Projects" value={memberProjects.length} sub="member of" icon={Briefcase} color="orange" />
-        <StatCard label="Tasks Assigned" value={tasks.length} sub="total tasks" icon={CheckSquare} color="blue" />
-        <StatCard label="Tasks Completed" value={completedTasks} sub={`${tasks.length - completedTasks} remaining`} icon={CheckCircle2} color="green" />
-        <StatCard label="Hours Logged" value={`${totalLoggedHours}h`} sub="total tracked time" icon={Clock} color="violet" />
-      </SimpleGrid>
+            <StatCard label="Projects" value={memberProjects.length} sub="member of" icon={Briefcase} color="orange" />
+            <StatCard label="Tasks Assigned" value={tasks.length} sub="total tasks" icon={CheckSquare} color="blue" />
+            <StatCard label="Tasks Completed" value={completedTasks} sub={`${tasks.length - completedTasks} remaining`} icon={CheckCircle2} color="green" />
+            <StatCard label="Hours Logged" value={`${totalLoggedHours}h`} sub="total tracked time" icon={Clock} color="violet" />
+          </SimpleGrid>
 
-      {/* Tabs */}
-      <Tabs value={currentTab} onChange={(val) => setSearchParams({ tab: val || 'projects' })} radius="md">
-        <Tabs.List mb="lg">
-          <Tabs.Tab value="projects" leftSection={<Briefcase size={16} />}>
-            Projects <Badge variant="light" size="xs" ml={4}>{memberProjects.length}</Badge>
-          </Tabs.Tab>
-          <Tabs.Tab value="daily-status" leftSection={<Activity size={16} />}>
-            Daily Status <Badge variant="light" size="xs" ml={4}>{memberDailyLogs.length}</Badge>
-          </Tabs.Tab>
-          <Tabs.Tab value="tasks" leftSection={<CheckSquare size={16} />}>
-            Tasks <Badge variant="light" size="xs" ml={4}>{tasks.length}</Badge>
-          </Tabs.Tab>
-          <Tabs.Tab value="timelogs" leftSection={<Clock size={16} />}>
-            Time Logs <Badge variant="light" size="xs" ml={4}>{userTimeLogs.length}</Badge>
-          </Tabs.Tab>
-        </Tabs.List>
+          {/* Tabs */}
+          <Tabs value={currentTab} onChange={(val) => setSearchParams({ tab: val || 'daily-status' })} radius="md">
+            <Tabs.List mb="lg">
+              <Tabs.Tab value="daily-status" leftSection={<Activity size={16} />}>
+                Daily Status <Badge variant="light" size="xs" ml={4}>{memberDailyLogs.length}</Badge>
+              </Tabs.Tab>
+              <Tabs.Tab value="projects" leftSection={<Briefcase size={16} />}>
+                Projects <Badge variant="light" size="xs" ml={4}>{memberProjects.length}</Badge>
+              </Tabs.Tab>
+              <Tabs.Tab value="tasks" leftSection={<CheckSquare size={16} />}>
+                Tasks <Badge variant="light" size="xs" ml={4}>{tasks.length}</Badge>
+              </Tabs.Tab>
+              <Tabs.Tab value="timelogs" leftSection={<Clock size={16} />}>
+                Time Logs <Badge variant="light" size="xs" ml={4}>{userTimeLogs.length}</Badge>
+              </Tabs.Tab>
+            </Tabs.List>
 
         {/* Tasks Tab */}
         <Tabs.Panel value="tasks">
