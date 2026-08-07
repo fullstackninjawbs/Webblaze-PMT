@@ -14,6 +14,7 @@ export interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
 }
 
@@ -30,13 +31,19 @@ const getInitialToken = (): string | null => {
   return localStorage.getItem('auth_token') || null;
 };
 
+const getInitialRefreshToken = (): string | null => {
+  return localStorage.getItem('auth_refresh_token') || null;
+};
+
 const initialUser = getInitialUser();
 const initialToken = getInitialToken();
+const initialRefreshToken = getInitialRefreshToken();
 
 const initialState: AuthState = {
   user: initialUser,
   token: initialToken,
-  isAuthenticated: !!(initialUser && initialToken),
+  refreshToken: initialRefreshToken,
+  isAuthenticated: !!(initialUser && (initialToken || initialRefreshToken)),
 };
 
 export const authSlice = createSlice({
@@ -46,23 +53,41 @@ export const authSlice = createSlice({
     logoutLocally: (state) => {
       state.user = null;
       state.token = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
       localStorage.removeItem('auth_user');
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_refresh_token');
     },
     setCredentials: (
       state,
-      action: PayloadAction<{ user: User; accessToken: string }>
+      action: PayloadAction<{ user: User; accessToken: string; refreshToken?: string }>
     ) => {
       state.user = action.payload.user;
       state.token = action.payload.accessToken;
+      if (action.payload.refreshToken) {
+        state.refreshToken = action.payload.refreshToken;
+        localStorage.setItem('auth_refresh_token', action.payload.refreshToken);
+      }
       state.isAuthenticated = true;
       localStorage.setItem('auth_user', JSON.stringify(action.payload.user));
       localStorage.setItem('auth_token', action.payload.accessToken);
     },
-    updateToken: (state, action: PayloadAction<string>) => {
-      state.token = action.payload;
-      localStorage.setItem('auth_token', action.payload);
+    updateToken: (
+      state,
+      action: PayloadAction<{ accessToken: string; refreshToken?: string } | string>
+    ) => {
+      if (typeof action.payload === 'string') {
+        state.token = action.payload;
+        localStorage.setItem('auth_token', action.payload);
+      } else {
+        state.token = action.payload.accessToken;
+        localStorage.setItem('auth_token', action.payload.accessToken);
+        if (action.payload.refreshToken) {
+          state.refreshToken = action.payload.refreshToken;
+          localStorage.setItem('auth_refresh_token', action.payload.refreshToken);
+        }
+      }
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;

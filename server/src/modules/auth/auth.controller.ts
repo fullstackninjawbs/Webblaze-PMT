@@ -24,7 +24,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(200).json({
     success: true,
-    data: { user, accessToken: tokens.accessToken },
+    data: { user, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken },
     message: 'Login successful'
   });
 });
@@ -50,13 +50,13 @@ export const acceptInvite = asyncHandler(async (req: Request, res: Response) => 
 
   res.status(200).json({
     success: true,
-    data: { user, accessToken: tokens.accessToken },
+    data: { user, accessToken: tokens.accessToken, refreshToken: tokens.refreshToken },
     message: 'Invitation accepted successfully',
   });
 });
 
 export const refresh = asyncHandler(async (req: Request, res: Response) => {
-  const { refreshToken } = req.cookies;
+  const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
   if (!refreshToken) {
     res.status(401).json({ success: false, error: { message: 'No refresh token provided' } });
     return;
@@ -67,7 +67,7 @@ export const refresh = asyncHandler(async (req: Request, res: Response) => {
 
   res.status(200).json({
     success: true,
-    data: { accessToken: tokens.accessToken },
+    data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken },
     message: 'Tokens refreshed'
   });
 });

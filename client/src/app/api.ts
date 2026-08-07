@@ -17,14 +17,28 @@ const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQue
   let result = await baseQuery(args, api, extraOptions);
 
   if (result.error && result.error.status === 401) {
-    // Try to get a new token
-    const refreshResult = await baseQuery({ url: '/auth/refresh', method: 'POST' }, api, extraOptions);
+    // Get stored refreshToken as fallback for cross-origin HTTP deployments
+    const state = api.getState() as RootState;
+    const storedRefreshToken = state.auth.refreshToken || localStorage.getItem('auth_refresh_token');
+
+    // Try to refresh using cookie OR body payload
+    const refreshResult = await baseQuery(
+      {
+        url: '/auth/refresh',
+        method: 'POST',
+        body: { refreshToken: storedRefreshToken },
+      },
+      api,
+      extraOptions
+    );
 
     if (refreshResult.data) {
-      // Store the new token
-      // @ts-expect-error type safety on dynamic response
-      const newAccessToken = refreshResult.data.data.accessToken;
-      api.dispatch({ type: 'auth/updateToken', payload: newAccessToken });
+      // Store the new tokens
+      const data = (refreshResult.data as any).data;
+      api.dispatch({
+        type: 'auth/updateToken',
+        payload: { accessToken: data.accessToken, refreshToken: data.refreshToken },
+      });
 
       // Retry the original query with new token
       result = await baseQuery(args, api, extraOptions);
