@@ -15,7 +15,7 @@ import { TaskDetail } from '../features/tasks/TaskDetail';
 import { TeamTimeTracking } from '../features/timelogs/TeamTimeTracking';
 import { ReleasesPage } from '../features/releases/ReleasesPage';
 import { InvoicesPage } from '../features/invoices/InvoicesPage';
-import { DailyStatusRedirect } from '../features/dailyStatus/DailyStatusRedirect';
+import { DailyStatus } from '../features/dailyStatus/DailyStatus';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { ClientDetail } from '../features/clients/ClientDetail';
@@ -75,7 +75,7 @@ const AppRoutes = () => {
         />
         <Route path="/tasks/:id" element={<TaskDetail />} />
         
-        <Route path="/daily-status" element={<DailyStatusRedirect />} />
+        <Route path="/daily-status" element={<DailyStatus />} />
 
         <Route 
           path="/team-time" 

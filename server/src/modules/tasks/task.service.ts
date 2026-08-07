@@ -56,10 +56,44 @@ export const createTask = async (data: Partial<ITask>): Promise<ITask> => {
   return task;
 };
 
-export const getTasksByMilestone = async (milestoneId: string): Promise<ITask[]> => {
-  return Task.find({ milestone: milestoneId })
-    .populate('assignedTo', 'name email avatarUrl role')
+const normalizeDept = (dept?: string): string[] => {
+  if (!dept) return [];
+  const lower = dept.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (lower.includes('full')) return ['fullstack', 'full_stack', 'full stack'];
+  if (lower.includes('shop')) return ['shopify'];
+  if (lower.includes('word')) return ['wordpress'];
+  if (lower.includes('seo')) return ['seo'];
+  if (lower.includes('design') || lower.includes('ui') || lower.includes('ux')) return ['design', 'ui_ux', 'ui/ux'];
+  return [dept.toLowerCase()];
+};
+
+export const getTasksByMilestone = async (milestoneId: string, user?: any): Promise<ITask[]> => {
+  let query: any = { milestone: milestoneId };
+
+  if (user && user.role !== Role.ADMIN && user.role !== Role.PM) {
+    if (user.role === Role.TEAM_MEMBER) {
+      query.assignedTo = user.id || user._id;
+    }
+  }
+
+  const tasks = await Task.find(query)
+    .populate('assignedTo', 'name email avatarUrl role department')
     .sort({ createdAt: -1 });
+
+  if (user && user.role === Role.TEAM_LEAD && user.department) {
+    const deptVariants = normalizeDept(user.department);
+    return tasks.filter((t: any) => {
+      if (t.department && deptVariants.some(v => t.department.toLowerCase().includes(v.replace('_', '')))) return true;
+      if (t.assignedTo && typeof t.assignedTo === 'object' && t.assignedTo.department) {
+        if (deptVariants.some(v => t.assignedTo.department.toLowerCase().includes(v.replace('_', '')))) return true;
+      }
+      const assignedId = t.assignedTo?._id?.toString() || t.assignedTo?.toString();
+      if (assignedId === (user.id || user._id)?.toString()) return true;
+      return false;
+    });
+  }
+
+  return tasks;
 };
 
 export const getTasksByUser = async (userId: string): Promise<ITask[]> => {
@@ -68,23 +102,78 @@ export const getTasksByUser = async (userId: string): Promise<ITask[]> => {
       path: 'milestone',
       populate: {
         path: 'project',
-        select: 'name client',
+        select: 'name client type',
       },
     })
     .sort({ createdAt: -1 });
 };
 
-export const getAllTasks = async (): Promise<ITask[]> => {
-  return Task.find()
+export const getAllTasks = async (user?: any): Promise<ITask[]> => {
+  let query: any = {};
+
+  if (user && user.role !== Role.ADMIN && user.role !== Role.PM) {
+    if (user.role === Role.TEAM_MEMBER) {
+      // TEAM_MEMBER only sees tasks assigned to them
+      query.assignedTo = user.id || user._id;
+    } else if (user.role === Role.TEAM_LEAD) {
+      // TEAM_LEAD only sees tasks matching their department or assigned to them
+      const userDept = user.department;
+      if (userDept) {
+        const deptVariants = normalizeDept(userDept);
+        const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
+
+        const deptUsers = await User.find({
+          $or: [
+            { department: { $in: regexes } },
+            { department: userDept }
+          ]
+        }).select('_id');
+        const deptUserIds = deptUsers.map((u) => u._id);
+
+        query.$or = [
+          { department: { $in: regexes } },
+          { assignedTo: { $in: deptUserIds } },
+          { assignedTo: user.id || user._id },
+        ];
+      } else {
+        query.assignedTo = user.id || user._id;
+      }
+    }
+  }
+
+  const tasks = await Task.find(query)
     .populate('assignedTo', 'name email avatarUrl role department')
     .populate({
       path: 'milestone',
       populate: {
         path: 'project',
-        select: 'name client',
+        select: 'name client type',
       },
     })
     .sort({ createdAt: -1 });
+
+  // Additional check for TEAM_LEAD to match project type as well
+  if (user && user.role === Role.TEAM_LEAD && user.department) {
+    const deptVariants = normalizeDept(user.department);
+    return tasks.filter((t: any) => {
+      // 1. Direct task department match
+      if (t.department && deptVariants.some(v => t.department.toLowerCase().includes(v.replace('_', '')))) return true;
+      // 2. Assigned user department match
+      if (t.assignedTo && typeof t.assignedTo === 'object' && t.assignedTo.department) {
+        if (deptVariants.some(v => t.assignedTo.department.toLowerCase().includes(v.replace('_', '')))) return true;
+      }
+      // 3. Project type match
+      const projectType = t.milestone?.project?.type;
+      if (projectType && deptVariants.some(v => projectType.toLowerCase().includes(v.replace('_', '')))) return true;
+      // 4. Assigned directly to lead
+      const assignedId = t.assignedTo?._id?.toString() || t.assignedTo?.toString();
+      if (assignedId === (user.id || user._id)?.toString()) return true;
+
+      return false;
+    });
+  }
+
+  return tasks;
 };
 
 export const getTaskById = async (id: string): Promise<ITask> => {

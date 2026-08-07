@@ -6,7 +6,8 @@ import { RootState } from '../app/store';
 import { useLogoutMutation, useGetMeQuery } from '../features/auth/auth.slice';
 import { LayoutDashboard, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity } from 'lucide-react';
 import { Role } from '../types';
-import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge } from '@mantine/core';
+import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge, Burger } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { useGetActiveTimerQuery } from '../features/timelogs/timeLog.slice';
 import { BlazeLogo } from '../components/common/BlazeLogo';
 import { UserAvatar } from '../components/common/UserAvatar';
@@ -22,25 +23,6 @@ interface NavSection {
   title: string;
   items: NavItem[];
 }
-
-const MIN_SIDEBAR_WIDTH = 180;
-const MAX_SIDEBAR_WIDTH = 420;
-const DEFAULT_SIDEBAR_WIDTH = 240;
-
-const getInitialSidebarWidth = (): number => {
-  try {
-    const saved = localStorage.getItem('sidebar_width');
-    if (saved) {
-      const parsed = parseInt(saved, 10);
-      if (!isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH && parsed <= MAX_SIDEBAR_WIDTH) {
-        return parsed;
-      }
-    }
-  } catch {
-    // fallback
-  }
-  return DEFAULT_SIDEBAR_WIDTH;
-};
 
 // Categorized sidebar navigation divided into clear module sections
 const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
@@ -153,44 +135,8 @@ export const DashboardLayout: React.FC = () => {
   const { data: activeTimerData } = useGetActiveTimerQuery();
   const activeTimer = activeTimerData?.data;
 
+  const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure(false);
   const [searchModalOpened, setSearchModalOpened] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState<number>(getInitialSidebarWidth);
-  const [isResizing, setIsResizing] = useState(false);
-  const [handleHovered, setHandleHovered] = useState(false);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const newWidth = Math.min(Math.max(e.clientX, MIN_SIDEBAR_WIDTH), MAX_SIDEBAR_WIDTH);
-      setSidebarWidth(newWidth);
-      localStorage.setItem('sidebar_width', String(newWidth));
-    };
-
-    const handleMouseUp = () => {
-      if (isResizing) {
-        setIsResizing(false);
-        document.body.style.userSelect = '';
-        document.body.style.cursor = '';
-      }
-    };
-
-    if (isResizing) {
-      document.body.style.userSelect = 'none';
-      document.body.style.cursor = 'col-resize';
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -234,7 +180,10 @@ export const DashboardLayout: React.FC = () => {
             return (
               <UnstyledButton
                 key={item.name}
-                onClick={() => navigate(item.href)}
+                onClick={() => {
+                  navigate(item.href);
+                  closeMobile();
+                }}
                 className={`sidebar-nav-btn ${active ? 'active' : ''}`}
               >
                 <div
@@ -271,77 +220,47 @@ export const DashboardLayout: React.FC = () => {
   return (
     <AppShell
       navbar={{
-        width: sidebarWidth,
+        width: 260,
         breakpoint: 'sm',
+        collapsed: { mobile: !mobileOpened },
       }}
-      header={activeTimer ? { height: 56 } : undefined}
+      header={{ height: activeTimer ? 60 : { base: 60, sm: 0 } }}
       padding={0}
       bg="transparent"
     >
-      {activeTimer && (
-        <AppShell.Header
-          style={{
-            left: sidebarWidth,
-            borderBottom: '1px solid #bae6fd',
-            backgroundColor: '#f0f9ff',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 24px',
-            boxShadow: '0 2px 8px rgba(14,165,233,0.08)',
-          }}
-        >
+      <AppShell.Header
+        style={{
+          borderBottom: '1px solid #e8ecf4',
+          backgroundColor: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 20px',
+          zIndex: 100,
+        }}
+      >
+        <Group gap="sm">
+          <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
+          <Box hiddenFrom="sm">
+            <BlazeLogo variant="dark" size="sm" />
+          </Box>
+        </Group>
+
+        {activeTimer ? (
           <ActiveTimerBadge />
-        </AppShell.Header>
-      )}
+        ) : (
+          <Box hiddenFrom="sm" />
+        )}
+      </AppShell.Header>
 
       <AppShell.Navbar
         style={{
-          width: `${sidebarWidth}px`,
-          top: 0,
-          left: 0,
-          height: '100vh',
-          position: 'fixed',
           borderRight: '1px solid #e8ecf4',
           backgroundColor: '#ffffff',
           display: 'flex',
           flexDirection: 'column',
-          boxShadow: 'none',
-          zIndex: 101,
         }}
       >
-        {/* Drag Resizable Handle */}
-        <div
-          onMouseDown={handleMouseDown}
-          onMouseEnter={() => setHandleHovered(true)}
-          onMouseLeave={() => setHandleHovered(false)}
-          onDoubleClick={() => {
-            setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
-            localStorage.setItem('sidebar_width', String(DEFAULT_SIDEBAR_WIDTH));
-          }}
-          title="Drag to resize sidebar (Double-click to reset)"
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: -5,
-            width: 10,
-            height: '100%',
-            cursor: 'col-resize',
-            zIndex: 110,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: isResizing || handleHovered ? 4 : 2,
-              height: '100%',
-              backgroundColor: isResizing || handleHovered ? '#3b82f6' : '#e2e8f0',
-              transition: 'background-color 0.15s ease, width 0.15s ease',
-              borderRadius: '2px',
-            }}
-          />
-        </div>
         {/* WebBlaze PMS Branding Header */}
         <Box px="md" pt="md" pb="xs">
           <BlazeLogo variant="dark" size="md" />
@@ -399,14 +318,20 @@ export const DashboardLayout: React.FC = () => {
             <Menu.Dropdown>
               <Menu.Item
                 leftSection={<Users size={14} />}
-                onClick={() => user?._id && navigate(`/team/${user._id}`)}
+                onClick={() => {
+                  if (user?._id) navigate(`/team/${user._id}`);
+                  closeMobile();
+                }}
                 style={{ fontWeight: 500, fontSize: '0.875rem' }}
               >
                 View My Profile
               </Menu.Item>
               <Menu.Item
                 leftSection={<Settings size={14} />}
-                onClick={() => navigate('/settings')}
+                onClick={() => {
+                  navigate('/settings');
+                  closeMobile();
+                }}
                 style={{ fontWeight: 500, fontSize: '0.875rem' }}
               >
                 Profile Settings
@@ -425,10 +350,17 @@ export const DashboardLayout: React.FC = () => {
         </div>
       </AppShell.Navbar>
 
-      <AppShell.Main style={{ paddingLeft: `${sidebarWidth}px` }}>
-        <div style={{ width: '100%', maxWidth: '1920px', margin: '0 auto', padding: '36px 32px' }}>
+      <AppShell.Main>
+        <Box
+          style={{
+            width: '100%',
+            maxWidth: '1920px',
+            margin: '0 auto',
+          }}
+          p={{ base: 'md', sm: 'xl' }}
+        >
           <Outlet />
-        </div>
+        </Box>
       </AppShell.Main>
 
       <GlobalSearchModal opened={searchModalOpened} onClose={() => setSearchModalOpened(false)} />

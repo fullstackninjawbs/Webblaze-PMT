@@ -14,15 +14,16 @@ export const createTask = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getTasks = asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as any).user;
   const { milestoneId, userId } = req.query;
   let tasks: any[] = [];
   
   if (milestoneId) {
-    tasks = await taskService.getTasksByMilestone(milestoneId as string);
+    tasks = await taskService.getTasksByMilestone(milestoneId as string, user);
   } else if (userId) {
     tasks = await taskService.getTasksByUser(userId as string);
   } else {
-    tasks = await taskService.getAllTasks();
+    tasks = await taskService.getAllTasks(user);
   }
   
   res.status(200).json({

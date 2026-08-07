@@ -16,10 +16,9 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// TLs, PMs, Admins can create tasks
+// Any authenticated user can create tasks
 router.post(
   '/',
-  rbacMiddleware(PERMISSIONS['tasks:manage']),
   validate(createTaskSchema),
   createTask
 );

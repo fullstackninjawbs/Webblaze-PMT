@@ -14,9 +14,9 @@ router.use(authMiddleware);
 router.get('/', projectController.getProjects);
 router.get('/:id', projectController.getProjectById);
 
-// Only ADMIN and PM can create/update/delete projects
-router.post('/', rbacMiddleware([Role.ADMIN, Role.PM]), validate(createProjectSchema), projectController.createProject);
-router.patch('/:id', rbacMiddleware([Role.ADMIN, Role.PM]), validate(updateProjectSchema), projectController.updateProject);
-router.delete('/:id', rbacMiddleware([Role.ADMIN, Role.PM]), projectController.deleteProject);
+// All user roles can create, update, and delete projects
+router.post('/', validate(createProjectSchema), projectController.createProject);
+router.patch('/:id', validate(updateProjectSchema), projectController.updateProject);
+router.delete('/:id', projectController.deleteProject);
 
 export default router;

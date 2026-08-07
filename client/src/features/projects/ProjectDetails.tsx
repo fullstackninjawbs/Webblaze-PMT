@@ -62,7 +62,7 @@ export const ProjectDetails = () => {
   const navigate = useNavigate();
 
   const { user } = useSelector((state: RootState) => state.auth);
-  const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
+  const isAdminOrPM = Boolean(user);
 
   const { data: projectsData, isLoading: isProjectLoading } = useGetProjectsQuery();
   const project = projectsData?.data?.find(p => p._id === id);

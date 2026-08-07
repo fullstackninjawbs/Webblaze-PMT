@@ -61,6 +61,14 @@ const projectSchema = z.object({
   team: z.array(z.string()).optional(),
 });
 
+const PROJECT_DEPARTMENT_OPTIONS = [
+  { value: 'Shopify', label: 'Shopify' },
+  { value: 'WordPress', label: 'WordPress' },
+  { value: 'Full Stack', label: 'Full Stack' },
+  { value: 'SEO', label: 'SEO' },
+  { value: 'UI/UX', label: 'UI/UX' },
+];
+
 export const ProjectsList: React.FC = () => {
   const navigate = useNavigate();
   const { data: projectsData } = useGetProjectsQuery();
@@ -73,10 +81,12 @@ export const ProjectsList: React.FC = () => {
   const [editingProject, setEditingProject] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [showOverview, setShowOverview] = useState(false);
   const { user } = useSelector((state: RootState) => state.auth);
 
-  const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
+  const canManageProjects = Boolean(user);
+  const isFinancialsVisible = user?.role === Role.ADMIN || user?.role === Role.PM;
 
   const form = useForm({
     initialValues: {
@@ -185,13 +195,14 @@ export const ProjectsList: React.FC = () => {
   const filteredProjects = useMemo(() => {
     return allProjects.filter((p) => {
       const matchesTab = activeTab === 'all' || p.status === activeTab;
+      const matchesDept = !departmentFilter || (p.type || '').toLowerCase() === departmentFilter.toLowerCase();
       const matchesQuery =
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (p.client?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (p.type || '').toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesTab && matchesQuery;
+      return matchesTab && matchesDept && matchesQuery;
     });
-  }, [allProjects, activeTab, searchQuery]);
+  }, [allProjects, activeTab, departmentFilter, searchQuery]);
 
   // KPI Metrics Calculation
   const metrics = useMemo(() => {
@@ -239,7 +250,7 @@ export const ProjectsList: React.FC = () => {
       </Table.Td>
 
       {/* 4. Total Amount, 5. Pending Amount, 6. Received Amount */}
-      {isAdminOrPM && (
+      {isFinancialsVisible && (
         <>
           <Table.Td style={{ whiteSpace: 'nowrap' }}>
             {project.totalBudget ? (
@@ -318,7 +329,7 @@ export const ProjectsList: React.FC = () => {
           >
             <Eye size={16} />
           </ActionIcon>
-          {isAdminOrPM && (
+          {canManageProjects && (
             <>
               <ActionIcon
                 variant="subtle"
@@ -354,7 +365,7 @@ export const ProjectsList: React.FC = () => {
       {/* Header */}
       <Group justify="flex-end" align="center" mb="xl">
         <Group gap="sm">
-          {isAdminOrPM && (
+          {isFinancialsVisible && (
             <Button
               size="md"
               radius="md"
@@ -375,7 +386,7 @@ export const ProjectsList: React.FC = () => {
               Overview
             </Button>
           )}
-          {isAdminOrPM && (
+          {canManageProjects && (
             <Button
               leftSection={<Plus size={16} />}
               radius="md"
@@ -394,10 +405,10 @@ export const ProjectsList: React.FC = () => {
       </Group>
 
       {/* KPI Cards (Hidden by Default, Toggled via Overview Button) */}
-      {isAdminOrPM && (
+      {canManageProjects && (
         <Collapse in={showOverview} transitionDuration={350} transitionTimingFunction="cubic-bezier(0.4, 0, 0.2, 1)">
           <Box mb="xl">
-            <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="md">
+            <SimpleGrid cols={{ base: 1, sm: isFinancialsVisible ? 4 : 1 }} spacing="md">
               <Paper
                 p="lg"
                 radius="xl"
@@ -417,62 +428,66 @@ export const ProjectsList: React.FC = () => {
                 </Text>
               </Paper>
 
-              <Paper
-                p="lg"
-                radius="xl"
-                withBorder
-                style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
-              >
-                <Group justify="space-between" mb="xs">
-                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-                    Total Portfolio Amount
-                  </Text>
-                  <Paper p={8} radius="md" bg="#f0fdf4">
-                    <DollarSign size={18} color="#10b981" />
+              {isFinancialsVisible && (
+                <>
+                  <Paper
+                    p="lg"
+                    radius="xl"
+                    withBorder
+                    style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+                  >
+                    <Group justify="space-between" mb="xs">
+                      <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                        Total Portfolio Amount
+                      </Text>
+                      <Paper p={8} radius="md" bg="#f0fdf4">
+                        <DollarSign size={18} color="#10b981" />
+                      </Paper>
+                    </Group>
+                    <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
+                      ${metrics.totalBudgetSum.toLocaleString()}
+                    </Text>
                   </Paper>
-                </Group>
-                <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
-                  ${metrics.totalBudgetSum.toLocaleString()}
-                </Text>
-              </Paper>
 
-              <Paper
-                p="lg"
-                radius="xl"
-                withBorder
-                style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
-              >
-                <Group justify="space-between" mb="xs">
-                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-                    Total Received
-                  </Text>
-                  <Paper p={8} radius="md" bg="#f0fdf4">
-                    <CheckCircle2 size={18} color="#10b981" />
+                  <Paper
+                    p="lg"
+                    radius="xl"
+                    withBorder
+                    style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+                  >
+                    <Group justify="space-between" mb="xs">
+                      <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                        Total Received
+                      </Text>
+                      <Paper p={8} radius="md" bg="#f0fdf4">
+                        <CheckCircle2 size={18} color="#10b981" />
+                      </Paper>
+                    </Group>
+                    <Text fw={800} style={{ fontSize: '1.75rem', color: '#059669', lineHeight: 1 }}>
+                      ${metrics.totalReceivedSum.toLocaleString()}
+                    </Text>
                   </Paper>
-                </Group>
-                <Text fw={800} style={{ fontSize: '1.75rem', color: '#059669', lineHeight: 1 }}>
-                  ${metrics.totalReceivedSum.toLocaleString()}
-                </Text>
-              </Paper>
 
-              <Paper
-                p="lg"
-                radius="xl"
-                withBorder
-                style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
-              >
-                <Group justify="space-between" mb="xs">
-                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-                    Total Pending
-                  </Text>
-                  <Paper p={8} radius="md" bg="#fffbeb">
-                    <Clock size={18} color="#f59e0b" />
+                  <Paper
+                    p="lg"
+                    radius="xl"
+                    withBorder
+                    style={{ borderColor: '#e8ecf4', background: '#ffffff' }}
+                  >
+                    <Group justify="space-between" mb="xs">
+                      <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
+                        Total Pending
+                      </Text>
+                      <Paper p={8} radius="md" bg="#fffbeb">
+                        <Clock size={18} color="#f59e0b" />
+                      </Paper>
+                    </Group>
+                    <Text fw={800} style={{ fontSize: '1.75rem', color: '#d97706', lineHeight: 1 }}>
+                      ${metrics.totalPendingSum.toLocaleString()}
+                    </Text>
                   </Paper>
-                </Group>
-                <Text fw={800} style={{ fontSize: '1.75rem', color: '#d97706', lineHeight: 1 }}>
-                  ${metrics.totalPendingSum.toLocaleString()}
-                </Text>
-              </Paper>
+                </>
+              )}
             </SimpleGrid>
           </Box>
         </Collapse>
@@ -492,14 +507,25 @@ export const ProjectsList: React.FC = () => {
             </Tabs.List>
           </Tabs>
 
-          <TextInput
-            placeholder="Search project name, client..."
-            leftSection={<Search size={16} color="#94a3b8" />}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: 280 }}
-            radius="md"
-          />
+          <Group gap="sm">
+            <Select
+              placeholder="Filter Department"
+              data={PROJECT_DEPARTMENT_OPTIONS}
+              value={departmentFilter}
+              onChange={setDepartmentFilter}
+              clearable
+              style={{ width: 180 }}
+              radius="md"
+            />
+            <TextInput
+              placeholder="Search project name, client..."
+              leftSection={<Search size={16} color="#94a3b8" />}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: 240 }}
+              radius="md"
+            />
+          </Group>
         </Group>
       </Paper>
 
@@ -523,7 +549,7 @@ export const ProjectsList: React.FC = () => {
                 <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROJECT</Table.Th>
                 <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
                 <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
-                {isAdminOrPM && (
+                {isFinancialsVisible && (
                   <>
                     <Table.Th>Total Amount</Table.Th>
                     <Table.Th>Received</Table.Th>
@@ -541,7 +567,7 @@ export const ProjectsList: React.FC = () => {
                 rows
               ) : (
                 <Table.Tr>
-                  <Table.Td colSpan={isAdminOrPM ? 10 : 7} style={{ textAlign: 'center', padding: '40px' }}>
+                  <Table.Td colSpan={isFinancialsVisible ? 10 : 7} style={{ textAlign: 'center', padding: '40px' }}>
                     <Text style={{ color: '#64748b' }} fw={500}>
                       No projects found matching criteria.
                     </Text>
@@ -588,9 +614,12 @@ export const ProjectsList: React.FC = () => {
                   {...form.getInputProps('client')}
                 />
                 <Group grow gap="md">
-                  <TextInput
-                    label="Project Type"
-                    placeholder="e.g. Web App"
+                  <Select
+                    label="Department / Project Type"
+                    placeholder="Select Department"
+                    data={PROJECT_DEPARTMENT_OPTIONS}
+                    searchable
+                    clearable
                     radius="md"
                     {...form.getInputProps('type')}
                   />
@@ -608,73 +637,75 @@ export const ProjectsList: React.FC = () => {
                   />
                 </Group>
 
-                {/* Dynamic billing fields based on selected client billing type */}
-                {!form.values.client ? (
-                  <NumberInput
-                    label="Total Amount ($)"
-                    placeholder="Select a client first to unlock billing fields"
-                    leftSection={<DollarSign size={16} color="gray" />}
-                    disabled
-                    radius="md"
-                  />
-                ) : isHourlyClient ? (
-                  // Hourly client: Cost/hr + Total Hours → auto-calculate total
-                  <Stack gap="sm">
-                    <Group grow gap="md">
-                      <NumberInput
-                        label="Cost / Hour ($)"
-                        placeholder="0.00"
-                        leftSection={<DollarSign size={16} color="gray" />}
-                        thousandSeparator=","
-                        min={0}
-                        radius="md"
-                        decimalScale={2}
-                        onFocus={(e) => e.target.select()}
-                        {...form.getInputProps('costPerHour')}
-                      />
-                      <NumberInput
-                        label="Total Hours"
-                        placeholder="0"
-                        min={0}
-                        radius="md"
-                        decimalScale={1}
-                        onFocus={(e) => e.target.select()}
-                        {...form.getInputProps('totalHours')}
-                      />
-                    </Group>
-                    {/* Auto-computed total */}
-                    <Paper
-                      p="sm"
+                {/* Dynamic billing fields based on selected client billing type (Only visible to ADMIN and PM) */}
+                {isFinancialsVisible && (
+                  !form.values.client ? (
+                    <NumberInput
+                      label="Total Amount ($)"
+                      placeholder="Select a client first to unlock billing fields"
+                      leftSection={<DollarSign size={16} color="gray" />}
+                      disabled
                       radius="md"
-                      style={{
-                        background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%)',
-                        border: '1px solid #bfdbfe',
-                      }}
-                    >
-                      <Group justify="space-between">
-                        <Text size="xs" fw={600} c="#1d4ed8">Computed Total Budget</Text>
-                        <Text size="sm" fw={800} c="#1d4ed8">
-                          ${computedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </Text>
+                    />
+                  ) : isHourlyClient ? (
+                    // Hourly client: Cost/hr + Total Hours → auto-calculate total
+                    <Stack gap="sm">
+                      <Group grow gap="md">
+                        <NumberInput
+                          label="Cost / Hour ($)"
+                          placeholder="0.00"
+                          leftSection={<DollarSign size={16} color="gray" />}
+                          thousandSeparator=","
+                          min={0}
+                          radius="md"
+                          decimalScale={2}
+                          onFocus={(e) => e.target.select()}
+                          {...form.getInputProps('costPerHour')}
+                        />
+                        <NumberInput
+                          label="Total Hours"
+                          placeholder="0"
+                          min={0}
+                          radius="md"
+                          decimalScale={1}
+                          onFocus={(e) => e.target.select()}
+                          {...form.getInputProps('totalHours')}
+                        />
                       </Group>
-                      <Text size="xs" c="dimmed" mt={2}>
-                        {form.values.costPerHour || 0} $/hr × {form.values.totalHours || 0} hrs
-                      </Text>
-                    </Paper>
-                  </Stack>
-                ) : (
-                  // Fixed client: single total amount
-                  <NumberInput
-                    label="Total Amount ($)"
-                    placeholder="0.00"
-                    leftSection={<DollarSign size={16} color="gray" />}
-                    thousandSeparator=","
-                    min={0}
-                    radius="md"
-                    decimalScale={2}
-                    onFocus={(e) => e.target.select()}
-                    {...form.getInputProps('totalBudget')}
-                  />
+                      {/* Auto-computed total */}
+                      <Paper
+                        p="sm"
+                        radius="md"
+                        style={{
+                          background: 'linear-gradient(135deg, #eff6ff 0%, #eef2ff 100%)',
+                          border: '1px solid #bfdbfe',
+                        }}
+                      >
+                        <Group justify="space-between">
+                          <Text size="xs" fw={600} c="#1d4ed8">Computed Total Budget</Text>
+                          <Text size="sm" fw={800} c="#1d4ed8">
+                            ${computedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Text>
+                        </Group>
+                        <Text size="xs" c="dimmed" mt={2}>
+                          {form.values.costPerHour || 0} $/hr × {form.values.totalHours || 0} hrs
+                        </Text>
+                      </Paper>
+                    </Stack>
+                  ) : (
+                    // Fixed client: single total amount
+                    <NumberInput
+                      label="Total Amount ($)"
+                      placeholder="0.00"
+                      leftSection={<DollarSign size={16} color="gray" />}
+                      thousandSeparator=","
+                      min={0}
+                      radius="md"
+                      decimalScale={2}
+                      onFocus={(e) => e.target.select()}
+                      {...form.getInputProps('totalBudget')}
+                    />
+                  )
                 )}
 
                 <TextInput
@@ -763,34 +794,36 @@ export const ProjectsList: React.FC = () => {
                     </Text>
                   </Group>
 
-                  {isHourlyClient ? (
-                    <>
+                  {isFinancialsVisible && (
+                    isHourlyClient ? (
+                      <>
+                        <Group justify="space-between">
+                          <Text size="xs" style={{ color: '#64748b' }}>Cost / Hour</Text>
+                          <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
+                            {form.values.costPerHour ? `$${Number(form.values.costPerHour).toFixed(2)}/hr` : '-'}
+                          </Text>
+                        </Group>
+                        <Group justify="space-between">
+                          <Text size="xs" style={{ color: '#64748b' }}>Total Hours</Text>
+                          <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
+                            {form.values.totalHours ? `${form.values.totalHours} hrs` : '-'}
+                          </Text>
+                        </Group>
+                        <Group justify="space-between">
+                          <Text size="xs" style={{ color: '#64748b' }}>Computed Total</Text>
+                          <Text size="xs" fw={800} style={{ color: '#1d4ed8' }}>
+                            {computedTotal > 0 ? `$${computedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                          </Text>
+                        </Group>
+                      </>
+                    ) : (
                       <Group justify="space-between">
-                        <Text size="xs" style={{ color: '#64748b' }}>Cost / Hour</Text>
+                        <Text size="xs" style={{ color: '#64748b' }}>Total Amount</Text>
                         <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
-                          {form.values.costPerHour ? `$${Number(form.values.costPerHour).toFixed(2)}/hr` : '-'}
+                          {form.values.totalBudget ? `$${Number(form.values.totalBudget).toLocaleString()}` : '-'}
                         </Text>
                       </Group>
-                      <Group justify="space-between">
-                        <Text size="xs" style={{ color: '#64748b' }}>Total Hours</Text>
-                        <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
-                          {form.values.totalHours ? `${form.values.totalHours} hrs` : '-'}
-                        </Text>
-                      </Group>
-                      <Group justify="space-between">
-                        <Text size="xs" style={{ color: '#64748b' }}>Computed Total</Text>
-                        <Text size="xs" fw={800} style={{ color: '#1d4ed8' }}>
-                          {computedTotal > 0 ? `$${computedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                        </Text>
-                      </Group>
-                    </>
-                  ) : (
-                    <Group justify="space-between">
-                      <Text size="xs" style={{ color: '#64748b' }}>Total Amount</Text>
-                      <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
-                        {form.values.totalBudget ? `$${Number(form.values.totalBudget).toLocaleString()}` : '-'}
-                      </Text>
-                    </Group>
+                    )
                   )}
                 </Stack>
               </Paper>

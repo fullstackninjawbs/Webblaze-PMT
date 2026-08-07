@@ -13,11 +13,15 @@ export class ProjectService {
       if (project.toObject) {
         const obj = project.toObject();
         delete obj.totalBudget;
+        delete obj.costPerHour;
+        delete obj.totalHours;
         delete obj.receivedAmount;
         delete obj.pendingAmount;
         return obj;
       }
       delete project.totalBudget;
+      delete project.costPerHour;
+      delete project.totalHours;
       delete project.receivedAmount;
       delete project.pendingAmount;
     }
@@ -43,19 +47,8 @@ export class ProjectService {
     return Project.create({ ...data, createdBy: userId });
   }
 
-  static async getProjects(userRole: Role, userId: string) {
-    let query: any = {};
-    // If not Admin/PM, show projects they are assigned to (via project team or assigned tasks)
-    if (userRole !== Role.ADMIN && userRole !== Role.PM) {
-      const userTasks = await Task.find({ assignedTo: userId }).select('milestone');
-      const milestoneIds = userTasks.map((t) => t.milestone);
-      const userMilestones = await Milestone.find({ _id: { $in: milestoneIds } }).select('project');
-      const projectIdsFromTasks = userMilestones.map((m) => m.project);
-
-      query = {
-        $or: [{ team: userId }, { _id: { $in: projectIdsFromTasks } }],
-      };
-    }
+  static async getProjects(userRole: Role, _userId: string) {
+    const query: any = {};
 
     const projects = await Project.find(query)
       .populate('client', 'name companyName email')

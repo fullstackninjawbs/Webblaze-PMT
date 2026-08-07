@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
 import { useGetAllTasksQuery, useUpdateTaskMutation } from './task.slice';
 import { useGetUsersQuery } from '../users/user.slice';
 import { Container, Title, Card, Text, Group, Badge, Select, Loader, Center, Grid, Stack, Tooltip } from '@mantine/core';
@@ -6,6 +8,7 @@ import { UserAvatar } from '../../components/common/UserAvatar';
 import { Role } from '../../types';
 
 export const TeamTasks = () => {
+  const { user: currentUser } = useSelector((state: RootState) => state.auth);
   const { data: tasksData, isLoading: isTasksLoading } = useGetAllTasksQuery();
   const { data: usersData, isLoading: isUsersLoading } = useGetUsersQuery();
   const [updateTask] = useUpdateTaskMutation();
@@ -15,22 +18,46 @@ export const TeamTasks = () => {
   const tasks = tasksData?.data || [];
   const users = usersData?.data || [];
 
-  const teamMembers = users.filter(u => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER);
+  const isGlobalManager = currentUser?.role === Role.ADMIN || currentUser?.role === Role.PM;
 
-  const teamOptions = teamMembers.map(u => ({
-    value: u._id,
-    label: `${u.name} (${u.department || 'No Dept'})`,
-  }));
+  const teamMembers = users.filter(u => {
+    if (u.role !== Role.TEAM_LEAD && u.role !== Role.TEAM_MEMBER) return false;
+    if (!isGlobalManager) {
+      if (!currentUser?.department || !u.department) return false;
+      const targetDept = currentUser.department.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const memberDept = u.department.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return memberDept.includes(targetDept) || targetDept.includes(memberDept);
+    }
+    return true;
+  });
+
+  const teamOptions = teamMembers.map((u) => {
+    const firstName = u.name ? u.name.trim().split(' ')[0] : 'User';
+    return {
+      value: u._id,
+      label: firstName,
+      fullName: u.name,
+      department: u.department,
+    };
+  });
+
+  const matchesDept = (task: any, dept: string) => {
+    const target = dept.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const taskDept = task.department?.toLowerCase() || '';
+    const projType = task.milestone?.project?.type?.toLowerCase() || '';
+    const assignedDept = task.assignedTo?.department?.toLowerCase() || '';
+    return taskDept.includes(target) || projType.includes(target) || assignedDept.includes(target);
+  };
 
   const unassignedTasks = useMemo(() => {
     let result = tasks.filter(t => !t.assignedTo);
-    if (filterDept) result = result.filter(t => t.department === filterDept);
+    if (filterDept) result = result.filter(t => matchesDept(t, filterDept));
     return result;
   }, [tasks, filterDept]);
 
   const assignedTasks = useMemo(() => {
     let result = tasks.filter(t => t.assignedTo);
-    if (filterDept) result = result.filter(t => t.department === filterDept);
+    if (filterDept) result = result.filter(t => matchesDept(t, filterDept));
     return result;
   }, [tasks, filterDept]);
 
@@ -70,10 +97,11 @@ export const TeamTasks = () => {
         </div>
         <Select
           placeholder="Filter by Department"
-          data={['design', 'development', 'seo']}
+          data={['Shopify', 'WordPress', 'Full Stack', 'SEO', 'UI/UX']}
           value={filterDept}
           onChange={setFilterDept}
           clearable
+          style={{ width: 200 }}
         />
       </Group>
 
@@ -107,9 +135,25 @@ export const TeamTasks = () => {
                       data={teamOptions}
                       searchable
                       size="xs"
-                      w={150}
+                      w={130}
                       value={null}
                       onChange={(val) => handleAssignTask(task._id, val)}
+                      comboboxProps={{ width: 230, position: 'bottom-end', shadow: 'md' }}
+                      renderOption={({ option }) => {
+                        const opt = teamOptions.find((o) => o.value === option.value);
+                        return (
+                          <Group justify="space-between" wrap="nowrap" w="100%" gap="xs">
+                            <Text size="xs" fw={500} style={{ whiteSpace: 'nowrap' }}>
+                              {opt?.fullName || option.label}
+                            </Text>
+                            {opt?.department && (
+                              <Badge size="xs" variant="light" color="blue" style={{ flexShrink: 0 }}>
+                                {opt.department.toUpperCase()}
+                              </Badge>
+                            )}
+                          </Group>
+                        );
+                      }}
                     />
                   </Group>
                 </Card>
@@ -170,6 +214,22 @@ export const TeamTasks = () => {
                       w={120}
                       value={task.assignedTo._id}
                       onChange={(val) => handleAssignTask(task._id, val)}
+                      comboboxProps={{ width: 230, position: 'bottom-end', shadow: 'md' }}
+                      renderOption={({ option }) => {
+                        const opt = teamOptions.find((o) => o.value === option.value);
+                        return (
+                          <Group justify="space-between" wrap="nowrap" w="100%" gap="xs">
+                            <Text size="xs" fw={500} style={{ whiteSpace: 'nowrap' }}>
+                              {opt?.fullName || option.label}
+                            </Text>
+                            {opt?.department && (
+                              <Badge size="xs" variant="light" color="blue" style={{ flexShrink: 0 }}>
+                                {opt.department.toUpperCase()}
+                              </Badge>
+                            )}
+                          </Group>
+                        );
+                      }}
                     />
                   </Group>
                 </Card>
