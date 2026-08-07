@@ -8,7 +8,7 @@ import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, Text
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock, ChevronDown, ChevronUp, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus, DEPARTMENT_OPTIONS } from '../../types';
@@ -143,6 +143,14 @@ export const ProjectDetails = () => {
   const [createManualTimeLog, { isLoading: isLoggingTime }] = useCreateManualTimeLogMutation();
   const [uploadFile, { isLoading: isUploadingFile }] = useUploadFileMutation();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const [activeTab, setActiveTab] = useState<string>('milestones');
+  const [selectedMilestoneFilter, setSelectedMilestoneFilter] = useState<string | null>(null);
+
+  const handleViewMilestoneTasks = (milestoneId: string) => {
+    setSelectedMilestoneFilter(milestoneId);
+    setActiveTab('tasks');
+  };
 
   const [milestoneDrawerOpened, setMilestoneDrawerOpened] = useState(false);
   const [editMilestoneOpened, setEditMilestoneOpened] = useState(false);
@@ -489,7 +497,7 @@ export const ProjectDetails = () => {
       </Card>
 
       {/* Tabbed Navigation */}
-      <Tabs defaultValue="milestones" radius="md">
+      <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'milestones')} radius="md">
         <Tabs.List style={{ borderBottom: '1px solid #e5e7eb' }} mb="xl">
           <Tabs.Tab value="overview" leftSection={<Activity size={16} />}>Overview</Tabs.Tab>
           <Tabs.Tab value="milestones" leftSection={<CheckCircle size={16} />}>Milestones</Tabs.Tab>
@@ -805,10 +813,7 @@ export const ProjectDetails = () => {
                         onEdit={handleOpenEditMilestone}
                         onDelete={handleOpenDeleteMilestone}
                         canManage={isAdminOrPM}
-                        onEditTask={handleOpenEditTask}
-                        onDeleteTask={handleOpenDeleteTask}
-                        onLogTimeTask={handleOpenLogTime}
-                        onUpdateTaskStatus={handleUpdateTaskStatus}
+                        onViewTasks={handleViewMilestoneTasks}
                       />
                     ))}
                   </Table.Tbody>
@@ -823,7 +828,16 @@ export const ProjectDetails = () => {
         </Tabs.Panel>
 
         <Tabs.Panel value="tasks">
-          <ProjectTasks projectId={id!} milestones={milestones} />
+          <ProjectTasks
+            projectId={id!}
+            milestones={milestones}
+            selectedMilestoneFilter={selectedMilestoneFilter}
+            onMilestoneFilterChange={setSelectedMilestoneFilter}
+            onEditTask={handleOpenEditTask}
+            onDeleteTask={handleOpenDeleteTask}
+            onLogTimeTask={handleOpenLogTime}
+            onUpdateTaskStatus={handleUpdateTaskStatus}
+          />
         </Tabs.Panel>
         <Tabs.Panel value="team">
           <ProjectTeam projectId={id!} projectData={project} />
@@ -1134,55 +1148,19 @@ const MilestoneTableRow = ({
   onEdit,
   onDelete,
   canManage = true,
-  onEditTask,
-  onDeleteTask,
-  onLogTimeTask,
-  onUpdateTaskStatus,
+  onViewTasks,
 }: {
   milestone: any;
   onAddTask: (milestoneId: string, est: number, alloc: number) => void;
   onEdit?: (milestone: any) => void;
   onDelete?: (milestone: any) => void;
   canManage?: boolean;
-  onEditTask?: (task: any) => void;
-  onDeleteTask?: (task: any) => void;
-  onLogTimeTask?: (task: any) => void;
-  onUpdateTaskStatus?: (taskId: string, status: string) => void;
+  onViewTasks: (milestoneId: string) => void;
 }) => {
-  const [expanded, setExpanded] = useState(false);
-  const { data: tasksData, isLoading } = useGetTasksByMilestoneQuery(milestone._id);
+  const { data: tasksData } = useGetTasksByMilestoneQuery(milestone._id);
   const tasks = tasksData?.data || [];
-  const { data: activeTimerData } = useGetActiveTimerQuery();
-  const [startTimer] = useStartTimerMutation();
-  const [stopTimer] = useStopTimerMutation();
 
-  const [deptFilter, setDeptFilter] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [liveElapsed, setLiveElapsed] = useState(0);
-
-  const activeTimer = activeTimerData?.data;
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (activeTimer?.startTime) {
-      const startMs = new Date(activeTimer.startTime).getTime();
-      setLiveElapsed(Math.floor((Date.now() - startMs) / 1000));
-      interval = setInterval(() => {
-        setLiveElapsed(Math.floor((Date.now() - startMs) / 1000));
-      }, 1000);
-    } else {
-      setLiveElapsed(0);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [activeTimer?.startTime]);
-
-  const activeTaskInMilestone = tasks.find((t: any) =>
-    activeTimer?.task === t._id || (activeTimer?.task as any)?._id === t._id
-  );
-  const activeBonusHours = activeTaskInMilestone ? liveElapsed / 3600 : 0;
-  const spentHours = tasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0) + activeBonusHours;
+  const spentHours = tasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
   const allocatedHours = tasks.reduce((sum: number, t: any) => sum + (t.estimatedHours || 0), 0);
   const progressPercent = Math.min((spentHours / (milestone.estimatedHours || 1)) * 100, 100);
 
@@ -1190,300 +1168,116 @@ const MilestoneTableRow = ({
   const areAllTasksDone = tasks.length > 0 && tasks.every((t: any) => t.status === 'completed');
   const effectiveStatus = (isMilestoneMaxed || areAllTasksDone) ? 'completed' : milestone.status;
 
-  const filteredTasks = useMemo(() => {
-    let result = tasks;
-    if (deptFilter) result = result.filter((t: any) => t.department === deptFilter);
-    if (statusFilter) result = result.filter((t: any) => t.status === statusFilter);
-    return result;
-  }, [tasks, deptFilter, statusFilter]);
-
-  const handleStartTimer = async (taskId: string) => {
-    try { await startTimer({ taskId }).unwrap(); } catch (e) { console.error(e); }
-  };
-
-  const handleStopTimer = async () => {
-    try { await stopTimer({}).unwrap(); } catch (e) { console.error(e); }
-  };
-
-  // Auto-stop timer when active task hits 100% progress
-  useEffect(() => {
-    if (!activeTimer || !activeTaskInMilestone) return;
-    const totalSpent = (activeTaskInMilestone.spentHours || 0) + liveElapsed / 3600;
-    if (totalSpent >= activeTaskInMilestone.estimatedHours) {
-      handleStopTimer();
-    }
-  }, [liveElapsed]);
-
   return (
-    <>
-      <Table.Tr style={{ backgroundColor: expanded ? '#F8FAFC' : 'white', cursor: 'pointer' }}>
-        {/* 1. Milestone Title & Dates */}
-        <Table.Td onClick={() => setExpanded(!expanded)}>
-          <Group gap="sm" wrap="nowrap">
-            <ActionIcon variant="subtle" size="sm" color="blue">
-              {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </ActionIcon>
-            <div>
-              <Text fw={700} size="sm" style={{ color: '#0f172a' }}>{milestone.title}</Text>
-              <Text size="xs" c="dimmed">
-                {formatDateDisplay(milestone.startDate)} to {formatDateDisplay(milestone.endDate)}
-              </Text>
-            </div>
-          </Group>
-        </Table.Td>
-
-        {/* 2. Tasks Count */}
-        <Table.Td onClick={() => setExpanded(!expanded)}>
-          <Badge variant="outline" color="blue" size="sm" radius="sm">
-            {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
-          </Badge>
-        </Table.Td>
-
-        {/* 3. Est. Hours */}
-        <Table.Td onClick={() => setExpanded(!expanded)}>
-          <Text size="sm" fw={600} style={{ color: '#475569' }}>
-            {milestone.estimatedHours || 0}h
+    <Table.Tr style={{ backgroundColor: 'white' }}>
+      {/* 1. Milestone Title & Dates */}
+      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
+        <div>
+          <Text fw={700} size="sm" style={{ color: '#2563eb' }}>{milestone.title}</Text>
+          <Text size="xs" c="dimmed">
+            {formatDateDisplay(milestone.startDate)} to {formatDateDisplay(milestone.endDate)}
           </Text>
-        </Table.Td>
+        </div>
+      </Table.Td>
 
-        {/* 4. Active Hours */}
-        <Table.Td onClick={() => setExpanded(!expanded)}>
-          <Text size="sm" fw={600} style={{ color: spentHours > milestone.estimatedHours ? '#dc2626' : '#2563eb' }}>
-            {Number(spentHours.toFixed(2))}h
+      {/* 2. Tasks Count */}
+      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
+        <Badge variant="light" color="blue" size="sm" radius="sm" style={{ cursor: 'pointer' }}>
+          {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+        </Badge>
+      </Table.Td>
+
+      {/* 3. Est. Hours */}
+      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
+        <Text size="sm" fw={600} style={{ color: '#475569' }}>
+          {milestone.estimatedHours || 0}h
+        </Text>
+      </Table.Td>
+
+      {/* 4. Active Hours */}
+      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
+        <Text size="sm" fw={600} style={{ color: spentHours > milestone.estimatedHours ? '#dc2626' : '#2563eb' }}>
+          {Number(spentHours.toFixed(2))}h
+        </Text>
+      </Table.Td>
+
+      {/* 5. Status */}
+      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
+        <Badge
+          variant="light"
+          radius="sm"
+          size="sm"
+          fw={600}
+          color={effectiveStatus === 'completed' ? 'green' : effectiveStatus === 'in_progress' ? 'blue' : 'gray'}
+        >
+          {effectiveStatus ? effectiveStatus.replace('_', ' ') : 'not started'}
+        </Badge>
+      </Table.Td>
+
+      {/* 6. Progress */}
+      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ minWidth: 140, cursor: 'pointer' }}>
+        <Group gap="xs" wrap="nowrap">
+          <Text size="xs" fw={700} style={{ width: 32 }} ta="right">
+            {Math.round(progressPercent)}%
           </Text>
-        </Table.Td>
+          <Progress value={progressPercent} color={effectiveStatus === 'completed' ? 'green' : (spentHours > milestone.estimatedHours ? 'red' : 'blue')} size="sm" radius="xl" style={{ flex: 1 }} />
+        </Group>
+      </Table.Td>
 
-        {/* 5. Status */}
-        <Table.Td onClick={() => setExpanded(!expanded)}>
-          <Badge
-            variant="light"
-            radius="sm"
-            size="sm"
-            fw={600}
-            color={effectiveStatus === 'completed' ? 'green' : effectiveStatus === 'in_progress' ? 'blue' : 'gray'}
+      {/* 7. Actions */}
+      <Table.Td style={{ whiteSpace: 'nowrap' }}>
+        <Group gap={6} justify="flex-end" wrap="nowrap">
+          <Button
+            size="xs"
+            variant="subtle"
+            color="blue"
+            leftSection={<FileCheck size={14} />}
+            onClick={() => onViewTasks(milestone._id)}
           >
-            {effectiveStatus ? effectiveStatus.replace('_', ' ') : 'not started'}
-          </Badge>
-        </Table.Td>
-
-        {/* 6. Progress */}
-        <Table.Td onClick={() => setExpanded(!expanded)} style={{ minWidth: 140 }}>
-          <Group gap="xs" wrap="nowrap">
-            <Text size="xs" fw={700} style={{ width: 32 }} ta="right">
-              {Math.round(progressPercent)}%
-            </Text>
-            <Progress value={progressPercent} color={effectiveStatus === 'completed' ? 'green' : (spentHours > milestone.estimatedHours ? 'red' : 'blue')} size="sm" radius="xl" style={{ flex: 1 }} />
-          </Group>
-        </Table.Td>
-
-        {/* 7. Actions */}
-        <Table.Td style={{ whiteSpace: 'nowrap' }}>
-          <Group gap={6} justify="flex-end" wrap="nowrap">
-            <Button
-              size="xs"
-              variant="light"
-              leftSection={<Plus size={14} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddTask(milestone._id, milestone.estimatedHours, allocatedHours);
-              }}
-            >
-              Add Task
-            </Button>
-            {canManage && (
-              <>
-                <ActionIcon
-                  variant="subtle"
-                  color="blue"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit?.(milestone);
-                  }}
-                  title="Edit Milestone"
-                >
-                  <Edit size={16} />
-                </ActionIcon>
-                <ActionIcon
-                  variant="subtle"
-                  color="red"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete?.(milestone);
-                  }}
-                  title="Delete Milestone"
-                >
-                  <Trash size={16} />
-                </ActionIcon>
-              </>
-            )}
-          </Group>
-        </Table.Td>
-      </Table.Tr>
-
-      {/* Expanded Sub-row for Tasks Table */}
-      {expanded && (
-        <Table.Tr style={{ backgroundColor: '#F8FAFC' }}>
-          <Table.Td colSpan={7} p="md">
-            <Card withBorder radius="md" style={{ backgroundColor: '#FFFFFF', borderColor: '#E2E8F0' }}>
-              <Group justify="space-between" mb="md">
-                <Group>
-                  <Select placeholder="Filter Department" leftSection={<Filter size={14} />} data={DEPARTMENT_OPTIONS} value={deptFilter} onChange={setDeptFilter} clearable size="xs" w={160} />
-                  <Select placeholder="Filter Status" leftSection={<Filter size={14} />} data={['assigned', 'in_progress', 'in_review', 'completed', 'on_hold']} value={statusFilter} onChange={setStatusFilter} clearable size="xs" w={150} />
-                </Group>
-                <Text size="xs" fw={600} c="dimmed">
-                  Allocated: {allocatedHours}h / {milestone.estimatedHours}h
-                </Text>
-              </Group>
-
-              {isLoading ? (
-                <Center h={100}><Loader size="sm" /></Center>
-              ) : filteredTasks.length > 0 ? (
-                <Table verticalSpacing="sm" horizontalSpacing="md" bg="white" style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #E2E8F0' }}>
-                  <Table.Thead bg="#F1F5F9">
-                    <Table.Tr>
-                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>TASK</Table.Th>
-                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>DEPARTMENT</Table.Th>
-                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ASSIGNED TO</Table.Th>
-                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>EST. TIME</Table.Th>
-                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ACTIVE HOURS</Table.Th>
-                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>STATUS</Table.Th>
-                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>PROGRESS</Table.Th>
-                      <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }} ta="right">ACTION</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {filteredTasks.map((task: any) => {
-                      const isTimerActive = (activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id) && task.status !== 'completed';
-                      const taskBonusHours = isTimerActive ? liveElapsed / 3600 : 0;
-                      const rawSpent = (task.spentHours || 0) + taskBonusHours;
-                      const spent = rawSpent;
-                      const taskProgressPercent = Math.min((rawSpent / (task.estimatedHours || 1)) * 100, 100);
-                      const isMaxed = (task.spentHours || 0) >= task.estimatedHours;
-
-                      return (
-                        <Table.Tr key={task._id}>
-                          {/* TASK TITLE & DATE */}
-                          <Table.Td>
-                            <Text fw={600} size="sm">{task.title}</Text>
-                            {(task.startDate || task.endDate) && (
-                              <Text size="xs" color="dimmed">
-                                {formatDateDisplay(task.startDate)} to {formatDateDisplay(task.endDate)}
-                              </Text>
-                            )}
-                          </Table.Td>
-
-                          {/* DEPARTMENT */}
-                          <Table.Td><Badge variant="outline" color="gray" size="sm">{task.department || 'N/A'}</Badge></Table.Td>
-
-                          {/* ASSIGNED TO */}
-                          <Table.Td>
-                            {task.assignedTo ? (
-                              <Tooltip label={task.assignedTo.role?.replace('_', ' ')} withArrow>
-                                <Group gap="xs" wrap="nowrap">
-                                  <UserAvatar name={task.assignedTo.name} avatarUrl={task.assignedTo.avatarUrl} size="sm" />
-                                  <Text size="sm">{task.assignedTo.name}</Text>
-                                </Group>
-                              </Tooltip>
-                            ) : (
-                              <Badge variant="light" color="orange" size="sm">Unassigned</Badge>
-                            )}
-                          </Table.Td>
-
-                          {/* EST. TIME */}
-                          <Table.Td><Text size="sm" fw={600}>{task.estimatedHours}h</Text></Table.Td>
-
-                          {/* ACTIVE HOURS (LOGGED TIME) */}
-                          <Table.Td>
-                            <Text size="sm" fw={700} style={{ color: spent > task.estimatedHours ? '#dc2626' : spent > 0 ? '#2563eb' : '#94a3b8' }}>
-                              {spent.toFixed(2)}h
-                            </Text>
-                          </Table.Td>
-
-                          {/* QUICK TASK STATUS CHANGE MENU */}
-                          <Table.Td>
-                            <Menu shadow="md" width={140} position="bottom-start">
-                              <Menu.Target>
-                                <Badge
-                                  color={
-                                    task.status === 'completed'
-                                      ? 'green'
-                                      : task.status === 'in_progress'
-                                        ? 'blue'
-                                        : task.status === 'in_review'
-                                          ? 'yellow'
-                                          : task.status === 'on_hold'
-                                            ? 'red'
-                                            : 'gray'
-                                  }
-                                  variant="light"
-                                  size="sm"
-                                  style={{ cursor: 'pointer' }}
-                                >
-                                  {task.status?.replace('_', ' ') || 'assigned'} ▾
-                                </Badge>
-                              </Menu.Target>
-
-                              <Menu.Dropdown>
-                                <Menu.Label>Change Status</Menu.Label>
-                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'assigned')}>Assigned</Menu.Item>
-                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'in_progress')}>In Progress</Menu.Item>
-                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'in_review')}>In Review</Menu.Item>
-                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'completed')}>Completed</Menu.Item>
-                                <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'on_hold')}>On Hold</Menu.Item>
-                              </Menu.Dropdown>
-                            </Menu>
-                          </Table.Td>
-
-                          {/* PROGRESS */}
-                          <Table.Td style={{ minWidth: 120 }}>
-                            <Tooltip label={`${spent.toFixed(2)}h / ${task.estimatedHours}h (${Math.round(taskProgressPercent)}%)`}>
-                              <Progress value={taskProgressPercent} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} radius="xl" animated={isTimerActive && task.status !== 'completed'} />
-                            </Tooltip>
-                          </Table.Td>
-
-                          {/* ACTION COLUMN: Start/Stop + Log Time + Edit + Delete */}
-                          <Table.Td ta="right">
-                            <Group gap={6} justify="flex-end" wrap="nowrap">
-                              {isTimerActive ? (
-                                <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
-                              ) : (
-                                <Button size="xs" variant="light" leftSection={<Play size={14} />} onClick={() => handleStartTimer(task._id)} disabled={!!activeTimer || task.status === 'completed' || isMaxed}>Start</Button>
-                              )}
-
-                              <Tooltip label="Log Time Manually" withArrow>
-                                <ActionIcon variant="light" color="indigo" size="sm" onClick={() => onLogTimeTask?.(task)}>
-                                  <Clock size={15} />
-                                </ActionIcon>
-                              </Tooltip>
-
-                              <Tooltip label="Edit Task" withArrow>
-                                <ActionIcon variant="light" color="blue" size="sm" onClick={() => onEditTask?.(task)}>
-                                  <Edit size={15} />
-                                </ActionIcon>
-                              </Tooltip>
-
-                              <Tooltip label="Delete Task" withArrow>
-                                <ActionIcon variant="light" color="red" size="sm" onClick={() => onDeleteTask?.(task)}>
-                                  <Trash size={15} />
-                                </ActionIcon>
-                              </Tooltip>
-                            </Group>
-                          </Table.Td>
-                        </Table.Tr>
-                      );
-                    })}
-                  </Table.Tbody>
-                </Table>
-              ) : (
-                <Center h={80}><Text color="dimmed" size="sm">No tasks match filter criteria.</Text></Center>
-              )}
-            </Card>
-          </Table.Td>
-        </Table.Tr>
-      )}
-    </>
+            View Tasks
+          </Button>
+          <Button
+            size="xs"
+            variant="light"
+            leftSection={<Plus size={14} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddTask(milestone._id, milestone.estimatedHours, allocatedHours);
+            }}
+          >
+            Add Task
+          </Button>
+          {canManage && (
+            <>
+              <ActionIcon
+                variant="subtle"
+                color="blue"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(milestone);
+                }}
+                title="Edit Milestone"
+              >
+                <Edit size={16} />
+              </ActionIcon>
+              <ActionIcon
+                variant="subtle"
+                color="red"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.(milestone);
+                }}
+                title="Delete Milestone"
+              >
+                <Trash size={16} />
+              </ActionIcon>
+            </>
+          )}
+        </Group>
+      </Table.Td>
+    </Table.Tr>
   );
 };
 
@@ -1637,7 +1431,25 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
   );
 };
 
-const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string; milestones: any[] }) => {
+const ProjectTasks = ({
+  projectId: _projectId,
+  milestones,
+  selectedMilestoneFilter,
+  onMilestoneFilterChange,
+  onEditTask,
+  onDeleteTask,
+  onLogTimeTask,
+  onUpdateTaskStatus,
+}: {
+  projectId: string;
+  milestones: any[];
+  selectedMilestoneFilter?: string | null;
+  onMilestoneFilterChange?: (id: string | null) => void;
+  onEditTask?: (task: any) => void;
+  onDeleteTask?: (task: any) => void;
+  onLogTimeTask?: (task: any) => void;
+  onUpdateTaskStatus?: (taskId: string, status: string) => void;
+}) => {
   const { data: tasksData, isLoading } = useGetAllTasksQuery();
   const { data: activeTimerData } = useGetActiveTimerQuery();
   const [startTimer] = useStartTimerMutation();
@@ -1646,8 +1458,17 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
   const [searchQuery, setSearchQuery] = useState('');
   const [deptFilter, setDeptFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [milestoneFilter, setMilestoneFilter] = useState<string | null>(null);
+  const [milestoneFilter, setMilestoneFilter] = useState<string | null>(selectedMilestoneFilter || null);
   const [liveElapsed, setLiveElapsed] = useState(0);
+
+  useEffect(() => {
+    setMilestoneFilter(selectedMilestoneFilter || null);
+  }, [selectedMilestoneFilter]);
+
+  const handleMilestoneFilterChange = (val: string | null) => {
+    setMilestoneFilter(val);
+    onMilestoneFilterChange?.(val);
+  };
 
   const navigate = useNavigate();
 
@@ -1752,7 +1573,7 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
           leftSection={<Filter size={14} />}
           data={milestones.map(m => ({ value: m._id, label: m.title }))}
           value={milestoneFilter}
-          onChange={setMilestoneFilter}
+          onChange={handleMilestoneFilterChange}
           clearable
         />
         <Select
@@ -1772,6 +1593,20 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
           clearable
         />
       </SimpleGrid>
+
+      {milestoneFilter && (
+        <Group justify="space-between" p="xs" mb="md" style={{ backgroundColor: '#eff6ff', borderRadius: 8, border: '1px solid #bfdbfe' }}>
+          <Group gap="xs">
+            <Text size="xs" fw={600} color="#1e40af">Showing tasks for Milestone:</Text>
+            <Badge color="blue" variant="filled" radius="sm">
+              {milestones.find(m => m._id === milestoneFilter)?.title || 'Selected Milestone'}
+            </Badge>
+          </Group>
+          <Button size="xs" variant="subtle" color="blue" onClick={() => handleMilestoneFilterChange(null)}>
+            Show All Project Tasks
+          </Button>
+        </Group>
+      )}
 
       <Table verticalSpacing="sm">
         <Table.Thead>
@@ -1830,17 +1665,35 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
                   </Text>
                 </Table.Td>
                 <Table.Td>
-                  <Badge color={getStatusColor(task.status)} variant="light">
-                    {task.status.replace('_', ' ')}
-                  </Badge>
+                  <Menu shadow="md" width={140} position="bottom-start">
+                    <Menu.Target>
+                      <Badge
+                        color={getStatusColor(task.status)}
+                        variant="light"
+                        size="sm"
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {task.status?.replace('_', ' ') || 'assigned'} ▾
+                      </Badge>
+                    </Menu.Target>
+
+                    <Menu.Dropdown>
+                      <Menu.Label>Change Status</Menu.Label>
+                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'assigned')}>Assigned</Menu.Item>
+                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'in_progress')}>In Progress</Menu.Item>
+                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'in_review')}>In Review</Menu.Item>
+                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'completed')}>Completed</Menu.Item>
+                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'on_hold')}>On Hold</Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
                 </Table.Td>
                 <Table.Td>
                   <Tooltip label={`${liveSpent.toFixed(2)}h / ${task.estimatedHours}h (${Math.round(liveProgress)}%)`}>
                     <Progress value={liveProgress} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} animated={isTimerActive && task.status !== 'completed'} />
                   </Tooltip>
                 </Table.Td>
-                <Table.Td>
-                  <Group gap={4}>
+                <Table.Td ta="right">
+                  <Group gap={6} justify="flex-end" wrap="nowrap">
                     {isTimerActive ? (
                       <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
                     ) : (
@@ -1852,6 +1705,30 @@ const ProjectTasks = ({ projectId: _projectId, milestones }: { projectId: string
                         disabled={!!activeTimer || task.status === 'completed' || isMaxed}
                         title={isMaxed ? 'Estimated hours reached' : ''}
                       >Start</Button>
+                    )}
+
+                    {onLogTimeTask && (
+                      <Tooltip label="Log Time Manually" withArrow>
+                        <ActionIcon variant="light" color="indigo" size="sm" onClick={() => onLogTimeTask(task)}>
+                          <Clock size={15} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+
+                    {onEditTask && (
+                      <Tooltip label="Edit Task" withArrow>
+                        <ActionIcon variant="light" color="blue" size="sm" onClick={() => onEditTask(task)}>
+                          <Edit size={15} />
+                        </ActionIcon>
+                      </Tooltip>
+                    )}
+
+                    {onDeleteTask && (
+                      <Tooltip label="Delete Task" withArrow>
+                        <ActionIcon variant="light" color="red" size="sm" onClick={() => onDeleteTask(task)}>
+                          <Trash size={15} />
+                        </ActionIcon>
+                      </Tooltip>
                     )}
                   </Group>
                 </Table.Td>

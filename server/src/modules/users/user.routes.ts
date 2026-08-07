@@ -8,13 +8,13 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// Any authenticated user can view a profile
+// Any authenticated user can view users or a specific user profile
+router.get('/', userController.getUsers);
 router.get('/:id', userController.getUserById);
 
-// Only admins/PMs can manage users
+// Only admins/PMs can manage/modify users
 router.use(rbacMiddleware(PERMISSIONS['users:manage']));
 
-router.get('/', userController.getUsers);
 router.patch('/:id', userController.updateUser);
 router.delete('/:id', userController.deleteUser);
 

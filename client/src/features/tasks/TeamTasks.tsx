@@ -13,33 +13,56 @@ export const TeamTasks = () => {
   const { data: usersData, isLoading: isUsersLoading } = useGetUsersQuery();
   const [updateTask] = useUpdateTaskMutation();
 
-  const [filterDept, setFilterDept] = useState<string | null>(null);
+  const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
 
   const tasks = tasksData?.data || [];
   const users = usersData?.data || [];
 
   const isGlobalManager = currentUser?.role === Role.ADMIN || currentUser?.role === Role.PM;
 
-  const teamMembers = users.filter(u => {
-    if (u.role !== Role.TEAM_LEAD && u.role !== Role.TEAM_MEMBER) return false;
-    if (!isGlobalManager) {
-      if (!currentUser?.department || !u.department) return false;
-      const targetDept = currentUser.department.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const memberDept = u.department.toLowerCase().replace(/[^a-z0-9]/g, '');
-      return memberDept.includes(targetDept) || targetDept.includes(memberDept);
-    }
-    return true;
-  });
+  const getNormalizedDepartment = (dept?: string): string => {
+    if (!dept) return '';
+    const d = dept.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    if (d.includes('full')) return 'fullstack';
+    if (d.includes('shop')) return 'shopify';
+    if (d.includes('word')) return 'wordpress';
+    if (d.includes('seo')) return 'seo';
+    if (d.includes('design') || d.includes('ui') || d.includes('ux')) return 'ui_ux';
+    if (d.includes('sales')) return 'sales';
+    if (d.includes('hr')) return 'hr';
+    return d;
+  };
 
-  const teamOptions = teamMembers.map((u) => {
-    const firstName = u.name ? u.name.trim().split(' ')[0] : 'User';
-    return {
-      value: u._id,
-      label: firstName,
-      fullName: u.name,
-      department: u.department,
-    };
-  });
+  const teamMembers = useMemo(() => {
+    if (isGlobalManager) {
+      return users.filter((u) => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER);
+    }
+
+    const myDept = getNormalizedDepartment(currentUser?.department);
+    return users.filter((u) => {
+      if (u.role !== Role.TEAM_LEAD && u.role !== Role.TEAM_MEMBER) return false;
+      const memberDept = getNormalizedDepartment(u.department);
+      if (myDept) {
+        return memberDept === myDept;
+      }
+      return false;
+    });
+  }, [users, isGlobalManager, currentUser]);
+
+  const teamOptions = useMemo(() => {
+    return teamMembers.map((u) => {
+      return {
+        value: u._id,
+        label: u.name,
+        fullName: u.name,
+        department: u.department,
+      };
+    });
+  }, [teamMembers]);
+
+  const filterMemberOptions = useMemo(() => {
+    return teamMembers.map((m) => ({ value: m._id, label: m.name }));
+  }, [teamMembers]);
 
   const matchesDept = (task: any, dept: string) => {
     const target = dept.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -51,15 +74,26 @@ export const TeamTasks = () => {
 
   const unassignedTasks = useMemo(() => {
     let result = tasks.filter(t => !t.assignedTo);
-    if (filterDept) result = result.filter(t => matchesDept(t, filterDept));
+    if (selectedFilter && isGlobalManager) {
+      result = result.filter(t => matchesDept(t, selectedFilter));
+    }
     return result;
-  }, [tasks, filterDept]);
+  }, [tasks, selectedFilter, isGlobalManager]);
 
   const assignedTasks = useMemo(() => {
     let result = tasks.filter(t => t.assignedTo);
-    if (filterDept) result = result.filter(t => matchesDept(t, filterDept));
+    if (selectedFilter) {
+      if (isGlobalManager) {
+        result = result.filter(t => matchesDept(t, selectedFilter));
+      } else {
+        result = result.filter(t => {
+          const assignedId = typeof t.assignedTo === 'object' ? t.assignedTo?._id : t.assignedTo;
+          return assignedId === selectedFilter;
+        });
+      }
+    }
     return result;
-  }, [tasks, filterDept]);
+  }, [tasks, selectedFilter, isGlobalManager]);
 
   const handleAssignTask = async (taskId: string, userId: string | null) => {
     try {
@@ -96,12 +130,14 @@ export const TeamTasks = () => {
           </Text>
         </div>
         <Select
-          placeholder="Filter by Department"
-          data={['Shopify', 'WordPress', 'Full Stack', 'SEO', 'UI/UX']}
-          value={filterDept}
-          onChange={setFilterDept}
+          placeholder={isGlobalManager ? 'Filter by Department' : 'Filter by Team Member'}
+          data={isGlobalManager ? ['Shopify', 'WordPress', 'Full Stack', 'SEO', 'UI/UX'] : filterMemberOptions}
+          value={selectedFilter}
+          onChange={setSelectedFilter}
           clearable
-          style={{ width: 200 }}
+          searchable={!isGlobalManager}
+          style={{ width: 220 }}
+          radius="md"
         />
       </Group>
 
@@ -112,10 +148,10 @@ export const TeamTasks = () => {
           <Stack gap="md">
             {unassignedTasks.length > 0 ? (
               unassignedTasks.map((task: any) => (
-                <Card key={task._id} shadow="sm" p="md" radius="md" withBorder>
+                <Card key={task._id} shadow="sm" p="md" radius="md" withBorder style={{ overflow: 'visible' }}>
                   <Group justify="space-between" mb="xs">
                     <Text fw={600}>{task.title}</Text>
-                    <Badge color="gray" variant="light">{task.department || 'No Dept'}</Badge>
+                    <Badge color="gray" variant="light">Unassigned</Badge>
                   </Group>
                   <Text size="sm" color="dimmed" mb="md" lineClamp={2}>
                     {task.description || 'No description provided.'}
@@ -135,19 +171,20 @@ export const TeamTasks = () => {
                       data={teamOptions}
                       searchable
                       size="xs"
-                      w={130}
+                      w={190}
+                      radius="md"
                       value={null}
                       onChange={(val) => handleAssignTask(task._id, val)}
-                      comboboxProps={{ width: 230, position: 'bottom-end', shadow: 'md' }}
+                      comboboxProps={{ width: 260, withinPortal: true, zIndex: 1000, shadow: 'md' }}
                       renderOption={({ option }) => {
                         const opt = teamOptions.find((o) => o.value === option.value);
                         return (
-                          <Group justify="space-between" wrap="nowrap" w="100%" gap="xs">
-                            <Text size="xs" fw={500} style={{ whiteSpace: 'nowrap' }}>
+                          <Group justify="space-between" wrap="nowrap" w="100%" gap="xs" style={{ padding: '2px 4px' }}>
+                            <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
                               {opt?.fullName || option.label}
                             </Text>
-                            {opt?.department && (
-                              <Badge size="xs" variant="light" color="blue" style={{ flexShrink: 0 }}>
+                            {isGlobalManager && opt?.department && (
+                              <Badge size="xs" variant="light" color="blue" radius="sm">
                                 {opt.department.toUpperCase()}
                               </Badge>
                             )}
@@ -172,7 +209,7 @@ export const TeamTasks = () => {
           <Stack gap="md">
             {assignedTasks.length > 0 ? (
               assignedTasks.map((task: any) => (
-                <Card key={task._id} shadow="sm" p="md" radius="md" withBorder>
+                <Card key={task._id} shadow="sm" p="md" radius="md" withBorder style={{ overflow: 'visible' }}>
                   <Group justify="space-between" mb="xs">
                     <Text fw={600}>{task.title}</Text>
                     <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light">
@@ -211,19 +248,20 @@ export const TeamTasks = () => {
                       data={teamOptions}
                       searchable
                       size="xs"
-                      w={120}
-                      value={task.assignedTo._id}
+                      w={190}
+                      radius="md"
+                      value={task.assignedTo?._id || task.assignedTo}
                       onChange={(val) => handleAssignTask(task._id, val)}
-                      comboboxProps={{ width: 230, position: 'bottom-end', shadow: 'md' }}
+                      comboboxProps={{ width: 260, withinPortal: true, zIndex: 1000, shadow: 'md' }}
                       renderOption={({ option }) => {
                         const opt = teamOptions.find((o) => o.value === option.value);
                         return (
-                          <Group justify="space-between" wrap="nowrap" w="100%" gap="xs">
-                            <Text size="xs" fw={500} style={{ whiteSpace: 'nowrap' }}>
+                          <Group justify="space-between" wrap="nowrap" w="100%" gap="xs" style={{ padding: '2px 4px' }}>
+                            <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
                               {opt?.fullName || option.label}
                             </Text>
-                            {opt?.department && (
-                              <Badge size="xs" variant="light" color="blue" style={{ flexShrink: 0 }}>
+                            {isGlobalManager && opt?.department && (
+                              <Badge size="xs" variant="light" color="blue" radius="sm">
                                 {opt.department.toUpperCase()}
                               </Badge>
                             )}

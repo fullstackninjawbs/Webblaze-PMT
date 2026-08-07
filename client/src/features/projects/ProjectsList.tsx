@@ -13,6 +13,7 @@ import {
   Group,
   Modal,
   TextInput,
+  Textarea,
   Select,
   Card,
   Text,
@@ -708,9 +709,12 @@ export const ProjectsList: React.FC = () => {
                   )
                 )}
 
-                <TextInput
+                <Textarea
                   label="Description"
-                  placeholder="Brief project description"
+                  placeholder="Detailed project description..."
+                  minRows={3}
+                  maxRows={6}
+                  autosize
                   radius="md"
                   {...form.getInputProps('description')}
                 />
