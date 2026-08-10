@@ -55,9 +55,9 @@ const projectSchema = z.object({
   client: z.string().min(1, 'Client is required'),
   description: z.string().optional(),
   type: z.string().optional(),
-  totalBudget: z.number().optional(),
-  costPerHour: z.number().optional(),
-  totalHours: z.number().optional(),
+  totalBudget: z.union([z.number(), z.string(), z.undefined(), z.null()]).optional(),
+  costPerHour: z.union([z.number(), z.string(), z.undefined(), z.null()]).optional(),
+  totalHours: z.union([z.number(), z.string(), z.undefined(), z.null()]).optional(),
   status: z.nativeEnum(ProjectStatus).optional(),
   team: z.array(z.string()).optional(),
 });
@@ -131,16 +131,30 @@ export const ProjectsList: React.FC = () => {
       // For hourly clients: compute totalBudget from costPerHour * totalHours
       const selectedClient = clientsData?.data.find((c) => c._id === values.client);
       const isHourly = selectedClient?.billingType === 'hourly';
+      const rawBudget = values.totalBudget !== '' && values.totalBudget !== null && values.totalBudget !== undefined
+        ? Number(values.totalBudget)
+        : undefined;
       const computedBudget = isHourly
         ? (Number(values.costPerHour) || 0) * (Number(values.totalHours) || 0)
-        : values.totalBudget;
+        : (rawBudget !== undefined && !isNaN(rawBudget) ? rawBudget : undefined);
+
+      const rawCostPerHour = values.costPerHour !== '' && values.costPerHour !== null && values.costPerHour !== undefined
+        ? Number(values.costPerHour)
+        : undefined;
+      const rawTotalHours = values.totalHours !== '' && values.totalHours !== null && values.totalHours !== undefined
+        ? Number(values.totalHours)
+        : undefined;
 
       const payload = {
-        ...values,
-        totalBudget: computedBudget || undefined,
-        costPerHour: isHourly ? values.costPerHour || undefined : undefined,
-        totalHours: isHourly ? values.totalHours || undefined : undefined,
-        team: values.team.length > 0 ? values.team : undefined,
+        name: values.name,
+        client: values.client,
+        description: values.description || undefined,
+        type: values.type || undefined,
+        status: values.status || ProjectStatus.NEW,
+        totalBudget: computedBudget,
+        costPerHour: isHourly && rawCostPerHour !== undefined && !isNaN(rawCostPerHour) ? rawCostPerHour : undefined,
+        totalHours: isHourly && rawTotalHours !== undefined && !isNaN(rawTotalHours) ? rawTotalHours : undefined,
+        team: values.team && values.team.length > 0 ? values.team : undefined,
       };
 
       if (editingProject) {
