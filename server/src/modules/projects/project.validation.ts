@@ -10,7 +10,7 @@ export const createProjectSchema = z.object({
     totalHours: z.number().optional().nullable(),
     description: z.string().optional().nullable(),
     type: z.string().optional().nullable(),
-    status: z.nativeEnum(ProjectStatus).optional(),
+    status: z.enum(['new', 'active', 'on_hold', 'maintenance', 'completed']).optional(),
     team: z.array(z.string()).optional(),
   }),
 });

@@ -58,7 +58,7 @@ const projectSchema = z.object({
   totalBudget: z.union([z.number(), z.string(), z.undefined(), z.null()]).optional(),
   costPerHour: z.union([z.number(), z.string(), z.undefined(), z.null()]).optional(),
   totalHours: z.union([z.number(), z.string(), z.undefined(), z.null()]).optional(),
-  status: z.nativeEnum(ProjectStatus).optional(),
+  status: z.enum(['new', 'active', 'on_hold', 'maintenance', 'completed']).optional(),
   team: z.array(z.string()).optional(),
 });
 
