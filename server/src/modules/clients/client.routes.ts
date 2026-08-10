@@ -10,12 +10,14 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// Only ADMIN and PM can manage clients
+// All authenticated users can view clients
+router.get('/', clientController.getClients);
+router.get('/:id', clientController.getClientById);
+
+// Only ADMIN and PM can manage (create, update, delete) clients
 router.use(rbacMiddleware([Role.ADMIN, Role.PM]));
 
 router.post('/', validate(createClientSchema), clientController.createClient);
-router.get('/', clientController.getClients);
-router.get('/:id', clientController.getClientById);
 router.patch('/:id', validate(updateClientSchema), clientController.updateClient);
 router.delete('/:id', clientController.deleteClient);
 
