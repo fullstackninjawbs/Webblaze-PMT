@@ -46,7 +46,7 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus } from '../../types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 import { formatDateDisplay } from '../../utils/dateUtils';
 
@@ -104,9 +104,22 @@ export const ProjectsList: React.FC = () => {
     validate: zodResolver(projectSchema),
   });
 
-  const openCreateModal = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const handleCloseModal = () => {
+    setModalOpened(false);
+    setEditingProject(null);
+    if (searchParams.toString()) {
+      setSearchParams({}, { replace: true });
+    }
+  };
+
+  const openCreateModal = (preselectedClient?: string) => {
     setEditingProject(null);
     form.reset();
+    if (preselectedClient) {
+      form.setFieldValue('client', preselectedClient);
+    }
     setModalOpened(true);
   };
 
@@ -125,6 +138,21 @@ export const ProjectsList: React.FC = () => {
     });
     setModalOpened(true);
   };
+
+  React.useEffect(() => {
+    const createParam = searchParams.get('create');
+    const clientParam = searchParams.get('client') || searchParams.get('clientId');
+    const editParam = searchParams.get('edit');
+
+    if (createParam === 'true' || clientParam) {
+      openCreateModal(clientParam || undefined);
+    } else if (editParam && projectsData?.data) {
+      const projToEdit = projectsData.data.find((p: any) => p._id === editParam);
+      if (projToEdit) {
+        openEditModal(projToEdit);
+      }
+    }
+  }, [searchParams, projectsData?.data]);
 
   const onSubmit = async (values: typeof form.values) => {
     try {
@@ -162,7 +190,7 @@ export const ProjectsList: React.FC = () => {
       } else {
         await createProject(payload as any).unwrap();
       }
-      setModalOpened(false);
+      handleCloseModal();
       form.reset();
     } catch (error) {
       console.error('Failed to save project', error);
@@ -406,7 +434,7 @@ export const ProjectsList: React.FC = () => {
               leftSection={<Plus size={16} />}
               radius="md"
               size="md"
-              onClick={openCreateModal}
+              onClick={() => openCreateModal()}
               style={{
                 background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
                 fontWeight: 600,
@@ -597,7 +625,7 @@ export const ProjectsList: React.FC = () => {
       {/* Create / Edit Project Modal */}
       <Modal
         opened={modalOpened}
-        onClose={() => setModalOpened(false)}
+        onClose={handleCloseModal}
         title={
           <Text fw={700} size="lg">
             {editingProject ? 'Edit Project' : 'Create New Project'}
@@ -734,7 +762,7 @@ export const ProjectsList: React.FC = () => {
                 />
 
                 <Group justify="flex-end" mt="md">
-                  <Button variant="light" color="gray" onClick={() => setModalOpened(false)} radius="md">
+                  <Button variant="light" color="gray" onClick={handleCloseModal} radius="md">
                     Cancel
                   </Button>
                   <Button

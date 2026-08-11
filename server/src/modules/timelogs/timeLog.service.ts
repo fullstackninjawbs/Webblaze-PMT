@@ -3,6 +3,19 @@ import { Task } from '../tasks/task.model';
 import { Milestone } from '../milestones/milestone.model';
 import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
 import { ApiError } from '../../utils/ApiError';
+import { User } from '../users/user.model';
+
+export interface TeamMemberHoursSummary {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  department?: string;
+  avatarUrl?: string;
+  assignedHours: number;
+  spentHours: number;
+  pendingHours: number;
+}
 
 export const startTimer = async (userId: string, taskId: string, description?: string): Promise<ITimeLog> => {
   // If user already has an active timer, auto-stop it cleanly first
@@ -15,6 +28,15 @@ export const startTimer = async (userId: string, taskId: string, description?: s
   const task = await Task.findById(taskId);
   if (!task) {
     throw new ApiError(404, 'Task not found');
+  }
+
+  const currentSpent = task.spentHours || 0;
+  const estimated = task.estimatedHours || 0;
+  if (estimated > 0 && currentSpent >= estimated) {
+    throw new ApiError(
+      400,
+      `Cannot start timer. Task estimated limit (${estimated}h) has already been reached.`
+    );
   }
 
   // Update task status to in_progress if it's still assigned
@@ -44,15 +66,20 @@ export const stopTimer = async (userId: string, description?: string): Promise<I
   const durationSeconds = Math.floor((activeTimer.endTime.getTime() - activeTimer.startTime.getTime()) / 1000);
   activeTimer.durationSeconds = durationSeconds;
   
-  if (description) {
-    activeTimer.description = description;
+  // Increment spentHours on the Task and Milestone
+  let durationHours = Number((durationSeconds / 3600).toFixed(4));
+  const taskDoc: any = activeTimer.task;
+
+  if (taskDoc && taskDoc.estimatedHours > 0) {
+    const currentSpent = taskDoc.spentHours || 0;
+    const remaining = Math.max(0, taskDoc.estimatedHours - currentSpent);
+    if (durationHours > remaining) {
+      durationHours = remaining;
+      activeTimer.durationSeconds = Math.round(remaining * 3600);
+    }
   }
 
   await activeTimer.save();
-
-  // Increment spentHours on the Task and Milestone
-  const durationHours = durationSeconds / 3600;
-  const taskDoc: any = activeTimer.task;
 
   const updatedTask = await Task.findByIdAndUpdate(
     taskDoc._id,
@@ -126,6 +153,17 @@ export const createManualLog = async (userId: string, taskId: string, hours: num
   const task = await Task.findById(taskId);
   if (!task) {
     throw new ApiError(404, 'Task not found');
+  }
+
+  const currentSpent = task.spentHours || 0;
+  const estimated = task.estimatedHours || 0;
+
+  if (estimated > 0 && currentSpent + hours > estimated) {
+    const remaining = Math.max(0, estimated - currentSpent);
+    throw new ApiError(
+      400,
+      `Cannot log ${hours}h. Logged time cannot exceed task estimated hours (${estimated}h). Remaining allowed: ${Number(remaining.toFixed(2))}h.`
+    );
   }
 
   const durationSeconds = Math.round(hours * 3600);
@@ -235,4 +273,54 @@ export const clearTaskTimeLogs = async (taskId: string): Promise<void> => {
     }
     await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
   }
+};
+
+export const getTeamHoursSummary = async (): Promise<TeamMemberHoursSummary[]> => {
+  const users = await User.find({ isActive: true }).select('name email role department avatarUrl');
+  const tasks = await Task.find({ assignedTo: { $ne: null } });
+  const logs = await TimeLog.find({ durationSeconds: { $gt: 0 } });
+
+  const summaryMap = new Map<string, { assigned: number; spent: number }>();
+
+  for (const user of users) {
+    summaryMap.set(user._id.toString(), { assigned: 0, spent: 0 });
+  }
+
+  for (const task of tasks) {
+    if (task.assignedTo) {
+      const uId = task.assignedTo.toString();
+      const current = summaryMap.get(uId) || { assigned: 0, spent: 0 };
+      current.assigned += task.estimatedHours || 0;
+      summaryMap.set(uId, current);
+    }
+  }
+
+  for (const log of logs) {
+    if (log.user) {
+      const uId = log.user.toString();
+      const current = summaryMap.get(uId) || { assigned: 0, spent: 0 };
+      current.spent += (log.durationSeconds || 0) / 3600;
+      summaryMap.set(uId, current);
+    }
+  }
+
+  return users.map((u) => {
+    const uId = u._id.toString();
+    const data = summaryMap.get(uId) || { assigned: 0, spent: 0 };
+    const assignedHours = Number(data.assigned.toFixed(2));
+    const spentHours = Number(data.spent.toFixed(2));
+    const pendingHours = Number(Math.max(assignedHours - spentHours, 0).toFixed(2));
+
+    return {
+      userId: uId,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      department: u.department,
+      avatarUrl: u.avatarUrl,
+      assignedHours,
+      spentHours,
+      pendingHours,
+    };
+  });
 };

@@ -14,6 +14,18 @@ export interface TimeLog {
   updatedAt: string;
 }
 
+export interface TeamMemberHoursSummary {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  department?: string;
+  avatarUrl?: string;
+  assignedHours: number;
+  spentHours: number;
+  pendingHours: number;
+}
+
 export const timeLogApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getActiveTimer: builder.query<{ success: boolean; data: TimeLog | null }, void>({
@@ -23,6 +35,10 @@ export const timeLogApi = baseApi.injectEndpoints({
     getTeamTimeLogs: builder.query<{ success: boolean; data: TimeLog[] }, void>({
       query: () => '/timelogs/team',
       providesTags: ['TimeLog'],
+    }),
+    getTeamHoursSummary: builder.query<{ success: boolean; data: TeamMemberHoursSummary[] }, void>({
+      query: () => '/timelogs/team-hours-summary',
+      providesTags: ['TimeLog', 'Task'],
     }),
     getTimeLogsByTask: builder.query<{ success: boolean; data: TimeLog[] }, string>({
       query: (taskId) => `/timelogs/task/${taskId}`,
@@ -114,6 +130,7 @@ export const {
   useStartTimerMutation,
   useStopTimerMutation,
   useGetTeamTimeLogsQuery,
+  useGetTeamHoursSummaryQuery,
   useCreateManualTimeLogMutation,
   useDeleteTimeLogMutation,
   useClearTaskTimeLogsMutation,

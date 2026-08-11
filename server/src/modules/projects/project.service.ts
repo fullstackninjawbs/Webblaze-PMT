@@ -31,7 +31,7 @@ export class ProjectService {
   static async attachProgress(project: any) {
     const milestones = await Milestone.find({ project: project._id });
     const estHours = milestones.reduce((sum, m) => sum + (m.estimatedHours || 0), 0);
-    const spentHours = milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0);
+    const spentHours = Number(milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0).toFixed(4));
     const progress = estHours > 0 ? Math.min(Math.round((spentHours / estHours) * 100), 100) : 0;
     
     const obj = project.toObject ? project.toObject() : project;

@@ -23,6 +23,11 @@ import { UserProfile } from '../features/users/UserProfile';
 import { RoleGuard } from '../components/common/RoleGuard';
 import { Role } from '../types';
 
+import { MilestoneCreatePage } from '../features/milestones/MilestoneCreatePage';
+import { MilestoneEditPage } from '../features/milestones/MilestoneEditPage';
+import { MilestoneDetailPage } from '../features/milestones/MilestoneDetailPage';
+import { TaskCreatePage } from '../features/tasks/TaskCreatePage';
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -43,6 +48,18 @@ const AppRoutes = () => {
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/projects" element={<ProjectsList />} />
         <Route path="/projects/:id" element={<ProjectDetails />} />
+
+        {/* Milestone Routes */}
+        <Route path="/projects/:projectId/milestones/new" element={<MilestoneCreatePage />} />
+        <Route path="/projects/:projectId/milestones/:id" element={<MilestoneDetailPage />} />
+        <Route path="/projects/:projectId/milestones/:id/edit" element={<MilestoneEditPage />} />
+        <Route path="/milestones/:id" element={<MilestoneDetailPage />} />
+        <Route path="/milestones/:id/edit" element={<MilestoneEditPage />} />
+
+        {/* Task Create Routes */}
+        <Route path="/projects/:projectId/tasks/new" element={<TaskCreatePage />} />
+        <Route path="/tasks/new" element={<TaskCreatePage />} />
+
         <Route path="/team" element={<UsersList />} />
         <Route path="/team/:id" element={<UserProfile />} />
         

@@ -8,7 +8,7 @@ import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, Text
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
-import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock, TrendingUp, AlertTriangle, Eye } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role, ProjectStatus, DEPARTMENT_OPTIONS } from '../../types';
@@ -151,6 +151,7 @@ export const ProjectDetails = () => {
     setSelectedMilestoneFilter(milestoneId);
     setActiveTab('tasks');
   };
+  void handleViewMilestoneTasks;
 
   const [milestoneDrawerOpened, setMilestoneDrawerOpened] = useState(false);
   const [editMilestoneOpened, setEditMilestoneOpened] = useState(false);
@@ -295,6 +296,7 @@ export const ProjectDetails = () => {
     }
   };
 
+
   const handleOpenEditMilestone = (milestone: any) => {
     setEditingMilestone(milestone);
     const startStr = milestone.startDate ? formatLocalDateString(parseLocalDateString(milestone.startDate)) : '';
@@ -308,6 +310,7 @@ export const ProjectDetails = () => {
     });
     setEditMilestoneOpened(true);
   };
+  void handleOpenEditMilestone;
 
   const handleUpdateMilestone = async (values: typeof editMilestoneForm.values) => {
     if (!editingMilestone) return;
@@ -352,6 +355,7 @@ export const ProjectDetails = () => {
     taskForm.setFieldValue('milestone', milestoneId);
     setTaskDrawerOpened(true);
   };
+  void openTaskDrawer;
 
   const handleCreateTask = async (values: typeof taskForm.values) => {
     try {
@@ -778,7 +782,7 @@ export const ProjectDetails = () => {
             <Title order={3}>Project Milestones</Title>
             <Button
               leftSection={<Plus size={16} />}
-              onClick={() => setMilestoneDrawerOpened(true)}
+              onClick={() => navigate(`/projects/${id}/milestones/new`)}
               style={{
                 background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
                 fontWeight: 600,
@@ -796,7 +800,8 @@ export const ProjectDetails = () => {
                   <Table.Thead style={{ backgroundColor: '#f8faff' }}>
                     <Table.Tr>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>MILESTONE</Table.Th>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>TASKS</Table.Th>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>START DATE</Table.Th>
+                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>END DATE</Table.Th>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
                       <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
@@ -809,11 +814,8 @@ export const ProjectDetails = () => {
                       <MilestoneTableRow
                         key={milestone._id}
                         milestone={milestone}
-                        onAddTask={openTaskDrawer}
-                        onEdit={handleOpenEditMilestone}
                         onDelete={handleOpenDeleteMilestone}
                         canManage={isAdminOrPM}
-                        onViewTasks={handleViewMilestoneTasks}
                       />
                     ))}
                   </Table.Tbody>
@@ -1144,65 +1146,62 @@ const formatDateDDMMYYYY = (dateStr?: string) => {
 
 const MilestoneTableRow = ({
   milestone,
-  onAddTask,
-  onEdit,
   onDelete,
   canManage = true,
-  onViewTasks,
 }: {
   milestone: any;
-  onAddTask: (milestoneId: string, est: number, alloc: number) => void;
-  onEdit?: (milestone: any) => void;
   onDelete?: (milestone: any) => void;
   canManage?: boolean;
-  onViewTasks: (milestoneId: string) => void;
 }) => {
+  const navigate = useNavigate();
   const { data: tasksData } = useGetTasksByMilestoneQuery(milestone._id);
   const tasks = tasksData?.data || [];
 
   const spentHours = tasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
-  const allocatedHours = tasks.reduce((sum: number, t: any) => sum + (t.estimatedHours || 0), 0);
   const progressPercent = Math.min((spentHours / (milestone.estimatedHours || 1)) * 100, 100);
 
   const isMilestoneMaxed = spentHours >= (milestone.estimatedHours || 0) && (milestone.estimatedHours || 0) > 0;
   const areAllTasksDone = tasks.length > 0 && tasks.every((t: any) => t.status === 'completed');
   const effectiveStatus = (isMilestoneMaxed || areAllTasksDone) ? 'completed' : milestone.status;
+  const pId = typeof milestone.project === 'object' ? milestone.project._id : milestone.project;
 
   return (
     <Table.Tr style={{ backgroundColor: 'white' }}>
-      {/* 1. Milestone Title & Dates */}
-      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
-        <div>
-          <Text fw={700} size="sm" style={{ color: '#2563eb' }}>{milestone.title}</Text>
-          <Text size="xs" c="dimmed">
-            {formatDateDisplay(milestone.startDate)} to {formatDateDisplay(milestone.endDate)}
-          </Text>
-        </div>
+      {/* 1. Milestone Title */}
+      <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
+        <Text fw={700} size="sm" style={{ color: '#2563eb' }}>{milestone.title}</Text>
       </Table.Td>
 
-      {/* 2. Tasks Count */}
-      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
-        <Badge variant="light" color="blue" size="sm" radius="sm" style={{ cursor: 'pointer' }}>
-          {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
-        </Badge>
+      {/* 2. Start Date */}
+      <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
+        <Text size="xs" fw={500} c="dimmed">
+          {formatDateDisplay(milestone.startDate)}
+        </Text>
       </Table.Td>
 
-      {/* 3. Est. Hours */}
-      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
+      {/* 3. End Date */}
+      <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
+        <Text size="xs" fw={500} c="dimmed">
+          {formatDateDisplay(milestone.endDate)}
+        </Text>
+      </Table.Td>
+
+      {/* 4. Est. Hours */}
+      <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
         <Text size="sm" fw={600} style={{ color: '#475569' }}>
           {milestone.estimatedHours || 0}h
         </Text>
       </Table.Td>
 
-      {/* 4. Active Hours */}
-      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
+      {/* 5. Active Hours */}
+      <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
         <Text size="sm" fw={600} style={{ color: spentHours > milestone.estimatedHours ? '#dc2626' : '#2563eb' }}>
           {Number(spentHours.toFixed(2))}h
         </Text>
       </Table.Td>
 
-      {/* 5. Status */}
-      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ cursor: 'pointer' }}>
+      {/* 6. Status */}
+      <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
         <Badge
           variant="light"
           radius="sm"
@@ -1214,8 +1213,8 @@ const MilestoneTableRow = ({
         </Badge>
       </Table.Td>
 
-      {/* 6. Progress */}
-      <Table.Td onClick={() => onViewTasks(milestone._id)} style={{ minWidth: 140, cursor: 'pointer' }}>
+      {/* 7. Progress */}
+      <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ minWidth: 140, cursor: 'pointer' }}>
         <Group gap="xs" wrap="nowrap">
           <Text size="xs" fw={700} style={{ width: 32 }} ta="right">
             {Math.round(progressPercent)}%
@@ -1224,55 +1223,61 @@ const MilestoneTableRow = ({
         </Group>
       </Table.Td>
 
-      {/* 7. Actions */}
+      {/* 8. Actions */}
       <Table.Td style={{ whiteSpace: 'nowrap' }}>
         <Group gap={6} justify="flex-end" wrap="nowrap">
-          <Button
-            size="xs"
-            variant="subtle"
-            color="blue"
-            leftSection={<FileCheck size={14} />}
-            onClick={() => onViewTasks(milestone._id)}
-          >
-            View Tasks
-          </Button>
+          <Tooltip label="View Milestone Details" withArrow>
+            <ActionIcon
+              variant="subtle"
+              color="blue"
+              size="sm"
+              onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)}
+            >
+              <Eye size={16} />
+            </ActionIcon>
+          </Tooltip>
+
           <Button
             size="xs"
             variant="light"
             leftSection={<Plus size={14} />}
             onClick={(e) => {
               e.stopPropagation();
-              onAddTask(milestone._id, milestone.estimatedHours, allocatedHours);
+              navigate(`/projects/${pId}/tasks/new`);
             }}
           >
             Add Task
           </Button>
+
           {canManage && (
             <>
-              <ActionIcon
-                variant="subtle"
-                color="blue"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit?.(milestone);
-                }}
-                title="Edit Milestone"
-              >
-                <Edit size={16} />
-              </ActionIcon>
-              <ActionIcon
-                variant="subtle"
-                color="red"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete?.(milestone);
-                }}
-                title="Delete Milestone"
-              >
-                <Trash size={16} />
-              </ActionIcon>
+              <Tooltip label="Edit Milestone" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="blue"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/projects/${pId}/milestones/${milestone._id}/edit`);
+                  }}
+                >
+                  <Edit size={16} />
+                </ActionIcon>
+              </Tooltip>
+
+              <Tooltip label="Delete Milestone" withArrow>
+                <ActionIcon
+                  variant="subtle"
+                  color="red"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.(milestone);
+                  }}
+                >
+                  <Trash size={16} />
+                </ActionIcon>
+              </Tooltip>
             </>
           )}
         </Group>
@@ -1558,6 +1563,13 @@ const ProjectTasks = ({
     <Card withBorder shadow="sm" p="md" radius="md">
       <Group justify="space-between" mb="lg">
         <Title order={3}>Tasks</Title>
+        <Button
+          leftSection={<Plus size={16} />}
+          onClick={() => navigate(`/projects/${_projectId}/tasks/new`)}
+          radius="md"
+        >
+          New Task
+        </Button>
       </Group>
 
       {/* Filters */}

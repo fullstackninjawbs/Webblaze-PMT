@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper } from '@mantine/core';
-import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Trash, RotateCcw } from 'lucide-react';
+import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper, NumberInput } from '@mantine/core';
+import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Trash, RotateCcw, Plus } from 'lucide-react';
 import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useDeleteTimeLogMutation, useClearTaskTimeLogsMutation } from '../timelogs/timeLog.slice';
+import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useDeleteTimeLogMutation, useClearTaskTimeLogsMutation, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
 import { useUploadFileMutation } from '../uploads/upload.slice';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
@@ -25,11 +25,16 @@ export const TaskDetail = () => {
   const [updateTask] = useUpdateTaskMutation();
   const [deleteTimeLog] = useDeleteTimeLogMutation();
   const [clearTaskTimeLogs] = useClearTaskTimeLogsMutation();
+  const [createManualTimeLog, { isLoading: isCreatingManualLog }] = useCreateManualTimeLogMutation();
 
   const [, setTicker] = useState<number>(0);
   const [statusModalOpened, setStatusModalOpened] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [statusComment, setStatusComment] = useState('');
+
+  const [manualLogModalOpened, setManualLogModalOpened] = useState(false);
+  const [manualHours, setManualHours] = useState<number | string>(1);
+  const [manualDescription, setManualDescription] = useState('');
 
   const [uploadFile, { isLoading: isUploadingAttachment }] = useUploadFileMutation();
   const [newFile, setNewFile] = useState<File | null>(null);
@@ -139,6 +144,25 @@ export const TaskDetail = () => {
     }
   };
 
+  const remainingHours = Math.max(0, (task?.estimatedHours || 0) - (task?.spentHours || 0));
+
+  const handleCreateManualLog = async () => {
+    const hrs = Number(manualHours);
+    if (!hrs || hrs <= 0) return;
+    try {
+      await createManualTimeLog({
+        taskId: task!._id,
+        hours: hrs,
+        description: manualDescription || undefined,
+      }).unwrap();
+      setManualLogModalOpened(false);
+      setManualHours(1);
+      setManualDescription('');
+    } catch (err: any) {
+      alert(err.data?.message || 'Failed to log manual time');
+    }
+  };
+
   return (
     <Container size="md" style={{ animation: 'fade-in 0.4s ease-out' }}>
       <Button variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />} onClick={() => navigate(-1)} mb="md" style={{ paddingLeft: 0 }}>
@@ -192,7 +216,7 @@ export const TaskDetail = () => {
             <Group justify="space-between" mb={8}>
               <Text fw={600} size="sm">Task Progress</Text>
               <Text fw={700} size="sm" color={totalSpentHours > task.estimatedHours ? 'red' : 'blue'}>
-                {totalSpentHours.toFixed(2)}h / {task.estimatedHours}h
+                {Number(totalSpentHours.toFixed(2))}h / {task.estimatedHours}h
               </Text>
             </Group>
             <Progress 
@@ -210,17 +234,30 @@ export const TaskDetail = () => {
       {/* Timeline Section */}
       <Group justify="space-between" align="center" mb="md">
         <Title order={4}>Time Log Activity</Title>
-        {isManagement && timeLogs.length > 0 && (
+        <Group gap="xs">
           <Button
             variant="light"
-            color="red"
+            color="blue"
             size="xs"
-            leftSection={<RotateCcw size={14} />}
-            onClick={handleClearAllLogs}
+            leftSection={<Plus size={14} />}
+            onClick={() => setManualLogModalOpened(true)}
+            disabled={task.status === 'completed' || (task.estimatedHours > 0 && remainingHours <= 0)}
           >
-            Clear All Time Logs
+            Log Manual Time
           </Button>
-        )}
+
+          {isManagement && timeLogs.length > 0 && (
+            <Button
+              variant="light"
+              color="red"
+              size="xs"
+              leftSection={<RotateCcw size={14} />}
+              onClick={handleClearAllLogs}
+            >
+              Clear All Time Logs
+            </Button>
+          )}
+        </Group>
       </Group>
 
       <Card shadow="sm" p="xl" radius="md" withBorder>
@@ -241,7 +278,7 @@ export const TaskDetail = () => {
                 title={
                   <Group justify="space-between" wrap="nowrap">
                     <Text fw={600} size="sm">
-                      {log.durationSeconds ? `${(log.durationSeconds / 3600).toFixed(2)}h logged` : 'Session recorded'}
+                      {log.durationSeconds ? `${Number((log.durationSeconds / 3600).toFixed(2))}h logged` : 'Session recorded'}
                     </Text>
                     <Group gap="xs" wrap="nowrap">
                       <Text size="xs" color="dimmed">{new Date(log.startTime).toLocaleString()}</Text>
@@ -345,6 +382,54 @@ export const TaskDetail = () => {
             minRows={3}
           />
           <Button onClick={confirmStatusUpdate}>Confirm Update</Button>
+        </Stack>
+      </Modal>
+
+      {/* Manual Time Log Modal */}
+      <Modal opened={manualLogModalOpened} onClose={() => setManualLogModalOpened(false)} title={<Text fw={700}>Log Manual Time</Text>} radius="lg">
+        <Stack gap="md">
+          <Group justify="space-between" align="center">
+            <Text size="sm" c="dimmed">Task Estimated Hours: <strong>{task.estimatedHours}h</strong></Text>
+            <Badge color={remainingHours > 0 ? 'blue' : 'red'} variant="light" size="lg">
+              {remainingHours.toFixed(1)}h remaining
+            </Badge>
+          </Group>
+
+          <NumberInput
+            label="Logged Hours"
+            placeholder="1"
+            min={0.1}
+            max={task.estimatedHours > 0 ? remainingHours : undefined}
+            step={0.5}
+            decimalScale={2}
+            value={manualHours}
+            onChange={(val) => setManualHours(typeof val === 'number' ? val : 0)}
+            withAsterisk
+            radius="md"
+          />
+
+          <Textarea
+            label="Work Description"
+            placeholder="E.g., Configured database indexes and tested authentication endpoints..."
+            value={manualDescription}
+            onChange={(e) => setManualDescription(e.target.value)}
+            minRows={3}
+            radius="md"
+          />
+
+          <Group justify="flex-end" mt="sm">
+            <Button variant="light" color="gray" onClick={() => setManualLogModalOpened(false)} radius="md">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateManualLog}
+              loading={isCreatingManualLog}
+              disabled={task.estimatedHours > 0 && remainingHours <= 0}
+              radius="md"
+            >
+              Save Time Log
+            </Button>
+          </Group>
         </Stack>
       </Modal>
     </Container>

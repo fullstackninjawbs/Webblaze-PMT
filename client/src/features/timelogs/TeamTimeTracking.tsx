@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react';
 import { Container, Title, Text, Card, Table, Badge, Group, SimpleGrid, ActionIcon, TextInput } from '@mantine/core';
 import { Trash, Search, X } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { useGetTeamTimeLogsQuery, useDeleteTimeLogMutation } from './timeLog.slice';
+import { useGetTeamTimeLogsQuery, useGetTeamHoursSummaryQuery, useDeleteTimeLogMutation } from './timeLog.slice';
 
 export const TeamTimeTracking = () => {
   const { data: logsData, isLoading } = useGetTeamTimeLogsQuery();
+  const { data: hoursSummaryData } = useGetTeamHoursSummaryQuery();
   const [deleteTimeLog] = useDeleteTimeLogMutation();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -170,6 +171,58 @@ export const TeamTimeTracking = () => {
           </Card>
         )}
       </SimpleGrid>
+
+      {/* Team Hours Rollup Summary */}
+      <Title order={4} mb="md" style={{ color: '#1e293b' }}>Team Member Hours Summary</Title>
+      <Card shadow="sm" p="0" radius="lg" withBorder mb="xl">
+        <Table verticalSpacing="sm" horizontalSpacing="md">
+          <Table.Thead bg="#f8fafc">
+            <Table.Tr>
+              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>TEAM MEMBER</Table.Th>
+              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>DEPARTMENT</Table.Th>
+              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ASSIGNED HOURS</Table.Th>
+              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>SPENT HOURS</Table.Th>
+              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>PENDING HOURS</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {(hoursSummaryData?.data || []).map((m) => (
+              <Table.Tr key={m.userId}>
+                <Table.Td>
+                  <Group gap="sm">
+                    <UserAvatar name={m.name} avatarUrl={m.avatarUrl} size="sm" />
+                    <div>
+                      <Text size="sm" fw={600}>{m.name}</Text>
+                      <Text size="xs" c="dimmed">{m.email}</Text>
+                    </div>
+                  </Group>
+                </Table.Td>
+                <Table.Td>
+                  <Badge variant="outline" color="gray" size="sm">{m.department || m.role}</Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" fw={700} c="blue">{m.assignedHours}h</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Text size="sm" fw={700} c="green">{m.spentHours}h</Text>
+                </Table.Td>
+                <Table.Td>
+                  <Badge color={m.pendingHours > 0 ? 'orange' : 'green'} variant="light" size="md">
+                    {m.pendingHours}h pending
+                  </Badge>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {(!hoursSummaryData?.data || hoursSummaryData.data.length === 0) && (
+              <Table.Tr>
+                <Table.Td colSpan={5} ta="center" py="md">
+                  <Text c="dimmed">No team member hours data found.</Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
+      </Card>
 
       <Title order={4} mb="md" style={{ color: '#1e293b' }}>Logged Time Summary</Title>
       <Card shadow="sm" p="0" radius="lg" withBorder>

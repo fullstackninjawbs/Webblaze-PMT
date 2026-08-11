@@ -1,5 +1,5 @@
 import React from 'react';
-import { SimpleGrid, Card, Text, Group } from '@mantine/core';
+import { Card, Text, Group, Box } from '@mantine/core';
 import { Briefcase, Activity, Clock, Server } from 'lucide-react';
 import { Project } from '../projects/project.slice';
 
@@ -21,19 +21,37 @@ export const ProjectSummaryCards: React.FC<Props> = ({ projects }) => {
   ];
 
   return (
-    <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg" mb="xl">
+    <Box
+      mb="lg"
+      style={{
+        display: 'flex',
+        gap: '12px',
+        overflowX: 'auto',
+        pb: '8px',
+        scrollbarWidth: 'thin',
+      }}
+    >
       {stats.map((stat, idx) => (
-        <Card key={idx} shadow="sm" p="xl" radius="lg" withBorder>
-          <Group justify="space-between" align="flex-start" mb="md">
-            <div style={{ padding: '10px', borderRadius: '12px', backgroundColor: stat.bg }}>
-              <stat.icon size={24} color={stat.color} />
+        <Card
+          key={idx}
+          shadow="sm"
+          p="md"
+          radius="lg"
+          withBorder
+          style={{
+            flex: '1 1 220px',
+            minWidth: '220px',
+          }}
+        >
+          <Group justify="space-between" align="flex-start" mb="xs">
+            <div style={{ padding: '8px', borderRadius: '10px', backgroundColor: stat.bg }}>
+              <stat.icon size={20} color={stat.color} />
             </div>
-            {/* Optional mini sparkline could go here, omitting for simplicity/cleanliness */}
           </Group>
-          <Text fw={800} style={{ fontSize: '32px', color: '#111827', lineHeight: 1 }}>{stat.value}</Text>
-          <Text size="sm" c="dimmed" fw={500} mt="sm">{stat.label}</Text>
+          <Text fw={800} style={{ fontSize: '28px', color: '#111827', lineHeight: 1 }}>{stat.value}</Text>
+          <Text size="xs" c="dimmed" fw={600} mt={6}>{stat.label}</Text>
         </Card>
       ))}
-    </SimpleGrid>
+    </Box>
   );
 };

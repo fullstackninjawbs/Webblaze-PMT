@@ -3,6 +3,7 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 export interface IMilestone extends Document {
   project: Types.ObjectId;
   title: string;
+  description?: string;
   estimatedHours: number;
   startDate?: Date;
   endDate?: Date;
@@ -22,6 +23,10 @@ const milestoneSchema = new Schema<IMilestone>(
     title: {
       type: String,
       required: [true, 'Milestone title is required'],
+      trim: true,
+    },
+    description: {
+      type: String,
       trim: true,
     },
     estimatedHours: {

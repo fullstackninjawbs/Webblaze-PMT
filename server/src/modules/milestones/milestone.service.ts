@@ -8,7 +8,8 @@ export const evaluateAndUpdateMilestoneStatus = async (milestoneId: string): Pro
   if (!milestone) return null;
 
   const tasks = await Task.find({ milestone: milestoneId });
-  const calculatedSpentHours = tasks.reduce((sum, t) => sum + (t.spentHours || 0), 0);
+  const rawSpentHours = tasks.reduce((sum, t) => sum + (t.spentHours || 0), 0);
+  const calculatedSpentHours = Number(rawSpentHours.toFixed(4));
 
   let newStatus: IMilestone['status'] = milestone.status;
 

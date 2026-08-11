@@ -34,3 +34,9 @@ export const formatDateDisplay = (dateStr?: string | Date | null): string => {
   const year = d.getFullYear();
   return `${day} ${monthStr}, ${year}`;
 };
+
+export const formatHoursDisplay = (hours?: number | null): string => {
+  if (hours === undefined || hours === null || isNaN(hours)) return '0h';
+  const rounded = Number(hours.toFixed(2));
+  return `${rounded}h`;
+};

@@ -4,6 +4,7 @@ export interface Milestone {
   _id: string;
   project: string; // project ID or populated project
   title: string;
+  description?: string;
   estimatedHours: number;
   spentHours?: number;
   startDate?: string;
@@ -25,13 +26,17 @@ export const milestoneApi = baseApi.injectEndpoints({
             ]
           : [{ type: 'Milestone', id: `LIST-${projectId}` }],
     }),
+    getMilestoneById: builder.query<{ success: boolean; data: Milestone }, string>({
+      query: (id) => `/milestones/${id}`,
+      providesTags: (_result, _error, id) => [{ type: 'Milestone', id }],
+    }),
     createMilestone: builder.mutation<{ success: boolean; data: Milestone; message: string }, Partial<Milestone>>({
       query: (body) => ({
         url: '/milestones',
         method: 'POST',
         body,
       }),
-      invalidatesTags: (_result, _error, body) => [{ type: 'Milestone', id: `LIST-${body.project}` }],
+      invalidatesTags: (_result, _error, body) => [{ type: 'Milestone', id: `LIST-${body.project}` }, 'Milestone'],
     }),
     updateMilestone: builder.mutation<{ success: boolean; data: Milestone; message: string }, Partial<Milestone> & { _id: string }>({
       query: (body) => ({
@@ -42,6 +47,7 @@ export const milestoneApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, body) => [
         { type: 'Milestone', id: body._id },
         { type: 'Milestone', id: `LIST-${body.project}` },
+        'Milestone',
       ],
     }),
     deleteMilestone: builder.mutation<{ success: boolean; data: null; message: string }, string>({
@@ -56,6 +62,7 @@ export const milestoneApi = baseApi.injectEndpoints({
 
 export const {
   useGetMilestonesByProjectQuery,
+  useGetMilestoneByIdQuery,
   useCreateMilestoneMutation,
   useUpdateMilestoneMutation,
   useDeleteMilestoneMutation,

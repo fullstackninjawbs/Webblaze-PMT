@@ -7,7 +7,7 @@ import {
 } from '@mantine/core';
 import {
   ArrowLeft, Building2, Mail, Phone, MapPin, Globe, DollarSign,
-  Briefcase, FileText, TrendingUp, Clock, AlertCircle,
+  Briefcase, FileText, TrendingUp, Clock, AlertCircle, Plus, Edit,
 } from 'lucide-react';
 import { useGetClientByIdQuery } from './client.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
@@ -102,13 +102,25 @@ export const ClientDetail: React.FC = () => {
 
   return (
     <Container size="xl">
-      {/* Back Button */}
-      <Button
-        variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />}
-        onClick={() => navigate('/clients')} mb="lg" style={{ paddingLeft: 0 }}
-      >
-        Back to Clients
-      </Button>
+      {/* Top Action Bar */}
+      <Group justify="space-between" align="center" mb="lg">
+        <Button
+          variant="subtle" color="gray" leftSection={<ArrowLeft size={16} />}
+          onClick={() => navigate('/clients')} style={{ paddingLeft: 0 }}
+        >
+          Back to Clients
+        </Button>
+
+        <Button
+          variant="filled"
+          color="blue"
+          leftSection={<Plus size={16} />}
+          onClick={() => navigate(`/projects?create=true&client=${client._id}`)}
+          radius="md"
+        >
+          Create Project
+        </Button>
+      </Group>
 
       {/* Header Card */}
       <Card withBorder shadow="sm" radius="xl" p="xl" mb="xl"
@@ -190,10 +202,20 @@ export const ClientDetail: React.FC = () => {
         <Tabs.Panel value="projects">
           <Card withBorder radius="md" p={0}>
             {clientProjects.length === 0 ? (
-              <Center h={200}>
-                <Stack align="center">
+              <Center h={240}>
+                <Stack align="center" gap="sm">
                   <Briefcase size={40} color="#cbd5e1" />
-                  <Text c="dimmed">No projects for this client yet.</Text>
+                  <Text c="dimmed" fw={500}>No projects for this client yet.</Text>
+                  <Button
+                    size="sm"
+                    variant="filled"
+                    color="blue"
+                    leftSection={<Plus size={16} />}
+                    onClick={() => navigate(`/projects?create=true&client=${client._id}`)}
+                    radius="md"
+                  >
+                    Create Project for {client.name}
+                  </Button>
                 </Stack>
               </Center>
             ) : (
@@ -205,7 +227,7 @@ export const ClientDetail: React.FC = () => {
                     <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>BUDGET</Table.Th>
                     <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>RECEIVED</Table.Th>
                     <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>PROGRESS</Table.Th>
-                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ACTION</Table.Th>
+                    <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700, textAlign: 'right' }}>ACTION</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -241,10 +263,15 @@ export const ClientDetail: React.FC = () => {
                               color={progress === 100 ? 'green' : 'blue'} />
                           </Group>
                         </Table.Td>
-                        <Table.Td>
-                          <Button size="xs" variant="light" onClick={() => navigate(`/projects/${project._id}`)}>
-                            View
-                          </Button>
+                        <Table.Td ta="right">
+                          <Group gap="xs" justify="flex-end">
+                            <Button size="xs" variant="light" onClick={() => navigate(`/projects/${project._id}`)}>
+                              View
+                            </Button>
+                            <Button size="xs" variant="outline" color="blue" leftSection={<Edit size={12} />} onClick={() => navigate(`/projects?edit=${project._id}`)}>
+                              Edit Project
+                            </Button>
+                          </Group>
                         </Table.Td>
                       </Table.Tr>
                     );

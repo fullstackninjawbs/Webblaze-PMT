@@ -57,6 +57,14 @@ export const getTeamTimeLogs = asyncHandler(async (req: Request, res: Response) 
   });
 });
 
+export const getTeamHoursSummary = asyncHandler(async (req: Request, res: Response) => {
+  const summary = await timeLogService.getTeamHoursSummary();
+  res.status(200).json({
+    success: true,
+    data: summary,
+  });
+});
+
 export const createManualLog = asyncHandler(async (req: Request, res: Response) => {
   const { taskId, hours, description } = req.body;
   const userId = (req as any).user._id || (req as any).user.id;

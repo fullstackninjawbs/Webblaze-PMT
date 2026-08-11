@@ -173,6 +173,7 @@ export const MyTasks = () => {
           <Group gap={4} mb={10}>
             <Calendar size={12} color="#64748b" />
             <Text size="xs" c="dimmed" fw={500}>Due {formattedDueDate}</Text>
+            {isOverBudget && <Badge color="red" variant="outline" size="xs">+{ Number((spentHours - estHours).toFixed(2)) }h Over</Badge>}
           </Group>
         )}
 
@@ -180,7 +181,7 @@ export const MyTasks = () => {
         <Group justify="space-between" mb={4}>
           <Text size="xs" fw={600}>Progress</Text>
           <Text size="xs" fw={600} c={isOverBudget ? 'red' : undefined}>
-            {spentHours.toFixed(1)}h / {estHours}h
+            {Number(spentHours.toFixed(2))}h / {estHours}h
           </Text>
         </Group>
         <Progress 
@@ -511,13 +512,13 @@ export const MyTasks = () => {
                   <Clock size={13} color="#64748b" />
                   <Text size="xs" c="dimmed" fw={600}>Hours Spent:</Text>
                   <Text size="xs" fw={700} c={selectedTaskForReview.spentHours > selectedTaskForReview.estimatedHours ? 'red' : 'blue'}>
-                    {(selectedTaskForReview.spentHours || 0).toFixed(1)}h / {selectedTaskForReview.estimatedHours}h
+                    {Number((selectedTaskForReview.spentHours || 0).toFixed(2))}h / {selectedTaskForReview.estimatedHours}h
                   </Text>
                 </Group>
 
                 {selectedTaskForReview.spentHours > selectedTaskForReview.estimatedHours && (
                   <Badge color="red" variant="outline" size="xs">
-                    +{(selectedTaskForReview.spentHours - selectedTaskForReview.estimatedHours).toFixed(1)}h Over Budget
+                    +{Number((selectedTaskForReview.spentHours - selectedTaskForReview.estimatedHours).toFixed(2))}h Over Budget
                   </Badge>
                 )}
               </Group>
