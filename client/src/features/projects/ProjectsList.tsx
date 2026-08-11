@@ -86,7 +86,7 @@ export const ProjectsList: React.FC = () => {
   const [showOverview, setShowOverview] = useState(false);
   const { user } = useSelector((state: RootState) => state.auth);
 
-  const canManageProjects = Boolean(user);
+  const canManageProjects = user?.role === Role.ADMIN || user?.role === Role.PM;
   const isFinancialsVisible = user?.role === Role.ADMIN || user?.role === Role.PM;
 
   const form = useForm({

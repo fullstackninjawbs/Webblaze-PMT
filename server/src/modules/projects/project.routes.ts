@@ -6,6 +6,8 @@ import { validate } from '../../middlewares/validate.middleware';
 import { createProjectSchema, updateProjectSchema } from './project.validation';
 import { Role } from '../../types';
 
+import { PERMISSIONS } from '../../config/permissions';
+
 const router = Router();
 
 router.use(authMiddleware);
@@ -14,9 +16,11 @@ router.use(authMiddleware);
 router.get('/', projectController.getProjects);
 router.get('/:id', projectController.getProjectById);
 
-// All user roles can create, update, and delete projects
-router.post('/', validate(createProjectSchema), projectController.createProject);
-router.patch('/:id', validate(updateProjectSchema), projectController.updateProject);
-router.delete('/:id', projectController.deleteProject);
+// Admin and PM can create and update projects
+router.post('/', rbacMiddleware(PERMISSIONS['projects:manage']), validate(createProjectSchema), projectController.createProject);
+router.patch('/:id', rbacMiddleware(PERMISSIONS['projects:manage']), validate(updateProjectSchema), projectController.updateProject);
+
+// Only Admin can delete projects
+router.delete('/:id', rbacMiddleware([Role.ADMIN]), projectController.deleteProject);
 
 export default router;

@@ -14,11 +14,8 @@ router.use(authMiddleware);
 router.get('/', clientController.getClients);
 router.get('/:id', clientController.getClientById);
 
-// Only ADMIN and PM can manage (create, update, delete) clients
-router.use(rbacMiddleware([Role.ADMIN, Role.PM]));
-
-router.post('/', validate(createClientSchema), clientController.createClient);
-router.patch('/:id', validate(updateClientSchema), clientController.updateClient);
-router.delete('/:id', clientController.deleteClient);
+router.post('/', rbacMiddleware([Role.ADMIN, Role.PM]), validate(createClientSchema), clientController.createClient);
+router.patch('/:id', rbacMiddleware([Role.ADMIN, Role.PM]), validate(updateClientSchema), clientController.updateClient);
+router.delete('/:id', rbacMiddleware([Role.ADMIN]), clientController.deleteClient);
 
 export default router;

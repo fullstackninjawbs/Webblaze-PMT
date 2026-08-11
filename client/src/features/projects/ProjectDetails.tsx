@@ -62,7 +62,7 @@ export const ProjectDetails = () => {
   const navigate = useNavigate();
 
   const { user } = useSelector((state: RootState) => state.auth);
-  const isAdminOrPM = Boolean(user);
+  const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
 
   const { data: projectsData, isLoading: isProjectLoading } = useGetProjectsQuery();
   const project = projectsData?.data?.find(p => p._id === id);
@@ -780,17 +780,19 @@ export const ProjectDetails = () => {
         <Tabs.Panel value="milestones">
           <Group justify="space-between" mb="md">
             <Title order={3}>Project Milestones</Title>
-            <Button
-              leftSection={<Plus size={16} />}
-              onClick={() => navigate(`/projects/${id}/milestones/new`)}
-              style={{
-                background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                fontWeight: 600,
-                boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-              }}
-            >
-              Add Milestone
-            </Button>
+            {isAdminOrPM && (
+              <Button
+                leftSection={<Plus size={16} />}
+                onClick={() => navigate(`/projects/${id}/milestones/new`)}
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                  fontWeight: 600,
+                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                }}
+              >
+                Add Milestone
+              </Button>
+            )}
           </Group>
 
           {milestones.length > 0 ? (
@@ -1154,6 +1156,8 @@ const MilestoneTableRow = ({
   canManage?: boolean;
 }) => {
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
+  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
   const { data: tasksData } = useGetTasksByMilestoneQuery(milestone._id);
   const tasks = tasksData?.data || [];
 
@@ -1237,17 +1241,19 @@ const MilestoneTableRow = ({
             </ActionIcon>
           </Tooltip>
 
-          <Button
-            size="xs"
-            variant="light"
-            leftSection={<Plus size={14} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/projects/${pId}/tasks/new`);
-            }}
-          >
-            Add Task
-          </Button>
+          {canCreateTask && (
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<Plus size={14} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/projects/${pId}/tasks/new`);
+              }}
+            >
+              Add Task
+            </Button>
+          )}
 
           {canManage && (
             <>
@@ -1559,17 +1565,22 @@ const ProjectTasks = ({
     }
   };
 
+  const { user } = useSelector((state: RootState) => state.auth);
+  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
+
   return (
     <Card withBorder shadow="sm" p="md" radius="md">
       <Group justify="space-between" mb="lg">
         <Title order={3}>Tasks</Title>
-        <Button
-          leftSection={<Plus size={16} />}
-          onClick={() => navigate(`/projects/${_projectId}/tasks/new`)}
-          radius="md"
-        >
-          New Task
-        </Button>
+        {canCreateTask && (
+          <Button
+            leftSection={<Plus size={16} />}
+            onClick={() => navigate(`/projects/${_projectId}/tasks/new`)}
+            radius="md"
+          >
+            New Task
+          </Button>
+        )}
       </Group>
 
       {/* Filters */}

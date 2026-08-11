@@ -13,6 +13,9 @@ import { useGetClientByIdQuery } from './client.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetInvoicesQuery } from '../invoices/invoice.slice';
 import { formatDateDisplay } from '../../utils/dateUtils';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
+import { Role } from '../../types';
 
 const StatCard = ({
   label, value, sub, icon: Icon, color,
@@ -50,6 +53,9 @@ const invoiceStatusColor = (s: string) => {
 export const ClientDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+
+  const { user } = useSelector((state: RootState) => state.auth);
+  const canManageProjects = user?.role === Role.ADMIN || user?.role === Role.PM;
 
   const { data: clientData, isLoading: isClientLoading } = useGetClientByIdQuery(id!);
   const { data: projectsData, isLoading: isProjectsLoading } = useGetProjectsQuery();
@@ -111,15 +117,17 @@ export const ClientDetail: React.FC = () => {
           Back to Clients
         </Button>
 
-        <Button
-          variant="filled"
-          color="blue"
-          leftSection={<Plus size={16} />}
-          onClick={() => navigate(`/projects?create=true&client=${client._id}`)}
-          radius="md"
-        >
-          Create Project
-        </Button>
+        {canManageProjects && (
+          <Button
+            variant="filled"
+            color="blue"
+            leftSection={<Plus size={16} />}
+            onClick={() => navigate(`/projects?create=true&client=${client._id}`)}
+            radius="md"
+          >
+            Create Project
+          </Button>
+        )}
       </Group>
 
       {/* Header Card */}

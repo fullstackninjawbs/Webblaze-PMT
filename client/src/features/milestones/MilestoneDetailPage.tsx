@@ -12,6 +12,9 @@ import { useGetTasksByMilestoneQuery } from '../tasks/task.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { formatDateDisplay, formatHoursDisplay } from '../../utils/dateUtils';
 import { UserAvatar } from '../../components/common/UserAvatar';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
+import { Role } from '../../types';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -33,8 +36,12 @@ const getTaskStatusColor = (status: string) => {
 };
 
 export const MilestoneDetailPage: React.FC = () => {
-  const { projectId, id } = useParams<{ projectId?: string; id: string }>();
+  const { id, projectId: paramProjectId } = useParams<{ id: string; projectId?: string }>();
   const navigate = useNavigate();
+
+  const { user } = useSelector((state: RootState) => state.auth);
+  const canManageMilestones = user?.role === Role.ADMIN || user?.role === Role.PM;
+  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
 
   const { data: milestoneData, isLoading: isMilestoneLoading } = useGetMilestoneByIdQuery(id!);
   const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByMilestoneQuery(id!);
@@ -43,7 +50,7 @@ export const MilestoneDetailPage: React.FC = () => {
   const milestone = milestoneData?.data;
   const tasks = tasksData?.data || [];
 
-  const pId = projectId || (typeof milestone?.project === 'object' ? (milestone?.project as any)?._id : milestone?.project);
+  const pId = paramProjectId || (typeof milestone?.project === 'object' ? (milestone?.project as any)?._id : milestone?.project);
   const project = projectsData?.data?.find(p => p._id === pId);
 
   if (isMilestoneLoading || isTasksLoading) {
@@ -92,25 +99,29 @@ export const MilestoneDetailPage: React.FC = () => {
         </Button>
 
         <Group gap="sm">
-          <Button
-            variant="light"
-            color="blue"
-            leftSection={<Edit size={16} />}
-            onClick={() => navigate(pId ? `/projects/${pId}/milestones/${milestone._id}/edit` : `/milestones/${milestone._id}/edit`)}
-            radius="md"
-          >
-            Edit Milestone
-          </Button>
+          {canManageMilestones && (
+            <Button
+              variant="light"
+              color="blue"
+              leftSection={<Edit size={16} />}
+              onClick={() => navigate(pId ? `/projects/${pId}/milestones/${milestone._id}/edit` : `/milestones/${milestone._id}/edit`)}
+              radius="md"
+            >
+              Edit Milestone
+            </Button>
+          )}
 
-          <Button
-            variant="filled"
-            color="blue"
-            leftSection={<Plus size={16} />}
-            onClick={() => navigate(pId ? `/projects/${pId}/tasks/new` : `/tasks/new`)}
-            radius="md"
-          >
-            Add Task
-          </Button>
+          {canCreateTask && (
+            <Button
+              variant="filled"
+              color="blue"
+              leftSection={<Plus size={16} />}
+              onClick={() => navigate(pId ? `/projects/${pId}/tasks/new` : `/tasks/new`)}
+              radius="md"
+            >
+              Add Task
+            </Button>
+          )}
         </Group>
       </Group>
 
@@ -208,15 +219,17 @@ export const MilestoneDetailPage: React.FC = () => {
             <Badge variant="light" color="blue" size="md">{tasks.length} tasks</Badge>
           </Group>
 
-          <Button
-            size="xs"
-            variant="light"
-            leftSection={<Plus size={14} />}
-            onClick={() => navigate(pId ? `/projects/${pId}/tasks/new` : `/tasks/new`)}
-            radius="md"
-          >
-            New Task
-          </Button>
+          {canCreateTask && (
+            <Button
+              size="xs"
+              variant="light"
+              leftSection={<Plus size={14} />}
+              onClick={() => navigate(pId ? `/projects/${pId}/tasks/new` : `/tasks/new`)}
+              radius="md"
+            >
+              New Task
+            </Button>
+          )}
         </Group>
 
         {tasks.length === 0 ? (

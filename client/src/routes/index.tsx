@@ -50,15 +50,50 @@ const AppRoutes = () => {
         <Route path="/projects/:id" element={<ProjectDetails />} />
 
         {/* Milestone Routes */}
-        <Route path="/projects/:projectId/milestones/new" element={<MilestoneCreatePage />} />
+        <Route 
+          path="/projects/:projectId/milestones/new" 
+          element={
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM]} fallback={<Navigate to="/dashboard" replace />}>
+              <MilestoneCreatePage />
+            </RoleGuard>
+          } 
+        />
         <Route path="/projects/:projectId/milestones/:id" element={<MilestoneDetailPage />} />
-        <Route path="/projects/:projectId/milestones/:id/edit" element={<MilestoneEditPage />} />
+        <Route 
+          path="/projects/:projectId/milestones/:id/edit" 
+          element={
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM]} fallback={<Navigate to="/dashboard" replace />}>
+              <MilestoneEditPage />
+            </RoleGuard>
+          } 
+        />
         <Route path="/milestones/:id" element={<MilestoneDetailPage />} />
-        <Route path="/milestones/:id/edit" element={<MilestoneEditPage />} />
+        <Route 
+          path="/milestones/:id/edit" 
+          element={
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM]} fallback={<Navigate to="/dashboard" replace />}>
+              <MilestoneEditPage />
+            </RoleGuard>
+          } 
+        />
 
         {/* Task Create Routes */}
-        <Route path="/projects/:projectId/tasks/new" element={<TaskCreatePage />} />
-        <Route path="/tasks/new" element={<TaskCreatePage />} />
+        <Route 
+          path="/projects/:projectId/tasks/new" 
+          element={
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM, Role.TEAM_LEAD]} fallback={<Navigate to="/dashboard" replace />}>
+              <TaskCreatePage />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="/tasks/new" 
+          element={
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM, Role.TEAM_LEAD]} fallback={<Navigate to="/dashboard" replace />}>
+              <TaskCreatePage />
+            </RoleGuard>
+          } 
+        />
 
         <Route path="/team" element={<UsersList />} />
         <Route path="/team/:id" element={<UserProfile />} />

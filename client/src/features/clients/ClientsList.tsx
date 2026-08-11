@@ -345,24 +345,24 @@ export const ClientsList: React.FC = () => {
             <Eye size={16} />
           </ActionIcon>
           {isAdminOrPM && (
-            <>
-              <ActionIcon
-                variant="subtle"
-                color="blue"
-                onClick={() => openEditDrawer(client)}
-                title="Edit"
-              >
-                <Edit size={16} />
-              </ActionIcon>
-              <ActionIcon
-                variant="subtle"
-                color="red"
-                onClick={() => handleDelete(client._id, client.name)}
-                title="Delete"
-              >
-                <Trash size={16} />
-              </ActionIcon>
-            </>
+            <ActionIcon
+              variant="subtle"
+              color="blue"
+              onClick={() => openEditDrawer(client)}
+              title="Edit"
+            >
+              <Edit size={16} />
+            </ActionIcon>
+          )}
+          {user?.role === Role.ADMIN && (
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              onClick={() => handleDelete(client._id, client.name)}
+              title="Delete"
+            >
+              <Trash size={16} />
+            </ActionIcon>
           )}
         </Group>
       </Table.Td>
