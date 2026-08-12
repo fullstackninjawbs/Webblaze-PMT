@@ -45,6 +45,14 @@ const taskSchema = z.object({
   endDate: z.string().optional(),
   assignedTo: z.string().optional(),
   milestone: z.string(),
+}).refine(data => {
+  if (data.startDate && data.endDate) {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: "End Date cannot be before Start Date",
+  path: ["endDate"],
 });
 
 const editTaskSchema = z.object({
@@ -55,6 +63,14 @@ const editTaskSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   assignedTo: z.string().optional(),
+}).refine(data => {
+  if (data.startDate && data.endDate) {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: "End Date cannot be before Start Date",
+  path: ["endDate"],
 });
 
 export const ProjectDetails = () => {
@@ -886,6 +902,7 @@ export const ProjectDetails = () => {
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(milestoneForm.values.startDate)}
                 onChange={(val) => milestoneForm.setFieldValue('startDate', formatLocalDateString(val))}
+                error={milestoneForm.errors.startDate}
                 clearable
                 radius="md"
               />
@@ -897,6 +914,7 @@ export const ProjectDetails = () => {
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(milestoneForm.values.endDate)}
                 onChange={(val) => milestoneForm.setFieldValue('endDate', formatLocalDateString(val))}
+                error={milestoneForm.errors.endDate}
                 clearable
                 radius="md"
               />
@@ -959,6 +977,7 @@ export const ProjectDetails = () => {
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(taskForm.values.startDate)}
                 onChange={(val) => taskForm.setFieldValue('startDate', formatLocalDateString(val))}
+                error={taskForm.errors.startDate}
                 clearable
                 radius="md"
               />
@@ -970,6 +989,7 @@ export const ProjectDetails = () => {
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(taskForm.values.endDate)}
                 onChange={(val) => taskForm.setFieldValue('endDate', formatLocalDateString(val))}
+                error={taskForm.errors.endDate}
                 clearable
                 radius="md"
               />
@@ -1007,6 +1027,7 @@ export const ProjectDetails = () => {
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(editMilestoneForm.values.startDate)}
                 onChange={(val) => editMilestoneForm.setFieldValue('startDate', formatLocalDateString(val))}
+                error={editMilestoneForm.errors.startDate}
                 clearable
                 radius="md"
               />
@@ -1018,6 +1039,7 @@ export const ProjectDetails = () => {
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(editMilestoneForm.values.endDate)}
                 onChange={(val) => editMilestoneForm.setFieldValue('endDate', formatLocalDateString(val))}
+                error={editMilestoneForm.errors.endDate}
                 clearable
                 radius="md"
               />
@@ -1070,6 +1092,7 @@ export const ProjectDetails = () => {
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(editTaskForm.values.startDate)}
                 onChange={(val) => editTaskForm.setFieldValue('startDate', formatLocalDateString(val))}
+                error={editTaskForm.errors.startDate}
                 clearable
                 radius="md"
               />
@@ -1081,6 +1104,7 @@ export const ProjectDetails = () => {
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(editTaskForm.values.endDate)}
                 onChange={(val) => editTaskForm.setFieldValue('endDate', formatLocalDateString(val))}
+                error={editTaskForm.errors.endDate}
                 clearable
                 radius="md"
               />

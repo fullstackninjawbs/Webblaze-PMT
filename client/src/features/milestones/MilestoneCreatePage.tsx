@@ -19,6 +19,14 @@ const milestoneSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   status: z.enum(['not_started', 'in_progress', 'on_hold', 'completed', 'cancelled']),
+}).refine(data => {
+  if (data.startDate && data.endDate) {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: "End Date cannot be before Start Date",
+  path: ["endDate"],
 });
 
 export const MilestoneCreatePage: React.FC = () => {
@@ -146,10 +154,12 @@ export const MilestoneCreatePage: React.FC = () => {
                 label="Start Date"
                 placeholder="Pick start date"
                 radius="md"
+                maxDate={form.values.endDate ? parseLocalDateString(form.values.endDate) || undefined : undefined}
                 value={form.values.startDate ? parseLocalDateString(form.values.startDate) : null}
                 onChange={(date) =>
                   form.setFieldValue('startDate', date ? formatLocalDateString(date) : '')
                 }
+                error={form.errors.startDate}
                 clearable
               />
 
@@ -157,10 +167,12 @@ export const MilestoneCreatePage: React.FC = () => {
                 label="End Date"
                 placeholder="Pick end date"
                 radius="md"
+                minDate={form.values.startDate ? parseLocalDateString(form.values.startDate) || undefined : undefined}
                 value={form.values.endDate ? parseLocalDateString(form.values.endDate) : null}
                 onChange={(date) =>
                   form.setFieldValue('endDate', date ? formatLocalDateString(date) : '')
                 }
+                error={form.errors.endDate}
                 clearable
               />
             </Group>

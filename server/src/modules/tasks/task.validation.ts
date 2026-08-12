@@ -14,8 +14,15 @@ export const createTaskSchema = z.object({
     status: z.enum(['assigned', 'in_progress', 'in_review', 'completed', 'on_hold']).optional(),
     workSummary: z.string().optional().nullable(),
     prLink: z.string().optional().nullable(),
-    attachments: z.array(z.string()).optional(),
-  }),
+  })
+}).refine(data => {
+  if (data.body.startDate && data.body.endDate) {
+    return new Date(data.body.endDate) >= new Date(data.body.startDate);
+  }
+  return true;
+}, {
+  message: "End Date cannot be before Start Date",
+  path: ["body", "endDate"],
 });
 
 export const updateTaskSchema = z.object({
@@ -31,6 +38,13 @@ export const updateTaskSchema = z.object({
     status: z.enum(['assigned', 'in_progress', 'in_review', 'completed', 'on_hold']).optional(),
     workSummary: z.string().optional().nullable(),
     prLink: z.string().optional().nullable(),
-    attachments: z.array(z.string()).optional(),
-  }),
+  })
+}).refine(data => {
+  if (data.body.startDate && data.body.endDate) {
+    return new Date(data.body.endDate) >= new Date(data.body.startDate);
+  }
+  return true;
+}, {
+  message: "End Date cannot be before Start Date",
+  path: ["body", "endDate"],
 });
