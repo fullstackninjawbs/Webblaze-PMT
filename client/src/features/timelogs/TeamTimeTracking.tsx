@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Container, Title, Text, Card, Table, Badge, Group, SimpleGrid, ActionIcon, TextInput } from '@mantine/core';
-import { Trash, Search, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { useGetTeamTimeLogsQuery, useGetTeamHoursSummaryQuery, useDeleteTimeLogMutation } from './timeLog.slice';
+import { useGetTeamTimeLogsQuery, useGetTeamHoursSummaryQuery } from './timeLog.slice';
 
 export const TeamTimeTracking = () => {
   const { data: logsData, isLoading } = useGetTeamTimeLogsQuery();
   const { data: hoursSummaryData } = useGetTeamHoursSummaryQuery();
-  const [deleteTimeLog] = useDeleteTimeLogMutation();
   const [searchQuery, setSearchQuery] = useState('');
 
   const logs = logsData?.data || [];
@@ -234,7 +233,6 @@ export const TeamTimeTracking = () => {
               <Table.Th>Start Time</Table.Th>
               <Table.Th>End Time</Table.Th>
               <Table.Th>Total Logged</Table.Th>
-              <Table.Th w={60}></Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -242,7 +240,6 @@ export const TeamTimeTracking = () => {
               const user = typeof log.user === 'object' ? log.user : null;
               const task = typeof log.task === 'object' ? log.task : null;
               const project = (task?.milestone as any)?.project;
-              const taskId = task?._id;
 
               return (
                 <Table.Tr key={log._id}>
@@ -270,17 +267,6 @@ export const TeamTimeTracking = () => {
                   </Table.Td>
                   <Table.Td>
                     <Text size="sm" fw={600}>{formatDuration(log.durationSeconds)}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      size="sm"
-                      onClick={() => deleteTimeLog({ id: log._id, taskId })}
-                      title="Delete time log"
-                    >
-                      <Trash size={14} />
-                    </ActionIcon>
                   </Table.Td>
                 </Table.Tr>
               );

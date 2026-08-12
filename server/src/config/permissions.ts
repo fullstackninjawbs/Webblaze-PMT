@@ -5,7 +5,7 @@ export const PERMISSIONS = {
   'projects:manage':       [Role.ADMIN, Role.PM],
   'projects:view':         [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER],
   'milestones:manage':     [Role.ADMIN, Role.PM],
-  'tasks:manage':          [Role.ADMIN, Role.PM, Role.TEAM_LEAD],
+  'tasks:manage':          [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER],
   'tasks:view':            [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER],
   'invoices:manage':       [Role.ADMIN, Role.PM],
   'financials:view':       [Role.ADMIN, Role.PM],

@@ -41,7 +41,7 @@ export const MilestoneDetailPage: React.FC = () => {
 
   const { user } = useSelector((state: RootState) => state.auth);
   const canManageMilestones = user?.role === Role.ADMIN || user?.role === Role.PM;
-  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
+  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER;
 
   const { data: milestoneData, isLoading: isMilestoneLoading } = useGetMilestoneByIdQuery(id!);
   const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByMilestoneQuery(id!);

@@ -1,20 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper, NumberInput } from '@mantine/core';
-import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Trash, RotateCcw, Plus } from 'lucide-react';
+import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Plus } from 'lucide-react';
 import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useDeleteTimeLogMutation, useClearTaskTimeLogsMutation, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
+import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
 import { useUploadFileMutation } from '../uploads/upload.slice';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../app/store';
-import { Role } from '../../types';
-
 export const TaskDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useSelector((state: RootState) => state.auth);
-  const isManagement = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
 
   const { data: taskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(id as string);
   const { data: timeLogsData, isLoading: isLogsLoading } = useGetTimeLogsByTaskQuery(id as string);
@@ -23,8 +17,6 @@ export const TaskDetail = () => {
   const [startTimer] = useStartTimerMutation();
   const [stopTimer] = useStopTimerMutation();
   const [updateTask] = useUpdateTaskMutation();
-  const [deleteTimeLog] = useDeleteTimeLogMutation();
-  const [clearTaskTimeLogs] = useClearTaskTimeLogsMutation();
   const [createManualTimeLog, { isLoading: isCreatingManualLog }] = useCreateManualTimeLogMutation();
 
   const [, setTicker] = useState<number>(0);
@@ -64,25 +56,6 @@ export const TaskDetail = () => {
   const totalSpentHours = (task.spentHours || 0) + activeElapsedHours;
   const progressPercent = Math.min((totalSpentHours / (task.estimatedHours || 1)) * 100, 100);
 
-  const handleDeleteLog = async (logId: string) => {
-    if (!isManagement) return;
-    try {
-      await deleteTimeLog({ id: logId, taskId: id }).unwrap();
-    } catch (err) {
-      console.error('Failed to delete time log', err);
-    }
-  };
-
-  const handleClearAllLogs = async () => {
-    if (!isManagement) return;
-    if (window.confirm('Are you sure you want to clear all logged time for this task? This will reset logged hours.')) {
-      try {
-        await clearTaskTimeLogs(id as string).unwrap();
-      } catch (err) {
-        console.error('Failed to clear time logs', err);
-      }
-    }
-  };
 
   const handleStartTimer = async () => {
     if (activeTimer && !isTimerActiveForThisTask) {
@@ -245,18 +218,6 @@ export const TaskDetail = () => {
           >
             Log Manual Time
           </Button>
-
-          {isManagement && timeLogs.length > 0 && (
-            <Button
-              variant="light"
-              color="red"
-              size="xs"
-              leftSection={<RotateCcw size={14} />}
-              onClick={handleClearAllLogs}
-            >
-              Clear All Time Logs
-            </Button>
-          )}
         </Group>
       </Group>
 
@@ -282,17 +243,6 @@ export const TaskDetail = () => {
                     </Text>
                     <Group gap="xs" wrap="nowrap">
                       <Text size="xs" color="dimmed">{new Date(log.startTime).toLocaleString()}</Text>
-                      {isManagement && (
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          size="xs"
-                          onClick={() => handleDeleteLog(log._id)}
-                          title="Delete this time log"
-                        >
-                          <Trash size={14} />
-                        </ActionIcon>
-                      )}
                     </Group>
                   </Group>
                 }

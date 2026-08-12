@@ -21,7 +21,6 @@ import { DatePickerInput } from '@mantine/dates';
 import {
   Plus,
   Edit,
-  Trash,
   Calendar,
   Clock,
   CheckCircle2,
@@ -33,14 +32,12 @@ import {
   useGetReleasesQuery,
   useCreateReleaseMutation,
   useUpdateReleaseMutation,
-  useDeleteReleaseMutation,
 } from './release.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetUsersQuery } from '../users/user.slice';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 
-import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
 import { DEPARTMENT_OPTIONS } from '../../types';
 
@@ -59,7 +56,6 @@ export const ReleasesPage: React.FC = () => {
   const { data: usersData } = useGetUsersQuery();
   const [createRelease, { isLoading: isCreating }] = useCreateReleaseMutation();
   const [updateRelease, { isLoading: isUpdating }] = useUpdateReleaseMutation();
-  const [deleteRelease] = useDeleteReleaseMutation();
 
   const [opened, setOpened] = useState(false);
   const [editingRelease, setEditingRelease] = useState<any>(null);
@@ -121,18 +117,6 @@ export const ReleasesPage: React.FC = () => {
     setOpened(true);
   };
 
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-
-  const handleDeleteRelease = (id: string, name: string) => {
-    setDeleteTarget({ id, name });
-  };
-
-  const confirmDelete = async () => {
-    if (deleteTarget) {
-      await deleteRelease(deleteTarget.id).unwrap();
-      setDeleteTarget(null);
-    }
-  };
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
@@ -376,14 +360,6 @@ export const ReleasesPage: React.FC = () => {
                         >
                           <Edit size={16} />
                         </ActionIcon>
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          onClick={() => handleDeleteRelease(release._id, release.details)}
-                          title="Delete Release"
-                        >
-                          <Trash size={16} />
-                        </ActionIcon>
                       </Group>
                     </Table.Td>
                   </Table.Tr>
@@ -499,14 +475,7 @@ export const ReleasesPage: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmModal
-        opened={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={confirmDelete}
-        title="Delete Release"
-        itemName={deleteTarget?.name}
-      />
+
     </Container>
   );
 };

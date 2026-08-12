@@ -1157,7 +1157,7 @@ const MilestoneTableRow = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
+  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER;
   const { data: tasksData } = useGetTasksByMilestoneQuery(milestone._id);
   const tasks = tasksData?.data || [];
 
@@ -1566,7 +1566,7 @@ const ProjectTasks = ({
   };
 
   const { user } = useSelector((state: RootState) => state.auth);
-  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
+  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER;
 
   return (
     <Card withBorder shadow="sm" p="md" radius="md">

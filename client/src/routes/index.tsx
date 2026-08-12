@@ -81,7 +81,7 @@ const AppRoutes = () => {
         <Route 
           path="/projects/:projectId/tasks/new" 
           element={
-            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM, Role.TEAM_LEAD]} fallback={<Navigate to="/dashboard" replace />}>
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER]} fallback={<Navigate to="/dashboard" replace />}>
               <TaskCreatePage />
             </RoleGuard>
           } 
@@ -89,7 +89,7 @@ const AppRoutes = () => {
         <Route 
           path="/tasks/new" 
           element={
-            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM, Role.TEAM_LEAD]} fallback={<Navigate to="/dashboard" replace />}>
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER]} fallback={<Navigate to="/dashboard" replace />}>
               <TaskCreatePage />
             </RoleGuard>
           } 
