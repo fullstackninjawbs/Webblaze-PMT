@@ -1295,6 +1295,8 @@ const MilestoneTableRow = ({
 
 const ProjectReports = ({ project, milestones }: { project: any; milestones: any[] }) => {
   const { data: tasksData } = useGetAllTasksQuery();
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
 
   if (!project) return null;
 
@@ -1321,16 +1323,18 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
 
   return (
     <Stack gap="xl" style={{ marginTop: '20px' }}>
-      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg">
-        <Card shadow="xs" p="lg" radius="lg" withBorder>
-          <Group justify="space-between" mb="xs">
-            <Text size="xs" fw={700} color="dimmed" tt="uppercase">Financial Progress</Text>
-            <DollarSign size={18} color="#10b981" />
-          </Group>
-          <Text size="lg" fw={800} color="teal">${received.toLocaleString()} Received</Text>
-          <Text size="xs" c="dimmed" mt={4}>Of total ${budget.toLocaleString()} amount</Text>
-          <Progress value={paidPercent} color="teal" size="sm" mt="md" radius="xl" />
-        </Card>
+      <SimpleGrid cols={{ base: 1, md: isAdminOrPM ? 3 : 2 }} spacing="lg">
+        {isAdminOrPM && (
+          <Card shadow="xs" p="lg" radius="lg" withBorder>
+            <Group justify="space-between" mb="xs">
+              <Text size="xs" fw={700} color="dimmed" tt="uppercase">Financial Progress</Text>
+              <DollarSign size={18} color="#10b981" />
+            </Group>
+            <Text size="lg" fw={800} color="teal">${received.toLocaleString()} Received</Text>
+            <Text size="xs" c="dimmed" mt={4}>Of total ${budget.toLocaleString()} amount</Text>
+            <Progress value={paidPercent} color="teal" size="sm" mt="md" radius="xl" />
+          </Card>
+        )}
 
         <Card shadow="xs" p="lg" radius="lg" withBorder>
           <Group justify="space-between" mb="xs">
@@ -1353,23 +1357,25 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
         </Card>
       </SimpleGrid>
 
-      <Card shadow="xs" p="xl" radius="lg" withBorder>
-        <Title order={4} mb="md">Total Amount Invoicing Progress</Title>
-        <Progress.Root size="lg" radius="xl" mb="md" style={{ backgroundColor: '#f1f5f9' }}>
-          <Progress.Section value={paidPercent} color="#10b981" />
-          <Progress.Section value={pendingPercent} color="#6366f1" />
-        </Progress.Root>
-        <Group justify="space-between">
-          <Group gap="xs">
-            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981' }} />
-            <Text size="xs" color="dimmed" fw={500}>Paid Amount: ${received.toLocaleString()} ({Math.round(paidPercent)}%)</Text>
+      {isAdminOrPM && (
+        <Card shadow="xs" p="xl" radius="lg" withBorder>
+          <Title order={4} mb="md">Total Amount Invoicing Progress</Title>
+          <Progress.Root size="lg" radius="xl" mb="md" style={{ backgroundColor: '#f1f5f9' }}>
+            <Progress.Section value={paidPercent} color="#10b981" />
+            <Progress.Section value={pendingPercent} color="#6366f1" />
+          </Progress.Root>
+          <Group justify="space-between">
+            <Group gap="xs">
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10b981' }} />
+              <Text size="xs" color="dimmed" fw={500}>Paid Amount: ${received.toLocaleString()} ({Math.round(paidPercent)}%)</Text>
+            </Group>
+            <Group gap="xs">
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#6366f1' }} />
+              <Text size="xs" color="dimmed" fw={500}>Pending Amount: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)</Text>
+            </Group>
           </Group>
-          <Group gap="xs">
-            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#6366f1' }} />
-            <Text size="xs" color="dimmed" fw={500}>Pending Amount: ${pending.toLocaleString()} ({Math.round(pendingPercent)}%)</Text>
-          </Group>
-        </Group>
-      </Card>
+        </Card>
+      )}
 
       {/* Milestone Performance & Results Summary Table */}
       <Card shadow="xs" p="xl" radius="lg" withBorder>
