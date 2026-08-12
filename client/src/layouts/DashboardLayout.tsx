@@ -221,6 +221,7 @@ export const DashboardLayout: React.FC = () => {
 
   return (
     <AppShell
+      layout="alt"
       navbar={{
         width: 260,
         breakpoint: 'sm',

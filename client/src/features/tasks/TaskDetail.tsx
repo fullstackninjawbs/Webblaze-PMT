@@ -153,7 +153,7 @@ export const TaskDetail = () => {
               </Badge>
             </Group>
             <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800 }}>{task.title}</Title>
-            <Text color="dimmed" mt="xs">{task.description || 'No description provided.'}</Text>
+            <Text color="dimmed" mt="xs" style={{ whiteSpace: 'pre-wrap' }}>{task.description || 'No description provided.'}</Text>
           </div>
           
           <Select

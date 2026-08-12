@@ -44,6 +44,16 @@ export const ActiveTimerBadge: React.FC = () => {
     };
   }, [activeTimer]);
 
+  useEffect(() => {
+    if (activeTimer) {
+      const title = typeof activeTimer.task === 'object' ? activeTimer.task.title : 'Tracking...';
+      document.title = `(${formatTime(elapsed)}) ${title}`;
+    } else {
+      document.title = 'WebBlaze PMS';
+    }
+    return () => { document.title = 'WebBlaze PMS'; };
+  }, [elapsed, activeTimer]);
+
   // Format timer displays
 
   const handleStop = async () => {
