@@ -6,9 +6,14 @@ import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
 import { useUploadFileMutation } from '../uploads/upload.slice';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
+import { Role } from '../../types';
+
 export const TaskDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
 
   const { data: taskData, isLoading: isTaskLoading } = useGetTaskByIdQuery(id as string);
   const { data: timeLogsData, isLoading: isLogsLoading } = useGetTimeLogsByTaskQuery(id as string);
@@ -161,7 +166,7 @@ export const TaskDetail = () => {
               { value: 'assigned', label: 'Assigned' },
               { value: 'in_progress', label: 'In Progress' },
               { value: 'in_review', label: 'In Review' },
-              { value: 'completed', label: 'Completed' },
+              ...((user?.role === Role.ADMIN || user?.role === Role.PM || task.status === 'completed') ? [{ value: 'completed', label: 'Completed' }] : []),
             ]}
             value={task.status}
             onChange={handleStatusChange}

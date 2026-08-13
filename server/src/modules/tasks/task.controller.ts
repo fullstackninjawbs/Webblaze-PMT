@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../../utils/asyncHandler';
 import * as taskService from './task.service';
+import { Role } from '../../types';
+import { ApiError } from '../../utils/ApiError';
 
 export const createTask = asyncHandler(async (req: Request, res: Response) => {
   // inject createdBy from auth user
@@ -42,6 +44,11 @@ export const getTaskById = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateTask = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as any).user;
+  
+  if (req.body.status === 'completed' && user.role !== Role.ADMIN && user.role !== Role.PM) {
+    throw new ApiError(403, 'Only PM or Admin can mark a task as completed');
+  }
+
   const task = await taskService.updateTask(req.params.id, req.body, user as any);
   res.status(200).json({
     success: true,

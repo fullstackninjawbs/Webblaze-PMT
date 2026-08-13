@@ -89,9 +89,9 @@ export const stopTimer = async (userId: string, description?: string): Promise<I
     { new: true }
   );
 
-  // Auto-complete task if spentHours has reached or exceeded estimatedHours
-  if (updatedTask && updatedTask.spentHours >= updatedTask.estimatedHours && updatedTask.status !== 'completed') {
-    await Task.findByIdAndUpdate(taskDoc._id, { status: 'completed' });
+  // Auto-transition task to in_review if spentHours has reached or exceeded estimatedHours
+  if (updatedTask && updatedTask.spentHours >= updatedTask.estimatedHours && updatedTask.status !== 'completed' && updatedTask.status !== 'in_review') {
+    await Task.findByIdAndUpdate(taskDoc._id, { status: 'in_review' });
   }
 
   if (taskDoc.milestone) {
@@ -208,8 +208,8 @@ export const createManualLog = async (userId: string, taskId: string, hours: num
     { new: true }
   );
 
-  if (updatedTask && updatedTask.spentHours >= updatedTask.estimatedHours && updatedTask.status !== 'completed') {
-    await Task.findByIdAndUpdate(taskId, { status: 'completed' });
+  if (updatedTask && updatedTask.spentHours >= updatedTask.estimatedHours && updatedTask.status !== 'completed' && updatedTask.status !== 'in_review') {
+    await Task.findByIdAndUpdate(taskId, { status: 'in_review' });
   }
 
   if (task.milestone) {
