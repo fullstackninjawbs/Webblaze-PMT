@@ -1,9 +1,22 @@
 import { User } from './user.model';
 import { ApiError } from '../../utils/ApiError';
+import { Role } from '../../types';
+import { normalizeDept } from '../../utils/department';
 
 export class UserService {
-  static async getUsers() {
-    return User.find().select('-password').sort({ createdAt: -1 });
+  static async getUsers(user?: any) {
+    const query: any = {};
+    if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
+      if (user.department) {
+        const deptVariants = normalizeDept(user.department);
+        const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
+        query.$or = [
+          { department: { $in: regexes } },
+          { department: user.department }
+        ];
+      }
+    }
+    return User.find(query).select('-password').sort({ createdAt: -1 });
   }
 
   static async getUserById(id: string) {

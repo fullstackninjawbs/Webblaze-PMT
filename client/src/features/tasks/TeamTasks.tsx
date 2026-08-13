@@ -3,7 +3,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { useGetAllTasksQuery, useUpdateTaskMutation } from './task.slice';
 import { useGetUsersQuery } from '../users/user.slice';
-import { Container, Title, Text, Group, Select, Loader, Center, Stack } from '@mantine/core';
+import { Container, Title, Text, Group, Select, Loader, Center, Stack, TextInput } from '@mantine/core';
+import { Search } from 'lucide-react';
 import { Role, DEPARTMENT_OPTIONS } from '../../types';
 import { TaskTable } from './TaskTable';
 
@@ -14,6 +15,7 @@ export const TeamTasks = () => {
   const [updateTask] = useUpdateTaskMutation();
 
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const tasks = tasksData?.data || [];
   const users = usersData?.data || [];
@@ -95,8 +97,24 @@ export const TeamTasks = () => {
         });
       }
     }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(t => {
+        const anyT = t as any;
+        const title = anyT.title?.toLowerCase() || '';
+        const description = anyT.description?.toLowerCase() || '';
+        const project = anyT.milestone?.project?.name?.toLowerCase() || '';
+        const assignee = (typeof anyT.assignedTo === 'object' ? anyT.assignedTo?.name : '')?.toLowerCase() || '';
+        const status = anyT.status?.replace('_', ' ').toLowerCase() || '';
+        const estHours = anyT.estimatedHours?.toString() || '';
+        
+        return title.includes(q) || description.includes(q) || project.includes(q) || assignee.includes(q) || status.includes(q) || estHours.includes(q);
+      });
+    }
+
     return result;
-  }, [tasks, selectedFilter, isGlobalManager]);
+  }, [tasks, selectedFilter, searchQuery, isGlobalManager]);
 
   const handleAssignTask = async (taskId: string, userId: string | null) => {
     try {
@@ -132,16 +150,26 @@ export const TeamTasks = () => {
             Manage and assign tasks across all your projects.
           </Text>
         </div>
-        <Select
-          placeholder={isGlobalManager ? 'Filter by Department' : 'Filter by Team Member'}
-          data={isGlobalManager ? DEPARTMENT_OPTIONS : filterMemberOptions}
-          value={selectedFilter}
-          onChange={setSelectedFilter}
-          clearable
-          searchable={!isGlobalManager}
-          style={{ width: 220 }}
-          radius="md"
-        />
+        <Group gap="sm">
+          <Select
+            placeholder={isGlobalManager ? 'Filter by Department' : 'Filter by Team Member'}
+            data={isGlobalManager ? DEPARTMENT_OPTIONS : filterMemberOptions}
+            value={selectedFilter}
+            onChange={setSelectedFilter}
+            clearable
+            searchable={!isGlobalManager}
+            style={{ width: 200 }}
+            radius="md"
+          />
+          <TextInput
+            placeholder="Search tasks..."
+            leftSection={<Search size={16} color="#94a3b8" />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.currentTarget.value)}
+            style={{ width: 240 }}
+            radius="md"
+          />
+        </Group>
       </Group>
 
       {isGlobalManager ? (
@@ -150,12 +178,15 @@ export const TeamTasks = () => {
             const deptTasks = filteredTasks.filter(t => getTaskDepartment(t) === dept.value);
             if (deptTasks.length === 0) return null;
             
+            const currentAssigneeIds = new Set(deptTasks.map((t: any) => typeof t.assignedTo === 'object' ? t.assignedTo?._id : t.assignedTo).filter(Boolean));
+            const filteredTeamOptions = teamOptions.filter((opt: any) => getNormalizedDepartment(opt.department) === dept.value || currentAssigneeIds.has(opt.value));
+            
             return (
               <div key={dept.value}>
                 <Title order={4} mb="md" style={{ color: '#334155' }}>{dept.label} Tasks ({deptTasks.length})</Title>
                 <TaskTable 
                   tasks={deptTasks} 
-                  teamOptions={teamOptions} 
+                  teamOptions={filteredTeamOptions} 
                   isGlobalManager={isGlobalManager} 
                   handleAssignTask={handleAssignTask} 
                 />

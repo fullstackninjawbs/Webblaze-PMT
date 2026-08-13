@@ -39,7 +39,9 @@ import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 
 import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
-import { DEPARTMENT_OPTIONS } from '../../types';
+import { DEPARTMENT_OPTIONS, Role } from '../../types';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
 
 const releaseSchema = z.object({
   project: z.string().min(1, 'Project is required'),
@@ -51,6 +53,9 @@ const releaseSchema = z.object({
 });
 
 export const ReleasesPage: React.FC = () => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isGlobalManager = user?.role === Role.ADMIN || user?.role === Role.PM;
+  
   const { data: releasesData, isLoading } = useGetReleasesQuery();
   const { data: projectsData } = useGetProjectsQuery();
   const { data: usersData } = useGetUsersQuery();
@@ -161,19 +166,21 @@ export const ReleasesPage: React.FC = () => {
             Schedule release dates, track staging reviews, and audit client deployment logs.
           </Text>
         </div>
-        <Button
-          leftSection={<Plus size={16} />}
-          size="md"
-          radius="md"
-          onClick={openCreateModal}
-          style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-            fontWeight: 600,
-            boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-          }}
-        >
-          Add Release
-        </Button>
+        {isGlobalManager && (
+          <Button
+            leftSection={<Plus size={16} />}
+            size="md"
+            radius="md"
+            onClick={openCreateModal}
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+              fontWeight: 600,
+              boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+            }}
+          >
+            Add Release
+          </Button>
+        )}
       </Group>
 
       {/* KPI Cards */}
@@ -347,20 +354,22 @@ export const ReleasesPage: React.FC = () => {
                             : 'blue'
                         }
                       >
-                        {release.status.replace('_', ' ')}
+                        {release.status === 'released' ? 'Released' : release.status === 'in_review' ? 'In Review' : 'Scheduled'}
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      <Group gap={4} justify="flex-end" wrap="nowrap">
-                        <ActionIcon
-                          variant="subtle"
-                          color="blue"
-                          onClick={() => openEditModal(release)}
-                          title="Edit Release"
-                        >
-                          <Edit size={16} />
-                        </ActionIcon>
-                      </Group>
+                      {isGlobalManager && (
+                        <Group gap={4} justify="flex-end" wrap="nowrap">
+                          <ActionIcon
+                            variant="subtle"
+                            color="blue"
+                            onClick={() => openEditModal(release)}
+                            title="Edit Release"
+                          >
+                            <Edit size={16} />
+                          </ActionIcon>
+                        </Group>
+                      )}
                     </Table.Td>
                   </Table.Tr>
                 );

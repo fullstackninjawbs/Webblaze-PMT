@@ -49,7 +49,7 @@ export const getTimeLogsByTask = asyncHandler(async (req: Request, res: Response
 });
 
 export const getTeamTimeLogs = asyncHandler(async (req: Request, res: Response) => {
-  const timeLogs = await timeLogService.getTeamTimeLogs();
+  const timeLogs = await timeLogService.getTeamTimeLogs((req as any).user);
   
   res.status(200).json({
     success: true,
@@ -58,7 +58,7 @@ export const getTeamTimeLogs = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const getTeamHoursSummary = asyncHandler(async (req: Request, res: Response) => {
-  const summary = await timeLogService.getTeamHoursSummary();
+  const summary = await timeLogService.getTeamHoursSummary((req as any).user);
   res.status(200).json({
     success: true,
     data: summary,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Container, Title, Text, Card, TextInput, NumberInput, Textarea, Select,
   Button, Group, Stack, Breadcrumbs, Anchor,
@@ -38,6 +38,8 @@ const taskSchema = z.object({
 export const TaskCreatePage: React.FC = () => {
   const { projectId } = useParams<{ projectId?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const milestoneId = searchParams.get('milestone');
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
 
@@ -57,7 +59,7 @@ export const TaskCreatePage: React.FC = () => {
   const form = useForm({
     initialValues: {
       project: projectId || '',
-      milestone: '',
+      milestone: milestoneId || '',
       title: '',
       description: '',
       department: 'fullstack',
@@ -147,13 +149,14 @@ export const TaskCreatePage: React.FC = () => {
                 searchable
                 withAsterisk
                 radius="md"
+                disabled={!!projectId}
               />
 
               <Select
                 label="Milestone"
                 placeholder={selectedProjectId ? "Select milestone" : "Select project first"}
                 data={milestones.map(m => ({ value: m._id, label: m.title }))}
-                disabled={!selectedProjectId}
+                disabled={!!milestoneId || !selectedProjectId}
                 searchable
                 withAsterisk
                 radius="md"

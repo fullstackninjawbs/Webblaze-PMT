@@ -1,9 +1,11 @@
 import { TimeLog, ITimeLog } from './timeLog.model';
-import { Task } from '../tasks/task.model';
+import { Task, ITask } from '../tasks/task.model';
 import { Milestone } from '../milestones/milestone.model';
 import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
 import { ApiError } from '../../utils/ApiError';
 import { User } from '../users/user.model';
+import { Role } from '../../types';
+import { normalizeDept } from '../../utils/department';
 
 export interface TeamMemberHoursSummary {
   userId: string;
@@ -121,17 +123,38 @@ export const getTimeLogsByTask = async (taskId: string): Promise<ITimeLog[]> => 
     .sort({ startTime: -1 });
 };
 
-export const getTeamTimeLogs = async (): Promise<ITimeLog[]> => {
+export const getTeamTimeLogs = async (user?: any): Promise<ITimeLog[]> => {
   // Return all active timers, plus recently stopped ones (e.g. last 7 days)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  return TimeLog.find({
+  
+  const query: any = {
     $or: [
       { endTime: { $exists: false } },
       { startTime: { $gte: sevenDaysAgo } }
     ]
-  })
+  };
+  
+  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
+    if (user.department) {
+      const deptVariants = normalizeDept(user.department);
+      const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
+      
+      const deptUsers = await User.find({
+        $or: [
+          { department: { $in: regexes } },
+          { department: user.department }
+        ]
+      }).select('_id');
+      const deptUserIds = deptUsers.map((u) => u._id);
+      
+      query.user = { $in: deptUserIds };
+    } else {
+      query.user = user.id || user._id;
+    }
+  }
+
+  return TimeLog.find(query)
     .populate('user', 'name avatarUrl role')
     .populate({
       path: 'task',
@@ -275,10 +298,27 @@ export const clearTaskTimeLogs = async (taskId: string): Promise<void> => {
   }
 };
 
-export const getTeamHoursSummary = async (): Promise<TeamMemberHoursSummary[]> => {
-  const users = await User.find({ isActive: true }).select('name email role department avatarUrl');
-  const tasks = await Task.find({ assignedTo: { $ne: null } });
-  const logs = await TimeLog.find({ durationSeconds: { $gt: 0 } });
+export const getTeamHoursSummary = async (user?: any): Promise<TeamMemberHoursSummary[]> => {
+  const userQuery: any = { isActive: true };
+  
+  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
+    if (user.department) {
+      const deptVariants = normalizeDept(user.department);
+      const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
+      userQuery.$or = [
+        { department: { $in: regexes } },
+        { department: user.department }
+      ];
+    } else {
+      userQuery._id = user.id || user._id;
+    }
+  }
+  
+  const users = await User.find(userQuery).select('name email role department avatarUrl');
+  const userIds = users.map(u => u._id);
+  
+  const tasks = await Task.find({ assignedTo: { $in: userIds } });
+  const logs = await TimeLog.find({ user: { $in: userIds }, durationSeconds: { $gt: 0 } });
 
   const summaryMap = new Map<string, { assigned: number; spent: number }>();
 

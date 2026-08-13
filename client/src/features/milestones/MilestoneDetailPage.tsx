@@ -116,7 +116,7 @@ export const MilestoneDetailPage: React.FC = () => {
               variant="filled"
               color="blue"
               leftSection={<Plus size={16} />}
-              onClick={() => navigate(pId ? `/projects/${pId}/tasks/new` : `/tasks/new`)}
+              onClick={() => navigate(pId ? `/projects/${pId}/tasks/new?milestone=${id}` : `/tasks/new?milestone=${id}`)}
               radius="md"
             >
               Add Task
@@ -224,7 +224,7 @@ export const MilestoneDetailPage: React.FC = () => {
               size="xs"
               variant="light"
               leftSection={<Plus size={14} />}
-              onClick={() => navigate(pId ? `/projects/${pId}/tasks/new` : `/tasks/new`)}
+              onClick={() => navigate(pId ? `/projects/${pId}/tasks/new?milestone=${id}` : `/tasks/new?milestone=${id}`)}
               radius="md"
             >
               New Task

@@ -46,7 +46,7 @@ import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
 const clientSchema = z.object({
   name: z.string().min(1, 'Client name is required').min(2, 'Name must be at least 2 characters'),
-  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+  email: z.string().email('Please enter a valid email address').optional().or(z.literal('')),
   companyName: z.string().optional(),
   source: z.enum(['upwork', 'direct'], { required_error: 'Please select a source' }),
   billingType: z.enum(['hourly', 'fixed'], { required_error: 'Please select billing type' }),
@@ -633,7 +633,6 @@ export const ClientsList: React.FC = () => {
                 <TextInput
                   label="Email Address"
                   placeholder="client@example.com"
-                  withAsterisk
                   radius="md"
                   maxLength={100}
                   {...form.getInputProps('email')}

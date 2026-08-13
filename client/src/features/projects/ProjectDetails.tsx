@@ -1801,6 +1801,14 @@ const ProjectTasks = ({
   );
 };
 
+const normalizeFrontendDept = (dept: string) => {
+  if (!dept) return '';
+  const d = dept.toLowerCase().replace(/\s+/g, '');
+  if (d === 'ui/ux' || d === 'design') return 'design';
+  if (d === 'fullstack' || d === 'development') return 'fullstack';
+  return d;
+};
+
 const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectData: any }) => {
   const { data: usersData } = useGetUsersQuery();
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
@@ -1812,7 +1820,15 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
   const team = projectData?.team || [];
   const allUsers = usersData?.data || [];
 
-  const assignableUsers = allUsers.filter(u => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER);
+  const projectDept = normalizeFrontendDept(projectData?.type || '');
+
+  const assignableUsers = allUsers.filter(u => {
+    if (u.role !== Role.TEAM_LEAD && u.role !== Role.TEAM_MEMBER) return false;
+    if (!projectDept) return true;
+    const userDept = normalizeFrontendDept(u.department || '');
+    return userDept === projectDept;
+  });
+  
   const assignableOptions = assignableUsers.map(u => ({
     value: u._id,
     label: `${u.name} (${u.role.replace('_', ' ')})`
@@ -1950,6 +1966,9 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
 };
 
 const ProjectReleases = ({ projectId }: { projectId: string }) => {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isGlobalManager = user?.role === Role.ADMIN || user?.role === Role.PM;
+  
   const { data: releasesData, isLoading } = useGetReleasesQuery({ projectId });
   const [createRelease, { isLoading: isCreating }] = useCreateReleaseMutation();
   const [updateRelease, { isLoading: isUpdating }] = useUpdateReleaseMutation();
@@ -2034,7 +2053,9 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
     <Card withBorder shadow="sm" p="md" radius="md">
       <Group justify="space-between" mb="md">
         <Title order={3}>Project Releases</Title>
-        <Button leftSection={<Plus size={16} />} onClick={openCreateModal}>Add Release</Button>
+        {isGlobalManager && (
+          <Button leftSection={<Plus size={16} />} onClick={openCreateModal}>Add Release</Button>
+        )}
       </Group>
 
       <Table verticalSpacing="sm" striped highlightOnHover>
@@ -2072,18 +2093,20 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
                     color={release.status === 'released' ? 'green' : release.status === 'in_review' ? 'orange' : release.status === 'scheduled' ? 'blue' : 'gray'}
                     variant="light"
                   >
-                    {release.status.replace('_', ' ')}
+                    {release.status === 'released' ? 'Released' : release.status === 'in_review' ? 'In Review' : 'Scheduled'}
                   </Badge>
                 </Table.Td>
                 <Table.Td>
-                  <Group gap={4} justify="flex-end" wrap="nowrap">
-                    <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(release)} title="Edit">
-                      <Edit size={16} />
-                    </ActionIcon>
-                    <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id, release.details)} title="Delete">
-                      <Trash size={16} />
-                    </ActionIcon>
-                  </Group>
+                  {isGlobalManager && (
+                    <Group gap={4} justify="flex-end" wrap="nowrap">
+                      <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(release)} title="Edit">
+                        <Edit size={16} />
+                      </ActionIcon>
+                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id, release.details)} title="Delete">
+                        <Trash size={16} />
+                      </ActionIcon>
+                    </Group>
+                  )}
                 </Table.Td>
               </Table.Tr>
             );

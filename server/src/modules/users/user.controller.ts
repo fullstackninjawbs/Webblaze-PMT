@@ -3,7 +3,7 @@ import { asyncHandler } from '../../utils/asyncHandler';
 import { UserService } from './user.service';
 
 export const getUsers = asyncHandler(async (req: Request, res: Response) => {
-  const users = await UserService.getUsers();
+  const users = await UserService.getUsers((req as any).user);
   res.status(200).json({ success: true, data: users });
 });
 

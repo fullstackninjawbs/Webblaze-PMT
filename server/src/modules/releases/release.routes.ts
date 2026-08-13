@@ -13,7 +13,7 @@ router.use(authMiddleware);
 
 router.post(
   '/',
-  rbacMiddleware([Role.ADMIN, Role.PM, Role.TEAM_LEAD]),
+  rbacMiddleware([Role.ADMIN, Role.PM]),
   validate(createReleaseSchema),
   releaseController.createRelease
 );
@@ -23,7 +23,7 @@ router.get('/:id', releaseController.getReleaseById);
 
 router.put(
   '/:id',
-  rbacMiddleware([Role.ADMIN, Role.PM, Role.TEAM_LEAD]),
+  rbacMiddleware([Role.ADMIN, Role.PM]),
   validate(updateReleaseSchema),
   releaseController.updateRelease
 );
