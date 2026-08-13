@@ -7,6 +7,7 @@ import {
 } from './project.slice';
 import { useGetClientsQuery } from '../clients/client.slice';
 import { useGetReleasesQuery } from '../releases/release.slice';
+import { useGetTasksByUserQuery } from '../tasks/task.slice';
 import {
   Table,
   Button,
@@ -42,6 +43,7 @@ import {
   CheckCircle2,
   Clock,
   LayoutDashboard,
+  ListTodo,
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
@@ -75,6 +77,9 @@ export const ProjectsList: React.FC = () => {
   const { data: projectsData } = useGetProjectsQuery();
   const { data: clientsData } = useGetClientsQuery();
   const { data: releasesData } = useGetReleasesQuery();
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id || (user.role !== Role.TEAM_LEAD && user.role !== Role.TEAM_MEMBER) });
+  
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const [deleteProject] = useDeleteProjectMutation();
@@ -84,10 +89,22 @@ export const ProjectsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [showOverview, setShowOverview] = useState(false);
-  const { user } = useSelector((state: RootState) => state.auth);
 
   const canManageProjects = user?.role === Role.ADMIN || user?.role === Role.PM;
   const isFinancialsVisible = user?.role === Role.ADMIN || user?.role === Role.PM;
+  const isTeamRole = user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER;
+
+  // TL/TM stats
+  const dbTasks = tasksData?.data || [];
+  const openTasksCount = dbTasks.filter(t => t.status !== 'completed').length;
+  const totalLoggedHours = useMemo(() => {
+    return dbTasks.reduce((acc: number, t: any) => acc + (t.spentHours || 0), 0);
+  }, [dbTasks]);
+  const myAssignedProjectsCount = useMemo(() => {
+    const pIds = new Set(dbTasks.map((t: any) => t.project));
+    return pIds.size;
+  }, [dbTasks]);
+  const weeklyGoalPercent = Math.min(Math.round((totalLoggedHours / 40) * 100), 100);
 
   const form = useForm({
     initialValues: {
@@ -446,6 +463,44 @@ export const ProjectsList: React.FC = () => {
           )}
         </Group>
       </Group>
+
+      {/* Dashboard KPI Cards for TL/TM */}
+      {isTeamRole && (
+        <Box mb="xl">
+          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
+            <Paper p="xl" radius="lg" withBorder shadow="sm">
+              <Group justify="space-between" mb="md">
+                <Briefcase size={32} color="#6366F1" />
+                <Badge color="indigo" variant="light" size="lg">Active Involvement</Badge>
+              </Group>
+              <Text fw={800} size="32px" color="#111827">{myAssignedProjectsCount} Projects</Text>
+              <Text size="sm" color="#4B5563">Currently assigned</Text>
+            </Paper>
+
+            <Paper p="xl" radius="lg" withBorder shadow="sm">
+              <Group justify="space-between" mb="md">
+                <ListTodo size={32} color="#3B82F6" />
+                <Badge color="blue" variant="light" size="lg">Personal Workload</Badge>
+              </Group>
+              <Text fw={800} size="32px" color="#111827">{openTasksCount} Open Tasks</Text>
+              <Text size="sm" color="#4B5563">Assigned to you</Text>
+            </Paper>
+
+            <Paper p="xl" radius="lg" withBorder shadow="sm">
+              <Group justify="space-between" mb="md">
+                <Clock size={32} color="#10B981" />
+                <Badge color="teal" variant="light" size="lg">Weekly Hours</Badge>
+              </Group>
+              <Text fw={800} size="32px" color="#111827">{totalLoggedHours.toFixed(1)}h / 40h</Text>
+              <Group justify="space-between" mt="xs" mb={4}>
+                <Text size="xs" color="dimmed">Weekly Goal (40h)</Text>
+                <Text size="xs" fw={700} color="#10B981">{weeklyGoalPercent}%</Text>
+              </Group>
+              <Progress value={weeklyGoalPercent} size="xs" radius="xl" color="teal" />
+            </Paper>
+          </SimpleGrid>
+        </Box>
+      )}
 
       {/* KPI Cards (Hidden by Default, Toggled via Overview Button) */}
       {canManageProjects && (

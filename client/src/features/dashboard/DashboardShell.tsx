@@ -18,7 +18,11 @@ export const DashboardShell: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
 
-
+  React.useEffect(() => {
+    if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
+      navigate('/projects', { replace: true });
+    }
+  }, [user, navigate]);
   const { data: projectsData } = useGetProjectsQuery();
   const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id });
   const { data: allTasksData } = useGetAllTasksQuery(undefined, { skip: user?.role === Role.TEAM_MEMBER });
