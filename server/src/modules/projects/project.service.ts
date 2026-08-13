@@ -70,7 +70,10 @@ export class ProjectService {
         const milestones = await Milestone.find({ _id: { $in: milestoneIds } }).select('project');
         const projectIds = milestones.map(m => m.project);
         
-        query._id = { $in: projectIds };
+        query.$or = [
+          { _id: { $in: projectIds } },
+          { team: user._id }
+        ];
       } else {
         // Fallback for TL/TM with no department: they see nothing
         query._id = null;

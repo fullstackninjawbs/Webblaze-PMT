@@ -35,6 +35,14 @@ const taskSchema = z.object({
   path: ["endDate"],
 });
 
+const normalizeFrontendDept = (dept: string) => {
+  if (!dept) return '';
+  const d = dept.toLowerCase().replace(/\s+/g, '');
+  if (d === 'ui/ux' || d === 'design') return 'design';
+  if (d === 'fullstack' || d === 'development') return 'fullstack';
+  return d;
+};
+
 export const TaskCreatePage: React.FC = () => {
   const { projectId } = useParams<{ projectId?: string }>();
   const navigate = useNavigate();
@@ -55,6 +63,12 @@ export const TaskCreatePage: React.FC = () => {
   const users = usersData?.data || [];
 
   const currentProject = projects.find(p => p._id === selectedProjectId);
+  const projectDept = currentProject ? normalizeFrontendDept(currentProject.type || '') : '';
+
+  const filteredUsers = users.filter(u => {
+    if (!projectDept) return true;
+    return normalizeFrontendDept(u.department || '') === projectDept;
+  });
 
   const form = useForm({
     initialValues: {
@@ -76,7 +90,14 @@ export const TaskCreatePage: React.FC = () => {
     setSelectedProjectId(newPId);
     form.setFieldValue('project', newPId);
     form.setFieldValue('milestone', '');
+    form.setFieldValue('assignedTo', '');
   };
+
+  React.useEffect(() => {
+    if (projectDept && form.values.department !== projectDept) {
+      form.setFieldValue('department', projectDept);
+    }
+  }, [projectDept, form]);
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
@@ -188,6 +209,7 @@ export const TaskCreatePage: React.FC = () => {
                 data={DEPARTMENT_OPTIONS}
                 withAsterisk
                 radius="md"
+                disabled={!!projectDept}
                 {...form.getInputProps('department')}
               />
 
@@ -204,7 +226,7 @@ export const TaskCreatePage: React.FC = () => {
               <Select
                 label="Assignee"
                 placeholder="Select team member"
-                data={users.map(u => ({ value: u._id, label: `${u.name} (${u.department || u.role})` }))}
+                data={filteredUsers.map(u => ({ value: u._id, label: `${u.name} (${u.role.replace('_', ' ')})` }))}
                 searchable
                 clearable
                 radius="md"
