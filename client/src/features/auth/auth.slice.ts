@@ -117,9 +117,11 @@ export const authApi = baseApi.injectEndpoints({
       async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
         try {
           await queryFulfilled;
-          dispatch(logoutLocally());
         } catch {
           // ignore error
+        } finally {
+          dispatch(logoutLocally());
+          dispatch(baseApi.util.resetApiState());
         }
       }
     }),
