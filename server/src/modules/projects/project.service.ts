@@ -34,7 +34,7 @@ export class ProjectService {
     const estHours = milestones.reduce((sum, m) => sum + (m.estimatedHours || 0), 0);
     const spentHours = Number(milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0).toFixed(4));
     const progress = estHours > 0 ? Math.min(Math.round((spentHours / estHours) * 100), 100) : 0;
-    
+
     const obj = project.toObject ? project.toObject() : project;
     return {
       ...obj,
@@ -57,23 +57,9 @@ export class ProjectService {
       if (user.department) {
         const deptVariants = normalizeDept(user.department);
         allowedDeptRegexes = deptVariants.map((d) => new RegExp(d, 'i'));
-        
-        // Find tasks matching department to get accessible projects
-        const deptTasks = await Task.find({ 
-          $or: [
-            { department: { $in: allowedDeptRegexes } },
-            { department: user.department }
-          ]
-        }).select('milestone');
-        
-        const milestoneIds = deptTasks.map(t => t.milestone);
-        const milestones = await Milestone.find({ _id: { $in: milestoneIds } }).select('project');
-        const projectIds = milestones.map(m => m.project);
-        
-        query.$or = [
-          { _id: { $in: projectIds } },
-          { team: user._id }
-        ];
+
+        // Strict isolation: TL/TM only see projects that match their department
+        query.type = { $in: allowedDeptRegexes };
       } else {
         // Fallback for TL/TM with no department: they see nothing
         query._id = null;
@@ -92,7 +78,7 @@ export class ProjectService {
 
     return projectsWithProgress.map((p) => {
       let result = this.stripFinancials(p, userRole);
-      
+
       // Filter team array to only show matching department for TL/TM
       if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
         if (result.team && allowedDeptRegexes.length > 0) {
@@ -118,23 +104,23 @@ export class ProjectService {
     let allowedDeptRegexes: RegExp[] = [];
     if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
       if (!user.department) {
-         throw new ApiError(403, 'You do not have access to this project (no department assigned)');
+        throw new ApiError(403, 'You do not have access to this project (no department assigned)');
       }
-      
+
       const deptVariants = normalizeDept(user.department);
       allowedDeptRegexes = deptVariants.map((d) => new RegExp(d, 'i'));
-      
+
       const milestones = await Milestone.find({ project: id }).select('_id');
       const milestoneIds = milestones.map((m) => m._id);
-      
-      const hasDeptTask = await Task.exists({ 
+
+      const hasDeptTask = await Task.exists({
         milestone: { $in: milestoneIds },
         $or: [
           { department: { $in: allowedDeptRegexes } },
           { department: user.department }
         ]
       });
-      
+
       if (!hasDeptTask) {
         throw new ApiError(403, 'You do not have access to this project (no tasks in your department)');
       }
@@ -142,7 +128,7 @@ export class ProjectService {
 
     const projectWithProgress = await this.attachProgress(project);
     let result = this.stripFinancials(projectWithProgress, userRole);
-    
+
     // Filter team array to only show matching department for TL/TM
     if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
       if (result.team && allowedDeptRegexes.length > 0) {
@@ -152,7 +138,7 @@ export class ProjectService {
         });
       }
     }
-    
+
     return result;
   }
 
@@ -160,7 +146,7 @@ export class ProjectService {
     const project = await Project.findByIdAndUpdate(id, data, { new: true })
       .populate('client', 'name companyName email')
       .populate('team', 'name email role department avatarUrl');
-      
+
     if (!project) throw new ApiError(404, 'Project not found');
     return project;
   }
