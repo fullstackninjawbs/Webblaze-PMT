@@ -189,6 +189,42 @@ export const ProjectDetails = () => {
   const [activeMilestoneEstimated, setActiveMilestoneEstimated] = useState<number>(0);
   const [activeMilestoneAllocated, setActiveMilestoneAllocated] = useState<number>(0);
 
+  const [updateProject, { isLoading: isUpdatingProject }] = useUpdateProjectMutation();
+  const [editProjectOpened, setEditProjectOpened] = useState(false);
+  const editProjectForm = useForm({
+    initialValues: { name: '', description: '', type: '', status: ProjectStatus.NEW as any },
+    validate: {
+      name: (val) => (val.trim().length === 0 ? 'Name is required' : null),
+    },
+  });
+
+  const handleOpenEditProject = () => {
+    if (!project) return;
+    editProjectForm.setValues({
+      name: project.name || '',
+      description: project.description || '',
+      type: project.type || '',
+      status: project.status || ProjectStatus.NEW,
+    });
+    setEditProjectOpened(true);
+  };
+
+  const handleUpdateProject = async (values: typeof editProjectForm.values) => {
+    if (!project) return;
+    try {
+      await updateProject({
+        _id: project._id,
+        name: values.name,
+        description: values.description,
+        type: values.type,
+        status: values.status,
+      } as any).unwrap();
+      setEditProjectOpened(false);
+    } catch (e) {
+      console.error('Failed to update project', e);
+    }
+  };
+
   const milestoneForm = useForm({
     initialValues: { title: '', estimatedHours: 10, startDate: '', endDate: '', status: 'not_started' },
     validate: zodResolver(milestoneSchema),
@@ -485,33 +521,45 @@ export const ProjectDetails = () => {
 
           {/* Right: KPIs (Admin/PM only) */}
           {isAdminOrPM && (
-            <Group gap="md">
-              <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
-                <Group gap="xs" mb={4}>
-                  <DollarSign size={16} color="#3b82f6" />
-                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Total Amount</Text>
-                </Group>
-                <Text fw={800} style={{ fontSize: '1.25rem', color: '#0f172a' }}>{project.totalBudget ? `$${project.totalBudget.toLocaleString()}` : 'N/A'}</Text>
-              </Paper>
+            <Stack align="flex-end" gap="sm">
+              <Button
+                variant="light"
+                color="blue"
+                size="sm"
+                radius="md"
+                leftSection={<Edit size={16} />}
+                onClick={handleOpenEditProject}
+              >
+                Edit Project
+              </Button>
+              <Group gap="md">
+                <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
+                  <Group gap="xs" mb={4}>
+                    <DollarSign size={16} color="#3b82f6" />
+                    <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Total Amount</Text>
+                  </Group>
+                  <Text fw={800} style={{ fontSize: '1.25rem', color: '#0f172a' }}>{project.totalBudget ? `$${project.totalBudget.toLocaleString()}` : 'N/A'}</Text>
+                </Paper>
 
-              <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
-                <Group gap="xs" mb={4}>
-                  <CheckCircle size={16} color="#10b981" />
-                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Received</Text>
-                </Group>
-                <Text fw={800} style={{ fontSize: '1.25rem', color: '#059669' }}>$0</Text>
-              </Paper>
+                <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
+                  <Group gap="xs" mb={4}>
+                    <CheckCircle size={16} color="#10b981" />
+                    <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Received</Text>
+                  </Group>
+                  <Text fw={800} style={{ fontSize: '1.25rem', color: '#059669' }}>$0</Text>
+                </Paper>
 
-              <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
-                <Group gap="xs" mb={4}>
-                  <Activity size={16} color="#f59e0b" />
-                  <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Pending</Text>
-                </Group>
-                <Text fw={800} style={{ fontSize: '1.25rem', color: '#d97706' }}>
-                  {project.pendingAmount !== undefined ? `$${project.pendingAmount.toLocaleString()}` : (project.totalBudget ? `$${project.totalBudget.toLocaleString()}` : '$0')}
-                </Text>
-              </Paper>
-            </Group>
+                <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
+                  <Group gap="xs" mb={4}>
+                    <Activity size={16} color="#f59e0b" />
+                    <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Pending</Text>
+                  </Group>
+                  <Text fw={800} style={{ fontSize: '1.25rem', color: '#d97706' }}>
+                    {project.pendingAmount !== undefined ? `$${project.pendingAmount.toLocaleString()}` : (project.totalBudget ? `$${project.totalBudget.toLocaleString()}` : '$0')}
+                  </Text>
+                </Paper>
+              </Group>
+            </Stack>
           )}
         </Group>
       </Card>
@@ -1155,6 +1203,36 @@ export const ProjectDetails = () => {
           </Button>
         </Stack>
       </Modal>
+
+      {/* Edit Project Modal */}
+      <Modal opened={editProjectOpened} onClose={() => setEditProjectOpened(false)} title="Edit Project" radius="md">
+        <form onSubmit={editProjectForm.onSubmit(handleUpdateProject)}>
+          <Stack gap="md">
+            <TextInput label="Project Name" {...editProjectForm.getInputProps('name')} withAsterisk />
+            <Textarea label="Description" {...editProjectForm.getInputProps('description')} minRows={3} />
+            <Select
+              label="Department / Project Type"
+              data={['Shopify', 'WordPress', 'Full Stack', 'SEO', 'UI/UX']}
+              {...editProjectForm.getInputProps('type')}
+            />
+            <Select
+              label="Status"
+              data={[
+                { value: ProjectStatus.NEW, label: 'New' },
+                { value: ProjectStatus.ACTIVE, label: 'Active' },
+                { value: ProjectStatus.ON_HOLD, label: 'On Hold' },
+                { value: ProjectStatus.MAINTENANCE, label: 'Maintenance' },
+                { value: ProjectStatus.COMPLETED, label: 'Completed' },
+              ]}
+              {...editProjectForm.getInputProps('status')}
+            />
+            <Group justify="flex-end" mt="md">
+              <Button variant="light" color="gray" onClick={() => setEditProjectOpened(false)}>Cancel</Button>
+              <Button type="submit" loading={isUpdatingProject}>Save Changes</Button>
+            </Group>
+          </Stack>
+        </form>
+      </Modal>
     </Container>
   );
 };
@@ -1267,6 +1345,7 @@ const MilestoneTableRow = ({
 
           {canCreateTask && (
             <Button
+              display='none'
               size="xs"
               variant="light"
               leftSection={<Plus size={14} />}
@@ -1828,7 +1907,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
     const userDept = normalizeFrontendDept(u.department || '');
     return userDept === projectDept;
   });
-  
+
   const assignableOptions = assignableUsers.map(u => ({
     value: u._id,
     label: `${u.name} (${u.role.replace('_', ' ')})`
@@ -1968,7 +2047,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
 const ProjectReleases = ({ projectId }: { projectId: string }) => {
   const { user } = useSelector((state: RootState) => state.auth);
   const isGlobalManager = user?.role === Role.ADMIN || user?.role === Role.PM;
-  
+
   const { data: releasesData, isLoading } = useGetReleasesQuery({ projectId });
   const [createRelease, { isLoading: isCreating }] = useCreateReleaseMutation();
   const [updateRelease, { isLoading: isUpdating }] = useUpdateReleaseMutation();

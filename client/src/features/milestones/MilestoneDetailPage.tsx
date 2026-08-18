@@ -113,6 +113,7 @@ export const MilestoneDetailPage: React.FC = () => {
 
           {canCreateTask && (
             <Button
+              display='none'
               variant="filled"
               color="blue"
               leftSection={<Plus size={16} />}
@@ -303,6 +304,6 @@ export const MilestoneDetailPage: React.FC = () => {
           </Table>
         )}
       </Card>
-    </Container>
+    </Container >
   );
 };
