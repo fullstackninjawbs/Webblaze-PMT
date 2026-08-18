@@ -6,7 +6,7 @@ import {
   useDeleteProjectMutation,
 } from './project.slice';
 import { useGetClientsQuery } from '../clients/client.slice';
-import { useGetReleasesQuery } from '../releases/release.slice';
+
 import { useGetTasksByUserQuery } from '../tasks/task.slice';
 import {
   Table,
@@ -50,7 +50,7 @@ import { RootState } from '../../app/store';
 import { Role, ProjectStatus } from '../../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
-import { formatDateDisplay } from '../../utils/dateUtils';
+
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -76,7 +76,7 @@ export const ProjectsList: React.FC = () => {
   const navigate = useNavigate();
   const { data: projectsData } = useGetProjectsQuery();
   const { data: clientsData } = useGetClientsQuery();
-  const { data: releasesData } = useGetReleasesQuery();
+
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id || (user.role !== Role.TEAM_LEAD && user.role !== Role.TEAM_MEMBER) });
   
