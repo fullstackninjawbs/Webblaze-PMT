@@ -52,6 +52,14 @@ const releaseSchema = z.object({
   status: z.enum(['scheduled', 'in_review', 'released']),
 });
 
+const normalizeFrontendDept = (dept: string) => {
+  if (!dept) return '';
+  const d = dept.toLowerCase().replace(/\s+/g, '');
+  if (d === 'ui/ux' || d === 'design') return 'design';
+  if (d === 'fullstack' || d === 'development') return 'fullstack';
+  return d;
+};
+
 export const ReleasesPage: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const isGlobalManager = user?.role === Role.ADMIN || user?.role === Role.PM;
@@ -102,6 +110,15 @@ export const ReleasesPage: React.FC = () => {
     },
     validate: zodResolver(releaseSchema),
   });
+
+  const selectedDepartment = form.values.department;
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      if (u.role !== 'team_lead' && u.role !== 'team_member') return false;
+      if (!selectedDepartment) return true;
+      return normalizeFrontendDept(u.department || '') === normalizeFrontendDept(selectedDepartment);
+    });
+  }, [users, selectedDepartment]);
 
   const openCreateModal = () => {
     setEditingRelease(null);
@@ -422,7 +439,7 @@ export const ReleasesPage: React.FC = () => {
               <Select
                 label="Team Member (Optional)"
                 placeholder="Assign to..."
-                data={users.map((u) => ({ value: u._id, label: u.name || 'Unknown User' }))}
+                data={filteredUsers.map((u) => ({ value: u._id, label: u.name || 'Unknown User' }))}
                 clearable
                 radius="md"
                 {...form.getInputProps('teamMember')}
