@@ -18,7 +18,7 @@ const milestoneSchema = z.object({
   estimatedHours: z.number().min(0, 'Hours must be non-negative'),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  status: z.enum(['not_started', 'in_progress', 'on_hold', 'completed', 'cancelled']),
+  status: z.enum(['not_started', 'in_progress', 'on_hold', 'completed']),
 }).refine(data => {
   if (data.startDate && data.endDate) {
     return new Date(data.endDate) >= new Date(data.startDate);
@@ -46,7 +46,7 @@ export const MilestoneEditPage: React.FC = () => {
       estimatedHours: 10,
       startDate: '',
       endDate: '',
-      status: 'not_started' as 'not_started' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled',
+      status: 'not_started' as 'not_started' | 'in_progress' | 'on_hold' | 'completed',
     },
     validate: zodResolver(milestoneSchema),
   });
@@ -166,7 +166,7 @@ export const MilestoneEditPage: React.FC = () => {
                   { value: 'in_progress', label: 'In Progress' },
                   { value: 'on_hold', label: 'On Hold' },
                   { value: 'completed', label: 'Completed' },
-                  { value: 'cancelled', label: 'Cancelled' },
+
                 ]}
                 radius="md"
                 {...form.getInputProps('status')}

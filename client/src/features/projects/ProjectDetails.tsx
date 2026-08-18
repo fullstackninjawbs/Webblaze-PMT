@@ -25,7 +25,7 @@ const milestoneSchema = z.object({
   estimatedHours: z.number().min(0),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  status: z.enum(['not_started', 'in_progress', 'on_hold', 'completed', 'cancelled']),
+  status: z.enum(['not_started', 'in_progress', 'on_hold', 'completed']),
 }).refine(data => {
   if (data.startDate && data.endDate) {
     return new Date(data.endDate) >= new Date(data.startDate);
@@ -1108,7 +1108,7 @@ export const ProjectDetails = () => {
                 { value: 'in_progress', label: 'In Progress' },
                 { value: 'on_hold', label: 'On Hold' },
                 { value: 'completed', label: 'Completed' },
-                { value: 'cancelled', label: 'Cancelled' },
+
               ]}
               {...editMilestoneForm.getInputProps('status')}
             />

@@ -9,7 +9,7 @@ export interface Milestone {
   spentHours?: number;
   startDate?: string;
   endDate?: string;
-  status: 'not_started' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+  status: 'not_started' | 'in_progress' | 'on_hold' | 'completed';
   createdAt: string;
   updatedAt: string;
 }

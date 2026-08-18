@@ -21,7 +21,7 @@ const getStatusColor = (status: string) => {
     case 'completed': return 'green';
     case 'in_progress': return 'blue';
     case 'on_hold': return 'orange';
-    case 'cancelled': return 'red';
+
     default: return 'gray';
   }
 };
