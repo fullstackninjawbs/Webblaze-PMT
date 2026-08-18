@@ -66,6 +66,7 @@ export const TaskCreatePage: React.FC = () => {
   const projectDept = currentProject ? normalizeFrontendDept(currentProject.type || '') : '';
 
   const filteredUsers = users.filter(u => {
+    if (u.role !== 'team_lead' && u.role !== 'team_member') return false;
     if (!projectDept) return true;
     return normalizeFrontendDept(u.department || '') === projectDept;
   });

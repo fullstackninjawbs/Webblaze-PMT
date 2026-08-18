@@ -145,10 +145,17 @@ export const ProjectDetails = () => {
   const projectSpentHours = milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0);
 
   const { data: usersData } = useGetUsersQuery();
-  const teamOptions = usersData?.data?.map(u => ({
-    value: u._id,
-    label: `${u.name} (${u.role === Role.ADMIN ? 'Admin' : u.role === Role.PM ? 'PM' : u.department || 'Team'})`
-  })) || [];
+  const projectDept = project?.type ? normalizeFrontendDept(project.type) : '';
+  const teamOptions = (usersData?.data || [])
+    .filter(u => {
+      if (u.role !== Role.TEAM_LEAD && u.role !== Role.TEAM_MEMBER) return false;
+      if (!projectDept) return true;
+      return normalizeFrontendDept(u.department || '') === projectDept;
+    })
+    .map(u => ({
+      value: u._id,
+      label: `${u.name} (${u.role.replace('_', ' ')})`
+    }));
 
   const [createMilestone, { isLoading: isCreatingMilestone }] = useCreateMilestoneMutation();
   const [updateMilestone, { isLoading: isUpdatingMilestone }] = useUpdateMilestoneMutation();

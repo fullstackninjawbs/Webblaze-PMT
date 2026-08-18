@@ -289,9 +289,18 @@ export const ProjectsList: React.FC = () => {
           >
             {project.name}
           </Text>
-          <Text size="xs" style={{ color: '#64748b' }}>
-            {project.client?.name || 'Unknown Client'}
-          </Text>
+          <Group gap="xs" mt={4}>
+            {project.type && (
+              <Badge variant="dot" size="xs" color="indigo" radius="sm">
+                {project.type}
+              </Badge>
+            )}
+            {project.client?.name && project.client.name !== project.name && (
+              <Text size="xs" style={{ color: '#64748b' }}>
+                {project.client.name}
+              </Text>
+            )}
+          </Group>
         </div>
       </Table.Td>
 
@@ -335,13 +344,6 @@ export const ProjectsList: React.FC = () => {
           </Table.Td>
         </>
       )}
-
-      {/* 7. Release Date */}
-      <Table.Td style={{ whiteSpace: 'nowrap' }}>
-        <Text size="sm" style={{ color: '#64748b' }}>
-          {getProjectReleaseDate(project._id)}
-        </Text>
-      </Table.Td>
 
       {/* 8. Status */}
       <Table.Td style={{ whiteSpace: 'nowrap' }}>
@@ -654,7 +656,6 @@ export const ProjectsList: React.FC = () => {
                     <Table.Th>Pending</Table.Th>
                   </>
                 )}
-                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>RELEASE DATE</Table.Th>
                 <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
                 <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
                 <Table.Th ta="right" style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIONS</Table.Th>
@@ -665,7 +666,7 @@ export const ProjectsList: React.FC = () => {
                 rows
               ) : (
                 <Table.Tr>
-                  <Table.Td colSpan={isFinancialsVisible ? 10 : 7} style={{ textAlign: 'center', padding: '40px' }}>
+                  <Table.Td colSpan={isFinancialsVisible ? 9 : 6} style={{ textAlign: 'center', padding: '40px' }}>
                     <Text style={{ color: '#64748b' }} fw={500}>
                       No projects found matching criteria.
                     </Text>

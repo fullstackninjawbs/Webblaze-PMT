@@ -1,6 +1,8 @@
 import AppRoutes from './routes';
 import { useGetMeQuery } from './features/auth/auth.slice';
 import { Center, Loader } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
+import '@mantine/notifications/styles.css';
 
 function App() {
   // Fire the rehydration query on app mount
@@ -16,6 +18,7 @@ function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Notifications position="top-right" zIndex={1000} />
       <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         <AppRoutes />
       </main>

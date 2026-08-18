@@ -16,6 +16,7 @@
     "@mantine/dates": "^7.17.8",
     "@mantine/form": "^7.17.8",
     "@mantine/hooks": "^7.17.8",
+    "@mantine/notifications": "^7.17.8",
     "@reduxjs/toolkit": "^2.1.0",
     "dayjs": "^1.11.21",
     "lucide-react": "^1.27.0",
