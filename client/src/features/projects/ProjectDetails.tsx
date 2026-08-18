@@ -213,12 +213,14 @@ export const ProjectDetails = () => {
     if (!project) return;
     try {
       await updateProject({
-        _id: project._id,
-        name: values.name,
-        description: values.description,
-        type: values.type,
-        status: values.status,
-      } as any).unwrap();
+        id: project._id,
+        data: {
+          name: values.name,
+          description: values.description,
+          type: values.type,
+          status: values.status,
+        }
+      }).unwrap();
       setEditProjectOpened(false);
     } catch (e) {
       console.error('Failed to update project', e);
