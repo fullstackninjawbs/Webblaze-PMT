@@ -238,17 +238,7 @@ export const ProjectsList: React.FC = () => {
   const getClientName = (id: string) =>
     clientOptions.find((c) => c.value === id)?.label || 'Unknown Client';
 
-  const getProjectReleaseDate = (projectId: string) => {
-    const projectReleases = (releasesData?.data || []).filter(
-      (r) => (r.project as any)?._id === projectId || (r.project as any) === projectId
-    );
-    if (projectReleases.length === 0) return 'TBD';
 
-    const sorted = [...projectReleases].sort(
-      (a, b) => new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
-    );
-    return formatDateDisplay(sorted[0].releaseDate);
-  };
 
   const allProjects = projectsData?.data || [];
 
