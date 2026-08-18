@@ -1268,9 +1268,7 @@ const MilestoneTableRow = ({
   const spentHours = tasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
   const progressPercent = Math.min((spentHours / (milestone.estimatedHours || 1)) * 100, 100);
 
-  const isMilestoneMaxed = spentHours >= (milestone.estimatedHours || 0) && (milestone.estimatedHours || 0) > 0;
-  const areAllTasksDone = tasks.length > 0 && tasks.every((t: any) => t.status === 'completed');
-  const effectiveStatus = (isMilestoneMaxed || areAllTasksDone) ? 'completed' : milestone.status;
+  const effectiveStatus = milestone.status;
   const pId = typeof milestone.project === 'object' ? milestone.project._id : milestone.project;
 
   return (
