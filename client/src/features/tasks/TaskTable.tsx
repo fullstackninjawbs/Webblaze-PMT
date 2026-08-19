@@ -1,6 +1,11 @@
-import { Table, Group, Text, Badge, Card, SimpleGrid } from '@mantine/core';
+import { Table, Group, Text, Badge, Card } from '@mantine/core';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { Link } from 'react-router-dom';
+
+const truncateText = (text: string, max: number = 48) => {
+  if (!text) return '';
+  return text.length > max ? text.substring(0, max) + '...' : text;
+};
 
 export const TaskTable = ({ tasks }: any) => {
   return (
@@ -46,20 +51,23 @@ export const TaskTable = ({ tasks }: any) => {
                     </Group>
                   </Table.Td>
                   <Table.Td>
-                    <SimpleGrid cols={4} spacing="md" style={{ alignItems: 'center' }}>
+                    <Group gap="sm" wrap="nowrap" align="center">
                       <Link to={task.milestone?.project?._id ? `/projects/${task.milestone.project._id}` : '#'} style={{ textDecoration: 'none' }}>
-                        <Text size="sm" fw={700} style={{ color: '#0f172a' }} truncate>
-                          {task.milestone?.project?.name || 'Unknown Project'}
+                        <Text size="sm" fw={700} style={{ color: '#0f172a' }} title={task.milestone?.project?.name}>
+                          {truncateText(task.milestone?.project?.name || 'Unknown Project')}
                         </Text>
                       </Link>
+                      <Text size="sm" c="dimmed">—</Text>
                       <Link to={`/tasks/${task._id}`} style={{ textDecoration: 'none' }}>
-                        <Text fw={600} size="sm" style={{ color: '#2563eb' }} truncate>{task.title}</Text>
+                        <Text fw={600} size="sm" style={{ color: '#2563eb' }} title={task.title}>
+                          {truncateText(task.title)}
+                        </Text>
                       </Link>
-                      <div>
-                        <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light" size="sm">
-                          {task.status?.replace('_', ' ') || 'Assigned'}
-                        </Badge>
-                      </div>
+                      <Text size="sm" c="dimmed">—</Text>
+                      <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light" size="sm">
+                        {task.status?.replace('_', ' ') || 'Assigned'}
+                      </Badge>
+                      <Text size="sm" c="dimmed">—</Text>
                       <Group gap={4} wrap="nowrap">
                         <Text size="sm" fw={600} style={{ color: task.spentHours > task.estimatedHours ? '#dc2626' : '#0f172a' }}>
                           {task.spentHours || 0}h
@@ -68,7 +76,7 @@ export const TaskTable = ({ tasks }: any) => {
                           / {task.estimatedHours || 0}h
                         </Text>
                       </Group>
-                    </SimpleGrid>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               ))
