@@ -37,7 +37,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'EXECUTION & TASKS',
       items: [
-        { name: 'Team Tasks', href: '/team-tasks', icon: ListTodo },
+        { name: 'Team Todos', href: '/team-tasks', icon: ListTodo },
         { name: 'Daily Status', href: '/daily-status', icon: Activity },
         { name: 'Releases', href: '/releases', icon: Rocket },
         { name: 'Time Tracking', href: '/team-time', icon: Clock },
@@ -69,7 +69,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'EXECUTION & TASKS',
       items: [
-        { name: 'Team Tasks', href: '/team-tasks', icon: ListTodo },
+        { name: 'Team Todos', href: '/team-tasks', icon: ListTodo },
         { name: 'Daily Status', href: '/daily-status', icon: Activity },
         { name: 'Releases', href: '/releases', icon: Rocket },
         { name: 'Time Tracking', href: '/team-time', icon: Clock },
@@ -98,7 +98,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'EXECUTION & TASKS',
       items: [
-        { name: 'Team Tasks', href: '/team-tasks', icon: ListTodo },
+        { name: 'Team Todos', href: '/team-tasks', icon: ListTodo },
         { name: 'Daily Status', href: '/daily-status', icon: Activity },
         { name: 'Releases', href: '/releases', icon: Rocket },
       ],
