@@ -82,6 +82,13 @@ const theme = createTheme({
     Select: {
       defaultProps: {
         radius: 'md',
+        nothingFoundMessage: 'No options available',
+      },
+    },
+    MultiSelect: {
+      defaultProps: {
+        radius: 'md',
+        nothingFoundMessage: 'No options available',
       },
     },
     Textarea: {
