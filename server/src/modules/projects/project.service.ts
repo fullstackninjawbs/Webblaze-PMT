@@ -1,6 +1,10 @@
 import { Project, IProject } from './project.model';
 import { Milestone } from '../milestones/milestone.model';
 import { Task } from '../tasks/task.model';
+import { TimeLog } from '../timelogs/timeLog.model';
+import { Release } from '../releases/release.model';
+import { Invoice } from '../invoices/invoice.model';
+import { DailyStatus } from '../daily-status/dailyStatus.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
@@ -152,8 +156,29 @@ export class ProjectService {
   }
 
   static async deleteProject(id: string) {
-    const project = await Project.findByIdAndDelete(id);
+    const project = await Project.findById(id);
     if (!project) throw new ApiError(404, 'Project not found');
+
+    const milestones = await Milestone.find({ project: id });
+    const milestoneIds = milestones.map(m => m._id);
+
+    const tasks = await Task.find({ milestone: { $in: milestoneIds } });
+    const taskIds = tasks.map(t => t._id);
+
+    if (taskIds.length > 0) {
+      await TimeLog.deleteMany({ task: { $in: taskIds } });
+    }
+
+    if (milestoneIds.length > 0) {
+      await Task.deleteMany({ milestone: { $in: milestoneIds } });
+    }
+
+    await Milestone.deleteMany({ project: id });
+    await Release.deleteMany({ project: id });
+    await Invoice.deleteMany({ project: id });
+    await DailyStatus.deleteMany({ project: id });
+
+    await project.deleteOne();
     return project;
   }
 }

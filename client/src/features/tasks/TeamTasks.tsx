@@ -67,8 +67,8 @@ export const TeamTasks = () => {
   };
 
   const filteredTasks = useMemo(() => {
-    // Only show tasks that are assigned to a team member
-    let result = tasks.filter((t: any) => !!t.assignedTo);
+    // Only show tasks that are assigned to a team member AND belong to a valid project
+    let result = tasks.filter((t: any) => !!t.assignedTo && !!t.milestone?.project?._id);
     
     // Sort alphabetically by assignee name
     result.sort((a: any, b: any) => {
