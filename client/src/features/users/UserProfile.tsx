@@ -208,54 +208,40 @@ export const UserProfile: React.FC = () => {
           Back to Team
         </Button>
 
-        {/* User Profile Pill Widget matching screenshot */}
-        <Menu position="bottom-end" shadow="md" width={220} offset={6}>
-          <Menu.Target>
-            <UnstyledButton
-              style={{
-                padding: '6px 14px 6px 8px',
-                borderRadius: '16px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              <Group wrap="nowrap" gap="sm" align="center">
-                <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size={36} />
-                <div style={{ textAlign: 'left' }}>
-                  <Text size="xs" fw={700} style={{ color: '#0f172a', lineHeight: 1.2 }}>
-                    {member.name}
-                  </Text>
-                  <Badge
-                    size="xs"
-                    variant="filled"
-                    color={roleColor(member.role)}
-                    style={{
-                      fontSize: '0.625rem',
-                      fontWeight: 700,
-                      height: 16,
-                      padding: '0 6px',
-                      marginTop: 2,
-                    }}
-                  >
-                    {member.role?.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                </div>
-                <ChevronDown size={14} color="#94a3b8" />
-              </Group>
-            </UnstyledButton>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item
-              leftSection={<Mail size={14} />}
-              style={{ fontSize: '0.8125rem', color: '#64748b' }}
-            >
-              {member.email}
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
+        {/* User Profile Pill Widget */}
+        <Paper
+          style={{
+            padding: '6px 14px 6px 8px',
+            borderRadius: '16px',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            cursor: 'default',
+          }}
+        >
+          <Group wrap="nowrap" gap="sm" align="center">
+            <UserAvatar name={member.name} avatarUrl={member.avatarUrl} size={36} />
+            <div style={{ textAlign: 'left' }}>
+              <Text size="xs" fw={700} style={{ color: '#0f172a', lineHeight: 1.2 }}>
+                {member.name}
+              </Text>
+              <Badge
+                size="xs"
+                variant="filled"
+                color={roleColor(member.role)}
+                style={{
+                  fontSize: '0.625rem',
+                  fontWeight: 700,
+                  height: 16,
+                  padding: '0 6px',
+                  marginTop: 2,
+                }}
+              >
+                {member.role?.replace('_', ' ').toUpperCase()}
+              </Badge>
+            </div>
+          </Group>
+        </Paper>
       </Group>
 
       {/* Stats Row */}
