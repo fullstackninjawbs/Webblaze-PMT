@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
-import { useGetAllTasksQuery, useUpdateTaskMutation } from './task.slice';
+import { useGetAllTasksQuery } from './task.slice';
 import { useGetUsersQuery } from '../users/user.slice';
 import { Container, Title, Text, Group, Select, Loader, Center, Stack, TextInput } from '@mantine/core';
 import { Search } from 'lucide-react';
@@ -12,8 +12,6 @@ export const TeamTasks = () => {
   const { user: currentUser } = useSelector((state: RootState) => state.auth);
   const { data: tasksData, isLoading: isTasksLoading } = useGetAllTasksQuery();
   const { data: usersData, isLoading: isUsersLoading } = useGetUsersQuery();
-  const [updateTask] = useUpdateTaskMutation();
-
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -50,15 +48,6 @@ export const TeamTasks = () => {
     });
   }, [users, isGlobalManager, currentUser]);
 
-  const teamOptions = useMemo(() => {
-    return teamMembers.map((u: any) => ({
-      value: u._id,
-      label: u.name,
-      fullName: u.name,
-      department: u.department,
-      avatarUrl: u.avatarUrl
-    }));
-  }, [teamMembers]);
 
   const filterMemberOptions = useMemo(() => {
     return teamMembers.map((m: any) => ({ value: m._id, label: m.name }));
@@ -116,13 +105,6 @@ export const TeamTasks = () => {
     return result;
   }, [tasks, selectedFilter, searchQuery, isGlobalManager]);
 
-  const handleAssignTask = async (taskId: string, userId: string | null) => {
-    try {
-      await updateTask({ _id: taskId, assignedTo: userId || undefined }).unwrap();
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   if (isTasksLoading || isUsersLoading) return <Center h={400}><Loader color="blue" /></Center>;
 
@@ -164,9 +146,6 @@ export const TeamTasks = () => {
           {DEPARTMENT_OPTIONS.map((dept) => {
             const deptTasks = filteredTasks.filter(t => getTaskDepartment(t) === dept.value);
             if (deptTasks.length === 0) return null;
-            
-            const currentAssigneeIds = new Set(deptTasks.map((t: any) => typeof t.assignedTo === 'object' ? t.assignedTo?._id : t.assignedTo).filter(Boolean));
-            const filteredTeamOptions = teamOptions.filter((opt: any) => getNormalizedDepartment(opt.department) === dept.value || currentAssigneeIds.has(opt.value));
             
             return (
               <div key={dept.value}>
