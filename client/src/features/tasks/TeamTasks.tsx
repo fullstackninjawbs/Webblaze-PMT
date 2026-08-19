@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { useGetAllTasksQuery } from './task.slice';
 import { useGetUsersQuery } from '../users/user.slice';
-import { Container, Title, Text, Group, Select, Loader, Center, Stack, TextInput } from '@mantine/core';
+import { Container, Title, Text, Group, Select, Loader, Center, Stack, TextInput, Badge } from '@mantine/core';
 import { Search } from 'lucide-react';
 import { Role, DEPARTMENT_OPTIONS } from '../../types';
 import { TaskTable } from './TaskTable';
@@ -67,13 +67,14 @@ export const TeamTasks = () => {
   };
 
   const filteredTasks = useMemo(() => {
-    let result = [...tasks];
+    // Only show tasks that are assigned to a team member
+    let result = tasks.filter((t: any) => !!t.assignedTo);
     
-    // Sort logic to bubble Unassigned to the top
-    result.sort((a, b) => {
-      if (!a.assignedTo && b.assignedTo) return -1;
-      if (a.assignedTo && !b.assignedTo) return 1;
-      return 0;
+    // Sort alphabetically by assignee name
+    result.sort((a: any, b: any) => {
+      const nameA = (typeof a.assignedTo === 'object' ? a.assignedTo?.name : '') || '';
+      const nameB = (typeof b.assignedTo === 'object' ? b.assignedTo?.name : '') || '';
+      return nameA.localeCompare(nameB);
     });
 
     if (selectedFilter) {
@@ -112,9 +113,14 @@ export const TeamTasks = () => {
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title order={1} style={{ color: '#0f172a', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
-            Team Todos
-          </Title>
+          <Group align="center" gap="sm">
+            <Title order={1} style={{ color: '#0f172a', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
+              Team Todos
+            </Title>
+            <Badge variant="light" color="blue" size="lg" radius="md" style={{ textTransform: 'none', fontWeight: 600 }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </Badge>
+          </Group>
           <Text size="sm" mt={4} style={{ color: '#64748b' }}>
             Manage and assign todos across all your projects.
           </Text>
