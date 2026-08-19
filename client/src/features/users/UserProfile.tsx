@@ -7,11 +7,11 @@ import { useForm } from '@mantine/form';
 import {
   Container, Title, Text, Group, Badge, Stack, SimpleGrid,
   Tabs, Table, Progress, Loader, Center, Button, Paper,
-  Modal, Textarea, Select, TextInput, UnstyledButton, Menu,
+  Modal, Textarea, Select, TextInput
 } from '@mantine/core';
 import {
-  ArrowLeft, Mail, CheckCircle2, Clock, Briefcase, CheckSquare,
-  Activity, AlertCircle, LogIn, LogOut, Send, Sparkles, Search, ChevronDown,
+  ArrowLeft, CheckCircle2, Clock, Briefcase, CheckSquare,
+  Activity, AlertCircle, LogIn, LogOut, Send, Sparkles, Search
 } from 'lucide-react';
 import { useGetUserByIdQuery } from './user.slice';
 import { useGetTasksByUserQuery } from '../tasks/task.slice';
