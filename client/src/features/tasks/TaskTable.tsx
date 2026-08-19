@@ -1,9 +1,8 @@
-import { Table, Group, Text, Badge, Select, Stack, Card } from '@mantine/core';
+import { Table, Group, Text, Badge, Card } from '@mantine/core';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { formatDateDisplay } from '../../utils/dateUtils';
 import { Link } from 'react-router-dom';
 
-export const TaskTable = ({ tasks, teamOptions, isGlobalManager, handleAssignTask }: any) => {
+export const TaskTable = ({ tasks }: any) => {
   return (
     <Card
       shadow="xs"

@@ -171,12 +171,7 @@ export const TeamTasks = () => {
             return (
               <div key={dept.value}>
                 <Title order={4} mb="md" style={{ color: '#334155' }}>{dept.label} Todos ({deptTasks.length})</Title>
-                <TaskTable 
-                  tasks={deptTasks} 
-                  teamOptions={filteredTeamOptions} 
-                  isGlobalManager={isGlobalManager} 
-                  handleAssignTask={handleAssignTask} 
-                />
+                <TaskTable tasks={deptTasks} />
               </div>
             );
           })}
@@ -193,12 +188,7 @@ export const TeamTasks = () => {
             return (
               <div key="other">
                 <Title order={4} mb="md" style={{ color: '#334155' }}>Other Todos ({otherTasks.length})</Title>
-                <TaskTable 
-                  tasks={otherTasks} 
-                  teamOptions={teamOptions} 
-                  isGlobalManager={isGlobalManager} 
-                  handleAssignTask={handleAssignTask} 
-                />
+                <TaskTable tasks={otherTasks} />
               </div>
             );
           })()}
@@ -207,12 +197,7 @@ export const TeamTasks = () => {
         <Stack gap="xl">
           <div>
             <Title order={4} mb="md" style={{ color: '#334155' }}>All Todos ({filteredTasks.length})</Title>
-            <TaskTable 
-              tasks={filteredTasks} 
-              teamOptions={teamOptions} 
-              isGlobalManager={isGlobalManager} 
-              handleAssignTask={handleAssignTask} 
-            />
+            <TaskTable tasks={filteredTasks} />
           </div>
         </Stack>
       )}
