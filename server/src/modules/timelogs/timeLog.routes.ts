@@ -26,9 +26,9 @@ router.post('/stop', validate(stopTimerSchema), stopTimer);
 router.post('/manual', createManualLog);
 router.get('/active', getActiveTimer);
 
-// Admin/PM/TeamLead team view
-router.get('/team', rbacMiddleware([Role.ADMIN, Role.PM, Role.TEAM_LEAD]), getTeamTimeLogs);
-router.get('/team-hours-summary', rbacMiddleware([Role.ADMIN, Role.PM, Role.TEAM_LEAD]), getTeamHoursSummary);
+// Admin/PM/TeamLead/TeamMember team view
+router.get('/team', rbacMiddleware([Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER]), getTeamTimeLogs);
+router.get('/team-hours-summary', rbacMiddleware([Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER]), getTeamHoursSummary);
 
 // View & Clear logs for a specific task
 router.get('/task/:taskId', getTimeLogsByTask);
