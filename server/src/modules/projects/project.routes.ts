@@ -20,7 +20,7 @@ router.get('/:id', projectController.getProjectById);
 router.post('/', rbacMiddleware(PERMISSIONS['projects:manage']), validate(createProjectSchema), projectController.createProject);
 router.patch('/:id', rbacMiddleware(PERMISSIONS['projects:manage']), validate(updateProjectSchema), projectController.updateProject);
 
-// Only Admin can delete projects
-router.delete('/:id', rbacMiddleware([Role.ADMIN]), projectController.deleteProject);
+// Admin and PM can delete projects
+router.delete('/:id', rbacMiddleware(PERMISSIONS['projects:manage']), projectController.deleteProject);
 
 export default router;
