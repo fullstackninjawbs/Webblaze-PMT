@@ -3,6 +3,7 @@ import { Login } from '../features/auth/Login';
 import { ForgotPassword } from '../features/auth/ForgotPassword';
 import { ResetPassword } from '../features/auth/ResetPassword';
 import { ProtectedRoute } from '../components/common/ProtectedRoute';
+import { GuestRoute } from '../components/common/GuestRoute';
 import { DashboardLayout } from '../layouts/DashboardLayout';
 import { DashboardShell } from '../features/dashboard/DashboardShell';
 import { ClientsList } from '../features/clients/ClientsList';
@@ -32,9 +33,9 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+      <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+      <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
 
       <Route
         element={
