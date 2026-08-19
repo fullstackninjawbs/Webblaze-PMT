@@ -130,24 +130,11 @@ export const TeamTasks = () => {
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
       <Group justify="space-between" mb="xl" style={{ marginBottom: '28px' }}>
         <div>
-          <Title
-            order={2}
-            style={{
-              color: '#0f172a',
-              fontSize: '1.625rem',
-              fontWeight: 700,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.25,
-            }}
-          >
-            Team Tasks
+          <Title order={1} style={{ color: '#0f172a', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
+            Team Todos
           </Title>
-          <Text
-            size="sm"
-            mt={4}
-            style={{ color: '#64748b', letterSpacing: '-0.01em' }}
-          >
-            Manage and assign tasks across all your projects.
+          <Text size="sm" mt={4} style={{ color: '#64748b' }}>
+            Manage and assign todos across all your projects.
           </Text>
         </div>
         <Group gap="sm">
@@ -183,7 +170,7 @@ export const TeamTasks = () => {
             
             return (
               <div key={dept.value}>
-                <Title order={4} mb="md" style={{ color: '#334155' }}>{dept.label} Tasks ({deptTasks.length})</Title>
+                <Title order={4} mb="md" style={{ color: '#334155' }}>{dept.label} Todos ({deptTasks.length})</Title>
                 <TaskTable 
                   tasks={deptTasks} 
                   teamOptions={filteredTeamOptions} 
@@ -205,7 +192,7 @@ export const TeamTasks = () => {
             
             return (
               <div key="other">
-                <Title order={4} mb="md" style={{ color: '#334155' }}>Other Tasks ({otherTasks.length})</Title>
+                <Title order={4} mb="md" style={{ color: '#334155' }}>Other Todos ({otherTasks.length})</Title>
                 <TaskTable 
                   tasks={otherTasks} 
                   teamOptions={teamOptions} 
@@ -219,7 +206,7 @@ export const TeamTasks = () => {
       ) : (
         <Stack gap="xl">
           <div>
-            <Title order={4} mb="md" style={{ color: '#334155' }}>All Tasks ({filteredTasks.length})</Title>
+            <Title order={4} mb="md" style={{ color: '#334155' }}>All Todos ({filteredTasks.length})</Title>
             <TaskTable 
               tasks={filteredTasks} 
               teamOptions={teamOptions} 

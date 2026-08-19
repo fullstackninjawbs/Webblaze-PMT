@@ -6,6 +6,12 @@ import { notifications } from '@mantine/notifications';
 const rtkQueryErrorLogger: Middleware = () => (next) => (action) => {
   if (isRejectedWithValue(action)) {
     const payload = (action as any).payload;
+    
+    // Ignore 401 Unauthorized errors (initial auth checks, session expiry handled by routing)
+    if (payload?.status === 401) {
+      return next(action);
+    }
+
     const message = payload?.data?.error?.message || payload?.data?.message || payload?.error || 'An unexpected error occurred';
     
     notifications.show({

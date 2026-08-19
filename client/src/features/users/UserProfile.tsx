@@ -362,10 +362,10 @@ export const UserProfile: React.FC = () => {
             ) : (
               <Stack gap="md">
                 {userTimeLogs.map((log) => {
-                  const taskTitle = typeof log.task === 'object' ? (log.task as any).title : 'Unknown Task';
-                  const milestoneObj = typeof log.task === 'object' ? (log.task as any).milestone : null;
+                  const taskTitle = log.task && typeof log.task === 'object' ? (log.task as any).title : 'Unknown Task';
+                  const milestoneObj = log.task && typeof log.task === 'object' ? (log.task as any).milestone : null;
                   const projectName = milestoneObj && typeof milestoneObj === 'object' && (milestoneObj as any).project
-                    ? (typeof (milestoneObj as any).project === 'object' ? (milestoneObj as any).project.name : '')
+                    ? ((milestoneObj as any).project && typeof (milestoneObj as any).project === 'object' ? (milestoneObj as any).project.name : '')
                     : '';
 
                   const isActive = !log.endTime;
