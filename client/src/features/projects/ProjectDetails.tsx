@@ -19,6 +19,7 @@ import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { useUploadFileMutation } from '../uploads/upload.slice';
 import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
+import { formatHours } from '../../utils/formatHours';
 
 const milestoneSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -614,10 +615,10 @@ export const ProjectDetails = () => {
                   </Box>
                 </Group>
                 <Text fw={800} size="28px" style={{ color: '#0f172a' }}>
-                  {taskMetrics.totalSpentHours.toFixed(1)}h
+                  {formatHours(taskMetrics.totalSpentHours)}
                 </Text>
                 <Text size="xs" c="dimmed" mt={4}>
-                  Out of {taskMetrics.totalEstHours.toFixed(1)}h estimated ({taskMetrics.totalEstHours > 0 ? Math.round((taskMetrics.totalSpentHours / taskMetrics.totalEstHours) * 100) : 0}% used)
+                  Out of {formatHours(taskMetrics.totalEstHours)} estimated ({taskMetrics.totalEstHours > 0 ? Math.round((taskMetrics.totalSpentHours / taskMetrics.totalEstHours) * 100) : 0}% used)
                 </Text>
               </Card>
 
@@ -629,7 +630,7 @@ export const ProjectDetails = () => {
                   </Box>
                 </Group>
                 <Text fw={800} size="28px" style={{ color: '#0f172a' }}>
-                  {taskMetrics.avgRunTime}h
+                  {formatHours(taskMetrics.avgRunTime)}
                 </Text>
                 <Text size="xs" c="dimmed" mt={4}>
                   Average run time per completed task
@@ -644,7 +645,7 @@ export const ProjectDetails = () => {
                   </Box>
                 </Group>
                 <Text fw={800} size="28px" style={{ color: taskMetrics.overtimeHours > 0 ? '#dc2626' : '#0f172a' }}>
-                  +{taskMetrics.overtimeHours.toFixed(1)}h
+                  +{formatHours(taskMetrics.overtimeHours)}
                 </Text>
                 <Text
                   size="xs" c="dimmed" mt={4}>
@@ -751,7 +752,7 @@ export const ProjectDetails = () => {
                                 <Text size="xs" c="dimmed">({data.count} {data.count === 1 ? 'task' : 'tasks'})</Text>
                               </Group>
                               <Text size="xs" fw={700} style={{ color: '#0f172a' }}>
-                                {data.spent.toFixed(1)}h / {data.est.toFixed(1)}h
+                                {formatHours(data.spent)} / {formatHours(data.est)}
                               </Text>
                             </Group>
                             <Progress value={percentOfMax} size="sm" radius="xl" color="indigo" />
@@ -801,7 +802,7 @@ export const ProjectDetails = () => {
                         <Group justify="space-between" mb={4}>
                           <Text size="xs" c="dimmed">{mTasks.length} tasks assigned</Text>
                           <Text size="xs" fw={700} c={mSpent > mEst ? 'red' : 'blue'}>
-                            {mSpent.toFixed(1)}h / {mEst.toFixed(1)}h ({mPercent}%)
+                            {formatHours(mSpent)} / {formatHours(mEst)} ({mPercent}%)
                           </Text>
                         </Group>
                         <Progress value={mPercent} size="sm" radius="xl" color={mSpent > mEst ? 'red' : 'blue'} />
@@ -998,7 +999,7 @@ export const ProjectDetails = () => {
           <Group justify="space-between" mb="xs">
             <Text size="sm" fw={600} color="dimmed">Milestone Capacity</Text>
             <Text size="sm" fw={600} color={isOverAllocated ? 'red' : 'blue'}>
-              {remainingHours - newTaskEst}h Remaining
+              {formatHours(remainingHours - newTaskEst)} Remaining
             </Text>
           </Group>
           <Progress.Root>
@@ -1006,14 +1007,14 @@ export const ProjectDetails = () => {
             <Progress.Section value={(newTaskEst / activeMilestoneEstimated) * 100} color={isOverAllocated ? 'red' : 'teal'} />
           </Progress.Root>
           <Group justify="space-between" mt="xs">
-            <Text size="xs" color="dimmed">Est: {activeMilestoneEstimated}h</Text>
-            <Text size="xs" color="dimmed">Allocated: {activeMilestoneAllocated}h + {newTaskEst}h (New)</Text>
+            <Text size="xs" color="dimmed">Est: {formatHours(activeMilestoneEstimated)}</Text>
+            <Text size="xs" color="dimmed">Allocated: {formatHours(activeMilestoneAllocated)} + {formatHours(newTaskEst)} (New)</Text>
           </Group>
         </Card>
 
         {isOverAllocated && (
           <Alert color="red" title="Hour Cap Exceeded" mb="xl">
-            This task requires {newTaskEst}h, but the milestone only has {remainingHours}h remaining. Please adjust the estimated hours or increase the milestone cap.
+            This task requires {formatHours(newTaskEst)}, but the milestone only has {formatHours(remainingHours)} remaining. Please adjust the estimated hours or increase the milestone cap.
           </Alert>
         )}
 
@@ -1302,14 +1303,14 @@ const MilestoneTableRow = ({
       {/* 4. Est. Hours */}
       <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
         <Text size="sm" fw={600} style={{ color: '#475569' }}>
-          {milestone.estimatedHours || 0}h
+          {formatHours(milestone.estimatedHours)}
         </Text>
       </Table.Td>
 
       {/* 5. Active Hours */}
       <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
         <Text size="sm" fw={600} style={{ color: spentHours > milestone.estimatedHours ? '#dc2626' : '#2563eb' }}>
-          {Number(spentHours.toFixed(2))}h
+          {formatHours(spentHours)}
         </Text>
       </Table.Td>
 
@@ -1461,8 +1462,8 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
             <Text size="xs" fw={700} color="dimmed" tt="uppercase">Hours Distribution</Text>
             <Clock size={18} color="#f59e0b" />
           </Group>
-          <Text size="lg" fw={800} color="orange">{Number(totalSpent.toFixed(1))}h Spent</Text>
-          <Text size="xs" c="dimmed" mt={4}>Of total {totalEstimated}h estimated</Text>
+          <Text size="lg" fw={800} color="orange">{formatHours(totalSpent)} Spent</Text>
+          <Text size="xs" c="dimmed" mt={4}>Of total {formatHours(totalEstimated)} estimated</Text>
           <Progress value={Math.min(hoursPercent, 100)} color={hoursPercent > 100 ? 'red' : 'orange'} size="sm" mt="md" radius="xl" />
         </Card>
       </SimpleGrid>
@@ -1531,11 +1532,11 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
                         <Text size="sm" fw={600}>{mDone} / {mTasks.length} done</Text>
                       </Table.Td>
                       <Table.Td style={{ whiteSpace: 'nowrap' }}>
-                        <Text size="sm" fw={600}>{mEst}h</Text>
+                        <Text size="sm" fw={600}>{formatHours(mEst)}</Text>
                       </Table.Td>
                       <Table.Td style={{ whiteSpace: 'nowrap' }}>
                         <Text size="sm" fw={600} style={{ color: mSpent > mEst ? '#dc2626' : '#2563eb' }}>
-                          {Number(mSpent.toFixed(1))}h
+                          {formatHours(mSpent)}
                         </Text>
                       </Table.Td>
                       <Table.Td style={{ minWidth: 120 }}>
@@ -1796,11 +1797,11 @@ const ProjectTasks = ({
                   )}
                 </Table.Td>
                 <Table.Td>
-                  <Text size="sm" fw={600}>{task.estimatedHours}h</Text>
+                  <Text size="sm" fw={600}>{formatHours(task.estimatedHours)}</Text>
                 </Table.Td>
                 <Table.Td>
                   <Text size="sm" fw={600} style={{ color: rawSpent > task.estimatedHours ? '#dc2626' : '#2563eb' }}>
-                    {Number(rawSpent.toFixed(2))}h
+                    {formatHours(rawSpent)}
                   </Text>
                 </Table.Td>
                 <Table.Td>
@@ -1827,7 +1828,7 @@ const ProjectTasks = ({
                   </Menu>
                 </Table.Td>
                 <Table.Td>
-                  <Tooltip label={`${liveSpent.toFixed(2)}h / ${task.estimatedHours}h (${Math.round(liveProgress)}%)`}>
+                  <Tooltip label={`${liveSpent.toFixed(2)}h / ${formatHours(task.estimatedHours)} (${Math.round(liveProgress)}%)`}>
                     <Progress value={liveProgress} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} animated={isTimerActive && task.status !== 'completed'} />
                   </Tooltip>
                 </Table.Td>

@@ -13,6 +13,7 @@ import { useGetTasksByUserQuery, useUpdateTaskMutation } from './task.slice';
 import { useGetActiveTimerQuery, useStartTimerMutation, useStopTimerMutation } from '../timelogs/timeLog.slice';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
+import { formatHours } from '../../utils/formatHours';
 
 export const MyTasks = () => {
   const navigate = useNavigate();
@@ -159,7 +160,7 @@ export const MyTasks = () => {
           <Group gap={6}>
             {isOverdue && <Badge color="red" leftSection={<AlertCircle size={10} />}>Overdue</Badge>}
             {isDueSoon && <Badge color="orange" leftSection={<Clock size={10} />}>Due Soon</Badge>}
-            {isOverBudget && <Badge color="red" variant="outline" size="xs">+{ (spentHours - estHours).toFixed(1) }h Over</Badge>}
+            {isOverBudget && <Badge color="red" variant="outline" size="xs">+{formatHours(spentHours - estHours)} Over</Badge>}
           </Group>
         </Group>
 
@@ -173,7 +174,7 @@ export const MyTasks = () => {
           <Group gap={4} mb={10}>
             <Calendar size={12} color="#64748b" />
             <Text size="xs" c="dimmed" fw={500}>Due {formattedDueDate}</Text>
-            {isOverBudget && <Badge color="red" variant="outline" size="xs">+{ Number((spentHours - estHours).toFixed(2)) }h Over</Badge>}
+            {isOverBudget && <Badge color="red" variant="outline" size="xs">+{formatHours(spentHours - estHours)} Over</Badge>}
           </Group>
         )}
 
@@ -181,7 +182,7 @@ export const MyTasks = () => {
         <Group justify="space-between" mb={4}>
           <Text size="xs" fw={600}>Progress</Text>
           <Text size="xs" fw={600} c={isOverBudget ? 'red' : undefined}>
-            {Number(spentHours.toFixed(2))}h / {estHours}h
+            {formatHours(spentHours)} / {formatHours(estHours)}
           </Text>
         </Group>
         <Progress 
@@ -420,7 +421,7 @@ export const MyTasks = () => {
                       </Table.Td>
                       <Table.Td>
                         <Text size="xs" fw={600} c={isOverBudget ? 'red' : undefined}>
-                          {spent.toFixed(1)}h / {est}h {isOverBudget ? `(+${(spent - est).toFixed(1)}h)` : ''}
+                          {formatHours(spent)} / {formatHours(est)} {isOverBudget ? `(+${formatHours(spent - est)})` : ''}
                         </Text>
                       </Table.Td>
                       <Table.Td style={{ textAlign: 'right' }}>
@@ -512,13 +513,13 @@ export const MyTasks = () => {
                   <Clock size={13} color="#64748b" />
                   <Text size="xs" c="dimmed" fw={600}>Hours Spent:</Text>
                   <Text size="xs" fw={700} c={selectedTaskForReview.spentHours > selectedTaskForReview.estimatedHours ? 'red' : 'blue'}>
-                    {Number((selectedTaskForReview.spentHours || 0).toFixed(2))}h / {selectedTaskForReview.estimatedHours}h
+                    {formatHours(selectedTaskForReview.spentHours || 0)} / {formatHours(selectedTaskForReview.estimatedHours)}
                   </Text>
                 </Group>
 
                 {selectedTaskForReview.spentHours > selectedTaskForReview.estimatedHours && (
                   <Badge color="red" variant="outline" size="xs">
-                    +{Number((selectedTaskForReview.spentHours - selectedTaskForReview.estimatedHours).toFixed(2))}h Over Budget
+                    +{formatHours(selectedTaskForReview.spentHours - selectedTaskForReview.estimatedHours)} Over Budget
                   </Badge>
                 )}
               </Group>

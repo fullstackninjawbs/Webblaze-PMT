@@ -6,6 +6,7 @@ import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetAllTasksQuery } from '../tasks/task.slice';
 import { useGetTeamTimeLogsQuery } from '../timelogs/timeLog.slice';
 import { useGetUsersQuery } from '../users/user.slice';
+import { formatHours } from '../../utils/formatHours';
 
 export const ReportsPage: React.FC = () => {
 
@@ -384,7 +385,7 @@ export const ReportsPage: React.FC = () => {
                       {dm.dept.toUpperCase()}
                     </Badge>
                     <Text size="xs" fw={600} style={{ color: '#64748b' }}>
-                      Spent: {dm.spent}h / Est: {dm.estimated}h
+                      Spent: {formatHours(dm.spent)} / Est: {formatHours(dm.estimated)}
                     </Text>
                   </Group>
                   <Progress 

@@ -50,6 +50,7 @@ import { RootState } from '../../app/store';
 import { Role, ProjectStatus } from '../../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { formatHours } from '../../utils/formatHours';
 
 
 const projectSchema = z.object({
@@ -297,14 +298,14 @@ export const ProjectsList: React.FC = () => {
       {/* 2. Hours Assists / Est. Hours */}
       <Table.Td style={{ whiteSpace: 'nowrap' }}>
         <Text size="sm" fw={600} style={{ color: '#475569' }}>
-          {project.estHours !== undefined ? `${project.estHours}h` : '0h'}
+          {project.estHours !== undefined ? formatHours(project.estHours) : '0h'}
         </Text>
       </Table.Td>
 
       {/* 3. Active Hours */}
       <Table.Td style={{ whiteSpace: 'nowrap' }}>
         <Text size="sm" fw={600} style={{ color: '#2563eb' }}>
-          {project.spentHours !== undefined ? `${Number(project.spentHours.toFixed(1))}h` : '0h'}
+          {project.spentHours !== undefined ? formatHours(project.spentHours) : '0h'}
         </Text>
       </Table.Td>
 

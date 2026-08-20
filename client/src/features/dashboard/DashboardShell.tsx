@@ -13,6 +13,7 @@ import { useGetReleasesQuery } from '../releases/release.slice';
 import { ProjectSummaryCards } from './ProjectSummaryCards';
 import { ReleaseSheet } from './ReleaseSheet';
 import { TeamTimeTrackingPanel } from './TeamTimeTrackingPanel';
+import { formatHours } from '../../utils/formatHours';
 
 export const DashboardShell: React.FC = () => {
   const navigate = useNavigate();
@@ -162,7 +163,7 @@ export const DashboardShell: React.FC = () => {
             <Clock size={32} color="#10B981" />
             <Badge color="teal" variant="light" size="lg">Weekly Hours</Badge>
           </Group>
-          <Text fw={800} size="32px" color="#111827">{totalLoggedHours.toFixed(1)}h / 40h</Text>
+          <Text fw={800} size="32px" color="#111827">{formatHours(totalLoggedHours)} / 40h</Text>
           <Group justify="space-between" mt="xs" mb={4}>
             <Text size="xs" color="dimmed">Weekly Goal (40h)</Text>
             <Text size="xs" fw={700} color="#10B981">{weeklyGoalPercent}%</Text>

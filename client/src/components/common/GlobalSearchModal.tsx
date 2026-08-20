@@ -7,6 +7,7 @@ import { useGetAllTasksQuery } from '../../features/tasks/task.slice';
 import { useGetClientsQuery } from '../../features/clients/client.slice';
 import { useGetInvoicesQuery } from '../../features/invoices/invoice.slice';
 import { useGetUsersQuery } from '../../features/users/user.slice';
+import { formatHours } from '../../utils/formatHours';
 
 const RECENT_KEY = 'pmt_recent_searches';
 const MAX_RECENT = 5;
@@ -104,7 +105,7 @@ export const GlobalSearchModal = ({ opened, onClose }: GlobalSearchModalProps) =
           subtitle: `Dept: ${t.department || 'N/A'} • Status: ${t.status?.replace('_', ' ')}`,
           category: 'TASKS',
           icon: CheckSquare,
-          badgeText: `${t.estimatedHours}h`,
+          badgeText: formatHours(t.estimatedHours),
           badgeColor: 'indigo',
           onSelect: () => { navigate(`/tasks/${t._id}`); saveRecentSearch(t.title); onClose(); },
         });

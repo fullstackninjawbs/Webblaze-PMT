@@ -15,6 +15,7 @@ import { UserAvatar } from '../../components/common/UserAvatar';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
+import { formatHours } from '../../utils/formatHours';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -181,7 +182,7 @@ export const MilestoneDetailPage: React.FC = () => {
           <Group justify="space-between">
             <div>
               <Text size="xs" c="dimmed" fw={600} tt="uppercase">Estimated Hours</Text>
-              <Text size="xl" fw={800} style={{ color: '#0f172a' }}>{estHours}h</Text>
+              <Text size="xl" fw={800} style={{ color: '#0f172a' }}>{formatHours(estHours)}</Text>
             </div>
             <Clock size={32} color="#3b82f6" style={{ opacity: 0.8 }} />
           </Group>
@@ -280,7 +281,7 @@ export const MilestoneDetailPage: React.FC = () => {
                       )}
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" fw={600}>{task.estimatedHours || 0}h</Text>
+                      <Text size="sm" fw={600}>{formatHours(task.estimatedHours)}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Text size="sm" fw={600} c={(task.spentHours || 0) > task.estimatedHours ? 'red' : 'blue'}>

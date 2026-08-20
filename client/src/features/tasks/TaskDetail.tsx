@@ -9,6 +9,7 @@ import { useUploadFileMutation } from '../uploads/upload.slice';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
+import { formatHours } from '../../utils/formatHours';
 
 export const TaskDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -194,7 +195,7 @@ export const TaskDetail = () => {
             <Group justify="space-between" mb={8}>
               <Text fw={600} size="sm">Task Progress</Text>
               <Text fw={700} size="sm" color={totalSpentHours > task.estimatedHours ? 'red' : 'blue'}>
-                {Number(totalSpentHours.toFixed(2))}h / {task.estimatedHours}h
+                {Number(totalSpentHours.toFixed(2))}h / {formatHours(task.estimatedHours)}
               </Text>
             </Group>
             <Progress 
@@ -244,7 +245,7 @@ export const TaskDetail = () => {
                 title={
                   <Group justify="space-between" wrap="nowrap">
                     <Text fw={600} size="sm">
-                      {log.durationSeconds ? `${Number((log.durationSeconds / 3600).toFixed(2))}h logged` : 'Session recorded'}
+                      {log.durationSeconds ? `${formatHours(log.durationSeconds / 3600)} logged` : 'Session recorded'}
                     </Text>
                     <Group gap="xs" wrap="nowrap">
                       <Text size="xs" color="dimmed">{new Date(log.startTime).toLocaleString()}</Text>
@@ -344,9 +345,9 @@ export const TaskDetail = () => {
       <Modal opened={manualLogModalOpened} onClose={() => setManualLogModalOpened(false)} title={<Text fw={700}>Log Manual Time</Text>} radius="lg">
         <Stack gap="md">
           <Group justify="space-between" align="center">
-            <Text size="sm" c="dimmed">Task Estimated Hours: <strong>{task.estimatedHours}h</strong></Text>
+            <Text size="sm" c="dimmed">Task Estimated Hours: <strong>{formatHours(task.estimatedHours)}</strong></Text>
             <Badge color={remainingHours > 0 ? 'blue' : 'red'} variant="light" size="lg">
-              {remainingHours.toFixed(1)}h remaining
+              {formatHours(remainingHours)} remaining
             </Badge>
           </Group>
 

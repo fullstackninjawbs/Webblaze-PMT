@@ -24,6 +24,7 @@ import {
 } from '../dailyStatus/dailyStatus.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { formatDateDisplay } from '../../utils/dateUtils';
+import { formatHours } from '../../utils/formatHours';
 
 const roleColor = (role: string) => {
   if (role === 'admin') return 'red';
@@ -249,7 +250,7 @@ export const UserProfile: React.FC = () => {
             <StatCard label="Projects" value={memberProjects.length} sub="member of" icon={Briefcase} color="orange" />
             <StatCard label="Tasks Assigned" value={tasks.length} sub="total tasks" icon={CheckSquare} color="blue" />
             <StatCard label="Tasks Completed" value={completedTasks} sub={`${tasks.length - completedTasks} remaining`} icon={CheckCircle2} color="green" />
-            <StatCard label="Hours Logged" value={`${totalLoggedHours}h`} sub="total tracked time" icon={Clock} color="violet" />
+            <StatCard label="Hours Logged" value={formatHours(totalLoggedHours)} sub="total tracked time" icon={Clock} color="violet" />
           </SimpleGrid>
 
           {/* Tabs */}
@@ -314,7 +315,7 @@ export const UserProfile: React.FC = () => {
                           <Badge variant="outline" color="gray" size="sm">{task.department ? task.department.toUpperCase() : 'N/A'}</Badge>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" fw={600} style={{ color: '#0f172a' }}>{spent}h / {estimated}h</Text>
+                          <Text size="sm" fw={600} style={{ color: '#0f172a' }}>{formatHours(spent)} / {formatHours(estimated)}</Text>
                         </Table.Td>
                         <Table.Td style={{ minWidth: 120 }}>
                           <Progress value={progress} size="sm" radius="xl"
