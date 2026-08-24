@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { useGetAllTasksQuery } from './task.slice';
 import { useGetUsersQuery } from '../users/user.slice';
-import { Container, Title, Text, Group, Select, Loader, Center, Stack, TextInput, Badge } from '@mantine/core';
+import { Container, Title, Text, Group, Select, Loader, Center, Stack, TextInput } from '@mantine/core';
 import { Search } from 'lucide-react';
 import { Role, DEPARTMENT_OPTIONS } from '../../types';
 import { TaskTable } from './TaskTable';
@@ -117,9 +117,6 @@ export const TeamTasks = () => {
             <Title order={1} style={{ color: '#0f172a', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
               Team Todos
             </Title>
-            <Badge variant="light" color="blue" size="lg" radius="md" style={{ textTransform: 'none', fontWeight: 600 }}>
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-            </Badge>
           </Group>
           <Text size="sm" mt={4} style={{ color: '#64748b' }}>
             Manage and assign todos across all your projects.

@@ -1847,7 +1847,7 @@ const ProjectTasks = ({
                       >Start</Button>
                     )}
 
-                    {onLogTimeTask && (
+                    {onLogTimeTask && task.status === 'in_review' && (
                       <Tooltip label="Log Time Manually" withArrow>
                         <ActionIcon variant="light" color="indigo" size="sm" onClick={() => onLogTimeTask(task)}>
                           <Clock size={15} />

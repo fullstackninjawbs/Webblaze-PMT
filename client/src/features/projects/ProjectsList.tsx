@@ -161,6 +161,11 @@ export const ProjectsList: React.FC = () => {
     const createParam = searchParams.get('create');
     const clientParam = searchParams.get('client') || searchParams.get('clientId');
     const editParam = searchParams.get('edit');
+    const tabParam = searchParams.get('tab');
+
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
 
     if (createParam === 'true' || clientParam) {
       openCreateModal(clientParam || undefined);

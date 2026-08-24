@@ -214,16 +214,18 @@ export const TaskDetail = () => {
       <Group justify="space-between" align="center" mb="md">
         <Title order={4}>Time Log Activity</Title>
         <Group gap="xs">
-          <Button
-            variant="light"
-            color="blue"
-            size="xs"
-            leftSection={<Plus size={14} />}
-            onClick={() => setManualLogModalOpened(true)}
-            disabled={task.status === 'completed' || (task.estimatedHours > 0 && remainingHours <= 0)}
-          >
-            Log Manual Time
-          </Button>
+          {task.status === 'in_review' && (
+            <Button
+              variant="light"
+              color="blue"
+              size="xs"
+              leftSection={<Plus size={14} />}
+              onClick={() => setManualLogModalOpened(true)}
+              disabled={task.estimatedHours > 0 && remainingHours <= 0}
+            >
+              Log Manual Time
+            </Button>
+          )}
         </Group>
       </Group>
 

@@ -32,55 +32,108 @@ export const TaskTable = ({ tasks }: any) => {
           </Table.Thead>
           <Table.Tbody>
             {tasks.length > 0 ? (
-              tasks.map((task: any) => (
-                <Table.Tr key={task._id}>
-                  <Table.Td>
-                    <Group gap="sm" wrap="nowrap">
-                      {task.assignedTo?.avatarUrl !== undefined && (
-                        <UserAvatar name={task.assignedTo?.name || 'Unassigned'} avatarUrl={task.assignedTo?.avatarUrl} size="md" />
-                      )}
-                      <div>
-                        <Text size="sm" fw={600} style={{ color: '#0f172a' }}>
-                          {task.assignedTo?.name || 'Unassigned'}
-                        </Text>
-                        {task.assignedTo?.department && (
-                          <Text size="xs" c="dimmed" tt="uppercase" mt={2} fw={500}>
-                            {task.assignedTo.department}
-                          </Text>
+              Object.values(
+                tasks.reduce((acc: any, task: any) => {
+                  const assigneeId = task.assignedTo?._id || 'unassigned';
+                  if (!acc[assigneeId]) {
+                    acc[assigneeId] = { assignee: task.assignedTo, tasks: [] };
+                  }
+                  acc[assigneeId].tasks.push(task);
+                  return acc;
+                }, {})
+              ).map((group: any) => {
+                const { assignee, tasks: assigneeTasks } = group;
+                
+                // Group assignee tasks by date
+                const tasksByDate = assigneeTasks.reduce((acc: any, t: any) => {
+                  let dKey = 'Unscheduled';
+                  if (t.startDate) {
+                    const d = new Date(t.startDate);
+                    if (!isNaN(d.getTime())) {
+                      dKey = d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                    }
+                  }
+                  if (!acc[dKey]) acc[dKey] = [];
+                  acc[dKey].push(t);
+                  return acc;
+                }, {});
+
+                // Sort dates (Unscheduled last)
+                const sortedDates = Object.keys(tasksByDate).sort((a, b) => {
+                  if (a === 'Unscheduled') return 1;
+                  if (b === 'Unscheduled') return -1;
+                  return new Date(a).getTime() - new Date(b).getTime();
+                });
+
+                return (
+                  <Table.Tr key={assignee?._id || 'unassigned'}>
+                    <Table.Td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
+                      <Group gap="sm" wrap="nowrap">
+                        {assignee?.avatarUrl !== undefined && (
+                          <UserAvatar name={assignee?.name || 'Unassigned'} avatarUrl={assignee?.avatarUrl} size="md" />
                         )}
-                      </div>
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group gap="sm" wrap="nowrap" align="center">
-                      <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light" size="sm">
-                        {task.status?.replace('_', ' ') || 'Assigned'}
-                      </Badge>
-                      <Text size="sm" c="dimmed">—</Text>
-                      <Link to={task.milestone?.project?._id ? `/projects/${task.milestone.project._id}` : '#'} style={{ textDecoration: 'none' }}>
-                        <Text size="sm" fw={700} style={{ color: '#0f172a' }} title={task.milestone?.project?.name}>
-                          {truncateText(task.milestone?.project?.name || 'Unknown Project')}
-                        </Text>
-                      </Link>
-                      <Text size="sm" c="dimmed">—</Text>
-                      <Link to={`/tasks/${task._id}`} style={{ textDecoration: 'none' }}>
-                        <Text fw={600} size="sm" style={{ color: '#2563eb' }} title={task.title}>
-                          {truncateText(task.title)}
-                        </Text>
-                      </Link>
-                      <Text size="sm" c="dimmed">—</Text>
-                      <Group gap={4} wrap="nowrap">
-                        <Text size="sm" fw={600} style={{ color: task.spentHours > task.estimatedHours ? '#dc2626' : '#0f172a' }}>
-                          {formatHours(task.spentHours)}
-                        </Text>
-                        <Text size="xs" c="dimmed" fw={500}>
-                          / {formatHours(task.estimatedHours)}
-                        </Text>
+                        <div>
+                          <Text size="sm" fw={600} style={{ color: '#0f172a' }}>
+                            {assignee?.name || 'Unassigned'}
+                          </Text>
+                          {assignee?.department && (
+                            <Text size="xs" c="dimmed" tt="uppercase" mt={2} fw={500}>
+                              {assignee.department}
+                            </Text>
+                          )}
+                        </div>
                       </Group>
-                    </Group>
-                  </Table.Td>
-                </Table.Tr>
-              ))
+                    </Table.Td>
+                    <Table.Td style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {sortedDates.map((dateStr) => {
+                          const dateTasks = tasksByDate[dateStr];
+                          const totalHours = dateTasks.reduce((sum: number, t: any) => sum + (Number(t.estimatedHours) || 0), 0);
+                          
+                          return (
+                            <div key={dateStr}>
+                              <Group justify="space-between" mb="xs" style={{ borderBottom: '2px solid #e8ecf4', paddingBottom: '6px' }}>
+                                <Text size="sm" fw={700} style={{ color: '#dc2626' }}>{dateStr}</Text>
+                                <Text size="sm" fw={700} style={{ color: '#dc2626' }}>{formatHours(totalHours)}</Text>
+                              </Group>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {dateTasks.map((task: any) => (
+                                  <Group key={task._id} gap="sm" wrap="nowrap" align="center">
+                                    <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light" size="sm">
+                                      {task.status?.replace('_', ' ') || 'Assigned'}
+                                    </Badge>
+                                    <Text size="sm" c="dimmed">—</Text>
+                                    <Link to={task.milestone?.project?._id ? `/projects/${task.milestone.project._id}` : '#'} style={{ textDecoration: 'none' }}>
+                                      <Text size="sm" fw={700} style={{ color: '#0f172a' }} title={task.milestone?.project?.name}>
+                                        {truncateText(task.milestone?.project?.name || 'Unknown Project')}
+                                      </Text>
+                                    </Link>
+                                    <Text size="sm" c="dimmed">—</Text>
+                                    <Link to={`/tasks/${task._id}`} style={{ textDecoration: 'none' }}>
+                                      <Text fw={600} size="sm" style={{ color: '#2563eb' }} title={task.title}>
+                                        {truncateText(task.title)}
+                                      </Text>
+                                    </Link>
+                                    <Text size="sm" c="dimmed">—</Text>
+                                    <Group gap={4} wrap="nowrap">
+                                      <Text size="sm" fw={600} style={{ color: task.spentHours > task.estimatedHours ? '#dc2626' : '#0f172a' }}>
+                                        {formatHours(task.spentHours)}
+                                      </Text>
+                                      <Text size="xs" c="dimmed" fw={500}>
+                                        / {formatHours(task.estimatedHours)}
+                                      </Text>
+                                    </Group>
+                                  </Group>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Table.Td>
+                  </Table.Tr>
+                );
+              })
             ) : (
               <Table.Tr>
                 <Table.Td colSpan={2} style={{ textAlign: 'center', padding: '40px' }}>
