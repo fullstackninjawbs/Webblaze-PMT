@@ -222,21 +222,6 @@ export const MyTasks = () => {
             <Button size="xs" variant="outline" color="gray" leftSection={<Eye size={12} />} onClick={(e) => { e.stopPropagation(); navigate(`/tasks/${task._id}`); }}>
               View
             </Button>
-
-            {!isCompleted && (
-              <Button 
-                size="xs" 
-                variant="light" 
-                color="orange" 
-                type="button"
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  openReviewModal(task); 
-                }}
-              >
-                Review
-              </Button>
-            )}
           </Group>
         </Group>
       </Card>
@@ -435,12 +420,6 @@ export const MyTasks = () => {
                               Start
                             </Button>
                           ) : null}
-
-                          {(t.status === 'assigned' || t.status === 'in_progress') && (
-                            <Button size="xs" variant="light" color="orange" onClick={() => openReviewModal(t)}>
-                              Review
-                            </Button>
-                          )}
 
                           <Button size="xs" variant="outline" color="gray" onClick={() => navigate(`/tasks/${t._id}`)}>
                             View
