@@ -1,12 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Container, Title, Text, Card, Table, Badge, Group, SimpleGrid, ActionIcon, TextInput } from '@mantine/core';
+import { Container, Title, Text, Card, Table, Badge, Group, ActionIcon, TextInput, Tabs } from '@mantine/core';
 import { Search, X } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { useGetTeamTimeLogsQuery, useGetTeamHoursSummaryQuery } from './timeLog.slice';
+import { useGetTeamTimeLogsQuery } from './timeLog.slice';
 
 export const TeamTimeTracking = () => {
   const { data: logsData, isLoading } = useGetTeamTimeLogsQuery();
-  const { data: hoursSummaryData } = useGetTeamHoursSummaryQuery();
   const [searchQuery, setSearchQuery] = useState('');
 
   const logs = logsData?.data || [];
@@ -139,150 +138,138 @@ export const TeamTimeTracking = () => {
         </Card>
       )}
 
-      <Title order={4} mb="md" style={{ color: '#1e293b' }}>Active Work</Title>
-      <SimpleGrid cols={{ base: 1, md: 3 }} spacing="lg" mb="xl">
-        {activeLogs.map((log) => {
-          const user = typeof log.user === 'object' ? log.user : null;
-          const task = typeof log.task === 'object' ? log.task : null;
-          const project = (task?.milestone as any)?.project;
+      <Tabs defaultValue="running" radius="md">
+        <Tabs.List mb="md">
+          <Tabs.Tab value="running" color="blue" style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+            Running ({activeLogs.length})
+          </Tabs.Tab>
+          <Tabs.Tab value="not-running" color="gray" style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+            Not Running ({historicalLogs.length})
+          </Tabs.Tab>
+        </Tabs.List>
 
-          return (
-            <Card key={log._id} shadow="sm" p="md" radius="md" withBorder style={{ borderColor: '#3b82f6' }}>
-              <Group justify="space-between" mb="sm">
-                <Group gap="sm">
-                  <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} size="sm" />
-                  <Text size="sm" fw={600}>{user?.name || 'Unknown User'}</Text>
-                </Group>
-                <Badge color="blue" variant="filled" className="pulsing-badge">Running</Badge>
-              </Group>
-              <Text size="sm" fw={500} lineClamp={1}>{task?.title || 'Unknown Task'}</Text>
-              <Text size="xs" color="dimmed" lineClamp={1} mb="sm">{project?.name || 'Unknown Project'}</Text>
-              
-              <Text size="xs" color="dimmed">Started: {new Date(log.startTime).toLocaleTimeString()}</Text>
-            </Card>
-          );
-        })}
-        {activeLogs.length === 0 && !isLoading && (
-          <Card shadow="sm" p="md" radius="md" withBorder style={{ borderStyle: 'dashed' }}>
-            <Text c="dimmed" ta="center">
-              {query ? `No active timers matching "${searchQuery}".` : 'No active timers right now.'}
-            </Text>
-          </Card>
-        )}
-      </SimpleGrid>
-
-      {/* Team Hours Rollup Summary */}
-      <Title order={4} mb="md" style={{ color: '#1e293b' }}>Team Member Hours Summary</Title>
-      <Card shadow="sm" p="0" radius="lg" withBorder mb="xl">
-        <Table verticalSpacing="sm" horizontalSpacing="md">
-          <Table.Thead bg="#f8fafc">
-            <Table.Tr>
-              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>TEAM MEMBER</Table.Th>
-              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>DEPARTMENT</Table.Th>
-              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>ASSIGNED HOURS</Table.Th>
-              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>SPENT HOURS</Table.Th>
-              <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>PENDING HOURS</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {(hoursSummaryData?.data || []).map((m) => (
-              <Table.Tr key={m.userId}>
-                <Table.Td>
-                  <Group gap="sm">
-                    <UserAvatar name={m.name} avatarUrl={m.avatarUrl} size="sm" />
-                    <div>
-                      <Text size="sm" fw={600}>{m.name}</Text>
-                      <Text size="xs" c="dimmed">{m.email}</Text>
-                    </div>
-                  </Group>
-                </Table.Td>
-                <Table.Td>
-                  <Badge variant="outline" color="gray" size="sm">{m.department || m.role}</Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" fw={700} c="blue">{m.assignedHours}h</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" fw={700} c="green">{m.spentHours}h</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Badge color={m.pendingHours > 0 ? 'orange' : 'green'} variant="light" size="md">
-                    {m.pendingHours}h pending
-                  </Badge>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-            {(!hoursSummaryData?.data || hoursSummaryData.data.length === 0) && (
-              <Table.Tr>
-                <Table.Td colSpan={5} ta="center" py="md">
-                  <Text c="dimmed">No team member hours data found.</Text>
-                </Table.Td>
-              </Table.Tr>
-            )}
-          </Table.Tbody>
-        </Table>
-      </Card>
-
-      <Title order={4} mb="md" style={{ color: '#1e293b' }}>Logged Time Summary</Title>
-      <Card shadow="sm" p="0" radius="lg" withBorder>
-        <Table verticalSpacing="sm">
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Team Member</Table.Th>
-              <Table.Th>Project / Task</Table.Th>
-              <Table.Th>Start Time</Table.Th>
-              <Table.Th>End Time</Table.Th>
-              <Table.Th>Total Logged</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {historicalLogs.map((log) => {
-              const user = typeof log.user === 'object' ? log.user : null;
-              const task = typeof log.task === 'object' ? log.task : null;
-              const project = (task?.milestone as any)?.project;
-
-              return (
-                <Table.Tr key={log._id}>
-                  <Table.Td>
-                    <Group gap="sm">
-                      <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} size="sm" />
-                      <Text size="sm" fw={500}>{user?.name || 'Unknown User'}</Text>
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" fw={500}>{task?.title || 'Unknown Task'}</Text>
-                    <Text size="xs" color="dimmed">{project?.name || 'Unknown Project'}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" fw={600} c="green">
-                      {new Date(log.startTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="xs" fw={600} c={log.endTime ? 'red' : 'blue'}>
-                      {log.endTime
-                        ? new Date(log.endTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-                        : '● Active'}
-                    </Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm" fw={600}>{formatDuration(log.durationSeconds)}</Text>
-                  </Table.Td>
+        <Tabs.Panel value="running">
+          <Card shadow="sm" p="0" radius="lg" withBorder>
+            <Table verticalSpacing="sm">
+              <Table.Thead bg="#f8fafc">
+                <Table.Tr>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Team Member</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Project / Task</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Start Time</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>End Time</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Total Logged</Table.Th>
                 </Table.Tr>
-              );
-            })}
-            {historicalLogs.length === 0 && !isLoading && (
-              <Table.Tr>
-                <Table.Td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>
-                  <Text color="dimmed">
-                    {query ? `No logged time records matching "${searchQuery}".` : 'No historical time logs found.'}
-                  </Text>
-                </Table.Td>
-              </Table.Tr>
-            )}
-          </Table.Tbody>
-        </Table>
-      </Card>
+              </Table.Thead>
+              <Table.Tbody>
+                {activeLogs.map((log) => {
+                  const user = typeof log.user === 'object' ? log.user : null;
+                  const task = typeof log.task === 'object' ? log.task : null;
+                  const project = (task?.milestone as any)?.project;
+
+                  return (
+                    <Table.Tr key={log._id}>
+                      <Table.Td>
+                        <Group gap="sm">
+                          <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} size="sm" />
+                          <Text size="sm" fw={500}>{user?.name || 'Unknown User'}</Text>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm" fw={500}>{task?.title || 'Unknown Task'}</Text>
+                        <Text size="xs" color="dimmed">{project?.name || 'Unknown Project'}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" fw={600} c="green">
+                          {new Date(log.startTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap="xs">
+                          <Badge color="blue" variant="filled" className="pulsing-badge">Running</Badge>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm" fw={600}>{formatDuration(log.durationSeconds)}</Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+                {activeLogs.length === 0 && !isLoading && (
+                  <Table.Tr>
+                    <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>
+                      <Text color="dimmed">
+                        {query ? `No active timers matching "${searchQuery}".` : 'No active timers right now.'}
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                )}
+              </Table.Tbody>
+            </Table>
+          </Card>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="not-running">
+          <Card shadow="sm" p="0" radius="lg" withBorder>
+            <Table verticalSpacing="sm">
+              <Table.Thead bg="#f8fafc">
+                <Table.Tr>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Team Member</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Project / Task</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Start Time</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>End Time</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Total Logged</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {historicalLogs.map((log) => {
+                  const user = typeof log.user === 'object' ? log.user : null;
+                  const task = typeof log.task === 'object' ? log.task : null;
+                  const project = (task?.milestone as any)?.project;
+
+                  return (
+                    <Table.Tr key={log._id}>
+                      <Table.Td>
+                        <Group gap="sm">
+                          <UserAvatar name={user?.name} avatarUrl={user?.avatarUrl} size="sm" />
+                          <Text size="sm" fw={500}>{user?.name || 'Unknown User'}</Text>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm" fw={500}>{task?.title || 'Unknown Task'}</Text>
+                        <Text size="xs" color="dimmed">{project?.name || 'Unknown Project'}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" fw={600} c="green">
+                          {new Date(log.startTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="xs" fw={600} c={log.endTime ? 'red' : 'blue'}>
+                          {log.endTime
+                            ? new Date(log.endTime).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+                            : '● Active'}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text size="sm" fw={600}>{formatDuration(log.durationSeconds)}</Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+                {historicalLogs.length === 0 && !isLoading && (
+                  <Table.Tr>
+                    <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>
+                      <Text color="dimmed">
+                        {query ? `No logged time records matching "${searchQuery}".` : 'No historical time logs found.'}
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                )}
+              </Table.Tbody>
+            </Table>
+          </Card>
+        </Tabs.Panel>
+      </Tabs>
 
       <style>{`
         @keyframes pulse {
