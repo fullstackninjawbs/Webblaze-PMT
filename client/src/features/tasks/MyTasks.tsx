@@ -1,15 +1,14 @@
 import { useMemo, useState } from 'react';
 import { 
   Container, Title, Text, Card, Group, Badge, Stack, Button, Progress, Loader, 
-  Center, Grid, TextInput, Textarea, Select, SegmentedControl, Table, Box, Modal
+  Center, Grid, TextInput, Select, SegmentedControl, Table
 } from '@mantine/core';
 import { 
   Play, Square, Eye, Clock, AlertCircle, Search, Calendar, MessageSquare, 
-  Paperclip, LayoutGrid, List as ListIcon, X, Send, Link as LinkIcon, CheckCircle2,
-  FileText, GitPullRequest, Sparkles
+  Paperclip, LayoutGrid, List as ListIcon, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useGetTasksByUserQuery, useUpdateTaskMutation } from './task.slice';
+import { useGetTasksByUserQuery } from './task.slice';
 import { useGetActiveTimerQuery, useStartTimerMutation, useStopTimerMutation } from '../timelogs/timeLog.slice';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
@@ -19,22 +18,15 @@ export const MyTasks = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
   
-  const { data: tasksData, isLoading, refetch } = useGetTasksByUserQuery((user as any)?._id || (user as any)?.id || '');
+  const { data: tasksData, isLoading } = useGetTasksByUserQuery((user as any)?._id || (user as any)?.id || '');
   const { data: activeTimerData } = useGetActiveTimerQuery();
   const [startTimer] = useStartTimerMutation();
   const [stopTimer] = useStopTimerMutation();
-  const [updateTask, { isLoading: isUpdating }] = useUpdateTaskMutation();
 
   // Search & Filter & View state
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
-  
-  // Submit for Review Modal state
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [selectedTaskForReview, setSelectedTaskForReview] = useState<any | null>(null);
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [prUrl, setPrUrl] = useState('');
 
   const activeTimer = activeTimerData?.data;
   const activeTimerTaskId = activeTimer
@@ -97,32 +89,6 @@ export const MyTasks = () => {
       await stopTimer({}).unwrap();
     } catch (err: any) {
       alert(err.data?.message || 'Failed to stop timer');
-    }
-  };
-
-  const openReviewModal = (task: any) => {
-    console.log('Opening review modal for task:', task);
-    setSelectedTaskForReview(task);
-    setReviewNotes('');
-    setPrUrl('');
-    setReviewModalOpen(true);
-  };
-
-  const handleSubmitForReview = async () => {
-    if (!selectedTaskForReview) return;
-
-    try {
-      await updateTask({ 
-        _id: selectedTaskForReview._id, 
-        status: 'in_review',
-      }).unwrap();
-
-      setReviewModalOpen(false);
-      setSelectedTaskForReview(null);
-      refetch();
-    } catch (e: any) {
-      console.error(e);
-      alert(e.data?.message || 'Failed to move task to review');
     }
   };
 
@@ -420,7 +386,6 @@ export const MyTasks = () => {
                               Start
                             </Button>
                           ) : null}
-
                           <Button size="xs" variant="outline" color="gray" onClick={() => navigate(`/tasks/${t._id}`)}>
                             View
                           </Button>
@@ -441,159 +406,6 @@ export const MyTasks = () => {
         </Card>
       )}
 
-      {/* Submit for Review Modal */}
-      <Modal
-        opened={reviewModalOpen}
-        onClose={() => setReviewModalOpen(false)}
-        title={
-          <Group gap="sm">
-            <Box p={8} style={{ borderRadius: '50%', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle2 size={20} color="#d97706" />
-            </Box>
-            <div>
-              <Text fw={700} size="lg" style={{ color: '#0f172a', lineHeight: 1.2 }}>Submit Task for Review</Text>
-              <Text size="xs" c="dimmed">Notify your Project Manager & Lead for QA review.</Text>
-            </div>
-          </Group>
-        }
-        centered
-        size="lg"
-        radius="lg"
-        overlayProps={{ blur: 3, opacity: 0.4 }}
-      >
-        {selectedTaskForReview && (
-          <Stack gap="md" mt="xs">
-            {/* Task Info Context Box */}
-            <Box 
-              p="md" 
-              style={{ 
-                borderRadius: 10, 
-                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', 
-                border: '1px solid #e2e8f0',
-                borderLeft: '4px solid #f59e0b'
-              }}
-            >
-              <Group justify="space-between" align="flex-start" mb={6}>
-                <div>
-                  <Text size="xs" fw={700} c="dimmed" style={{ letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    TASK ASSIGNMENT
-                  </Text>
-                  <Text fw={700} size="md" style={{ color: '#0f172a' }}>
-                    {selectedTaskForReview.title}
-                  </Text>
-                </div>
-                <Badge variant="light" color="indigo" size="sm">
-                  {selectedTaskForReview.milestone?.project?.name || selectedTaskForReview.project?.name || 'General Project'}
-                </Badge>
-              </Group>
-              
-              <Group justify="space-between" align="center" mt={12}>
-                <Group gap={6}>
-                  <Clock size={13} color="#64748b" />
-                  <Text size="xs" c="dimmed" fw={600}>Hours Spent:</Text>
-                  <Text size="xs" fw={700} c={selectedTaskForReview.spentHours > selectedTaskForReview.estimatedHours ? 'red' : 'blue'}>
-                    {formatHours(selectedTaskForReview.spentHours || 0)} / {formatHours(selectedTaskForReview.estimatedHours)}
-                  </Text>
-                </Group>
-
-                {selectedTaskForReview.spentHours > selectedTaskForReview.estimatedHours && (
-                  <Badge color="red" variant="outline" size="xs">
-                    +{formatHours(selectedTaskForReview.spentHours - selectedTaskForReview.estimatedHours)} Over Budget
-                  </Badge>
-                )}
-              </Group>
-
-              <Progress 
-                value={Math.min(((selectedTaskForReview.spentHours || 0) / selectedTaskForReview.estimatedHours) * 100, 100)} 
-                size="xs" 
-                radius="xl" 
-                color={selectedTaskForReview.spentHours > selectedTaskForReview.estimatedHours ? 'red' : 'blue'} 
-                mt={8} 
-              />
-            </Box>
-
-            {/* Work Summary Input */}
-            <div>
-              <Group gap={6} mb={6}>
-                <FileText size={15} color="#d97706" />
-                <Text size="xs" fw={700} style={{ color: '#334155' }}>
-                  Work Summary &amp; Implementation Details
-                </Text>
-              </Group>
-              <Textarea
-                placeholder="Describe what features were implemented, bug fixes completed, or testing performed..."
-                rows={4}
-                radius="md"
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.currentTarget.value)}
-                style={{ fontSize: '0.875rem' }}
-              />
-            </div>
-
-            {/* PR or Staging Link Input */}
-            <div>
-              <Group gap={6} mb={6}>
-                <GitPullRequest size={15} color="#2563eb" />
-                <Text size="xs" fw={700} style={{ color: '#334155' }}>
-                  Pull Request or Live Preview Link <Text span size="xs" c="dimmed" fw={400}>(Optional)</Text>
-                </Text>
-              </Group>
-              <TextInput
-                placeholder="e.g. https://github.com/my-org/repo/pull/42 or https://staging.dev.com"
-                leftSection={<LinkIcon size={14} color="#94a3b8" />}
-                radius="md"
-                value={prUrl}
-                onChange={(e) => setPrUrl(e.currentTarget.value)}
-              />
-            </div>
-
-            {/* Helpful Pro Tip Banner */}
-            <Box 
-              p="xs" 
-              px="sm"
-              style={{ 
-                borderRadius: 8, 
-                backgroundColor: '#eff6ff', 
-                border: '1px solid #bfdbfe',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10
-              }}
-            >
-              <Sparkles size={16} color="#2563eb" style={{ flexShrink: 0 }} />
-              <Text size="xs" c="#1e40af" fw={500}>
-                <strong>Pro Tip:</strong> Including clear summary notes and a working preview link speeds up PM review turnaround by 50%.
-              </Text>
-            </Box>
-
-            {/* Action Buttons */}
-            <Group justify="flex-end" mt="xs" gap="sm">
-              <Button 
-                variant="subtle" 
-                color="gray" 
-                radius="md"
-                onClick={() => setReviewModalOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button 
-                radius="md"
-                loading={isUpdating}
-                onClick={handleSubmitForReview}
-                leftSection={<Send size={14} />}
-                style={{
-                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                  boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
-                  border: 'none',
-                  fontWeight: 600,
-                }}
-              >
-                Submit for Review
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
     </Container>
   );
 };
