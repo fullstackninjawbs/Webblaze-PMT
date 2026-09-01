@@ -4,7 +4,7 @@ import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation, useUpdateMilestoneMutation, useDeleteMilestoneMutation } from '../milestones/milestone.slice';
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Menu, Grid, Box } from '@mantine/core';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Menu, Grid, Box, SegmentedControl } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
@@ -507,7 +507,17 @@ export const ProjectDetails = () => {
               {project.name}
             </Title>
 
-            <Text size="sm" style={{ color: '#64748b', maxWidth: '650px', lineHeight: 1.6 }}>
+            <Text 
+              size="sm" 
+              style={{ 
+                color: '#64748b', 
+                maxWidth: '650px', 
+                lineHeight: 1.6,
+                maxHeight: '180px',
+                overflowY: 'auto',
+                paddingRight: '8px'
+              }}
+            >
               {project.description || 'No description provided for this project.'}
             </Text>
 
@@ -529,19 +539,63 @@ export const ProjectDetails = () => {
             </Group>
           </div>
 
-          {/* Right: KPIs (Admin/PM only) */}
-          {isAdminOrPM && (
-            <Stack align="flex-end" gap="sm">
-              <Button
-                variant="light"
-                color="blue"
-                size="sm"
-                radius="md"
-                leftSection={<Edit size={16} />}
-                onClick={handleOpenEditProject}
-              >
-                Edit Project
-              </Button>
+          {/* Right: Actions & KPIs */}
+          <Stack align="flex-end" gap="sm">
+            {isAdminOrPM && (
+              <Group>
+                <SegmentedControl
+                  value={project.status}
+                  onChange={async (val: string) => {
+                    if (val === project.status) return;
+                    try {
+                      await updateProject({ id: project._id, data: { status: val } as any }).unwrap();
+                    } catch (e) {
+                      console.error('Failed to update project status', e);
+                    }
+                  }}
+                  data={[
+                    { label: 'New', value: ProjectStatus.NEW },
+                    { label: 'Active', value: ProjectStatus.ACTIVE },
+                    { label: 'On Hold', value: ProjectStatus.ON_HOLD },
+                    { label: 'Maintenance', value: ProjectStatus.MAINTENANCE },
+                    { label: 'Completed', value: ProjectStatus.COMPLETED },
+                  ]}
+                  size="sm"
+                  radius="md"
+                  color="blue"
+                  styles={{
+                    root: {
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      padding: '4px',
+                    },
+                    label: {
+                      fontWeight: 600,
+                      padding: '4px 12px',
+                      '&[data-active]': {
+                        color: 'white !important',
+                      },
+                      '&[data-disabled]': {
+                        color: 'white !important',
+                        opacity: 1,
+                      },
+                    },
+                  }}
+                />
+                <Button
+                  variant="light"
+                  color="blue"
+                  size="sm"
+                  radius="md"
+                  leftSection={<Edit size={16} />}
+                  onClick={handleOpenEditProject}
+                >
+                  Edit Project
+                </Button>
+              </Group>
+            )}
+
+            {isAdminOrPM && (
               <Group gap="md">
                 <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
                   <Group gap="xs" mb={4}>
@@ -569,8 +623,8 @@ export const ProjectDetails = () => {
                   </Text>
                 </Paper>
               </Group>
-            </Stack>
-          )}
+            )}
+          </Stack>
         </Group>
       </Card>
 

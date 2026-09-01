@@ -27,7 +27,6 @@ import {
   Calendar,
   Users,
   Send,
-  AlertTriangle,
   Briefcase,
   Search,
   CheckCircle2,
@@ -75,14 +74,10 @@ export const DailyStatus: React.FC = () => {
     initialValues: {
       project: '',
       workDone: '',
-      plannedWork: '',
-      blockers: '',
     },
     validate: {
       workDone: (value) =>
         value.trim().length === 0 ? 'Please describe the work done today' : null,
-      plannedWork: (value) =>
-        value.trim().length === 0 ? 'Please describe what you plan to work on next' : null,
     },
   });
 
@@ -91,8 +86,6 @@ export const DailyStatus: React.FC = () => {
       await submitDailyStatus({
         project: values.project || undefined,
         workDone: values.workDone,
-        plannedWork: values.plannedWork,
-        blockers: values.blockers || undefined,
       }).unwrap();
 
       form.reset();
@@ -101,6 +94,12 @@ export const DailyStatus: React.FC = () => {
       console.error('Failed to submit status:', err);
     }
   };
+
+  React.useEffect(() => {
+    if (submitModalOpened && !form.values.project && projectOptions.length > 0) {
+      form.setFieldValue('project', projectOptions[0].value);
+    }
+  }, [submitModalOpened, projectOptions, form]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -129,10 +128,7 @@ export const DailyStatus: React.FC = () => {
     });
   }, [teamLogs, searchQuery, projectFilter]);
 
-  // Total Blockers Count across Team
-  const totalBlockers = useMemo(() => {
-    return teamLogs.filter((log) => log.blockers && log.blockers.trim().length > 0).length;
-  }, [teamLogs]);
+
 
   return (
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -171,7 +167,7 @@ export const DailyStatus: React.FC = () => {
       </Group>
 
       {/* KPI Metric Summary Cards */}
-      <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="md" mb="xl">
+      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mb="xl">
         <Paper
           p="lg"
           radius="xl"
@@ -216,30 +212,6 @@ export const DailyStatus: React.FC = () => {
             </Text>
             <Text size="xs" style={{ color: '#64748b' }} mb={2}>
               Team check-ins
-            </Text>
-          </Group>
-        </Paper>
-
-        <Paper
-          p="lg"
-          radius="xl"
-          withBorder
-          style={{ borderColor: '#e8ecf4', background: '#ffffff', boxShadow: '0 2px 12px rgba(0,0,0,0.03)' }}
-        >
-          <Group justify="space-between" mb="xs">
-            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-              Reported Blockers
-            </Text>
-            <Paper p={8} radius="md" bg="#fffbeb">
-              <AlertTriangle size={18} color="#f59e0b" />
-            </Paper>
-          </Group>
-          <Group align="flex-end" gap="xs">
-            <Text fw={800} style={{ fontSize: '1.75rem', color: totalBlockers > 0 ? '#d97706' : '#0f172a', lineHeight: 1 }}>
-              {totalBlockers}
-            </Text>
-            <Text size="xs" style={{ color: '#64748b' }} mb={2}>
-              Require attention
             </Text>
           </Group>
         </Paper>
@@ -338,7 +310,7 @@ export const DailyStatus: React.FC = () => {
                     )}
                   </Group>
 
-                  <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+                  <SimpleGrid cols={{ base: 1 }} spacing="lg">
                     <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
                       <Group gap="xs" mb={6}>
                         <CheckCircle2 size={16} color="#10b981" />
@@ -350,39 +322,7 @@ export const DailyStatus: React.FC = () => {
                         {log.workDone}
                       </Text>
                     </Paper>
-
-                    <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
-                      <Group gap="xs" mb={6}>
-                        <Clock size={16} color="#3b82f6" />
-                        <Text size="xs" fw={700} tt="uppercase" style={{ color: '#2563eb', letterSpacing: '0.05em' }}>
-                          Planned for Next Session
-                        </Text>
-                      </Group>
-                      <Text size="sm" style={{ color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                        {log.plannedWork}
-                      </Text>
-                    </Paper>
                   </SimpleGrid>
-
-                  {log.blockers && (
-                    <Paper
-                      p="md"
-                      radius="lg"
-                      bg="#fffbeb"
-                      mt="md"
-                      style={{ border: '1px solid #fde68a' }}
-                    >
-                      <Group gap="xs" mb={4}>
-                        <AlertTriangle size={16} color="#d97706" />
-                        <Text size="xs" fw={700} tt="uppercase" style={{ color: '#b45309', letterSpacing: '0.05em' }}>
-                          Roadblocks & Impediments
-                        </Text>
-                      </Group>
-                      <Text size="sm" style={{ color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                        {log.blockers}
-                      </Text>
-                    </Paper>
-                  )}
                 </Paper>
               ))}
             </Stack>
@@ -408,7 +348,7 @@ export const DailyStatus: React.FC = () => {
         centered
       >
         <Text size="sm" style={{ color: '#64748b' }} mb="lg">
-          Provide your end-of-day summary of accomplishments, tomorrow's targets, and any active blockers.
+          Provide your end-of-day summary of accomplishments and tasks finished today.
         </Text>
 
         <form onSubmit={form.onSubmit(handleSubmit)}>
@@ -430,22 +370,6 @@ export const DailyStatus: React.FC = () => {
               radius="md"
               {...form.getInputProps('workDone')}
               withAsterisk
-            />
-
-            <Textarea
-              label="Plans for Tomorrow (Optional)"
-              placeholder="Detail your planned tasks and focus goals for tomorrow..."
-              minRows={3}
-              radius="md"
-              {...form.getInputProps('plannedWork')}
-            />
-
-            <Textarea
-              label="Blockers / Dependencies (Optional)"
-              placeholder="List any obstacles, pending code reviews, or technical dependencies holding you back..."
-              minRows={2}
-              radius="md"
-              {...form.getInputProps('blockers')}
             />
 
             <Group justify="flex-end" mt="md">
@@ -561,7 +485,7 @@ export const DailyStatus: React.FC = () => {
                         )}
                       </Group>
 
-                      <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
+                      <SimpleGrid cols={{ base: 1 }} spacing="lg">
                         <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
                           <Group gap="xs" mb={6}>
                             <CheckCircle2 size={16} color="#10b981" />
@@ -573,39 +497,7 @@ export const DailyStatus: React.FC = () => {
                             {log.workDone}
                           </Text>
                         </Paper>
-
-                        <Paper p="md" radius="lg" bg="#f8fafc" style={{ border: '1px solid #f1f5f9' }}>
-                          <Group gap="xs" mb={6}>
-                            <Clock size={16} color="#3b82f6" />
-                            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#2563eb', letterSpacing: '0.05em' }}>
-                              Next Goals
-                            </Text>
-                          </Group>
-                          <Text size="sm" style={{ color: '#334155', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-                            {log.plannedWork}
-                          </Text>
-                        </Paper>
                       </SimpleGrid>
-
-                      {log.blockers && (
-                        <Paper
-                          p="md"
-                          radius="lg"
-                          bg="#fffbeb"
-                          mt="md"
-                          style={{ border: '1px solid #fde68a' }}
-                        >
-                          <Group gap="xs" mb={4}>
-                            <AlertTriangle size={16} color="#d97706" />
-                            <Text size="xs" fw={700} tt="uppercase" style={{ color: '#b45309', letterSpacing: '0.05em' }}>
-                              Blocker Reported
-                            </Text>
-                          </Group>
-                          <Text size="sm" style={{ color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                            {log.blockers}
-                          </Text>
-                        </Paper>
-                      )}
                     </Paper>
                   );
                 })}

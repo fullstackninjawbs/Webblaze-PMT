@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, Select, FileInput, Paper, NumberInput } from '@mantine/core';
+import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, FileInput, Paper, NumberInput, SegmentedControl } from '@mantine/core';
 import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Plus } from 'lucide-react';
 import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
@@ -161,52 +161,77 @@ export const TaskDetail = () => {
             <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800 }}>{task.title}</Title>
             <Text color="dimmed" mt="xs" style={{ whiteSpace: 'pre-wrap' }}>{task.description || 'No description provided.'}</Text>
           </div>
-          
-          <Select
-            data={[
-              { value: 'assigned', label: 'Assigned' },
-              { value: 'in_progress', label: 'In Progress' },
-              { value: 'in_review', label: 'In Review' },
-              ...((user?.role === Role.ADMIN || user?.role === Role.PM || task.status === 'completed') ? [{ value: 'completed', label: 'Completed' }] : []),
-            ]}
-            value={task.status}
-            onChange={handleStatusChange}
-            w={160}
-          />
         </Group>
 
-        <Group gap="xl" align="center" wrap="nowrap">
-          {/* Large Play/Stop Button */}
-          {task.status !== 'completed' && (
-            <ActionIcon 
-              size={80} 
-              radius="100%" 
-              color={isTimerActiveForThisTask ? "red" : "blue"}
-              variant={isTimerActiveForThisTask ? "light" : "filled"}
-              onClick={isTimerActiveForThisTask ? handleStopTimer : handleStartTimer}
-              style={{ boxShadow: isTimerActiveForThisTask ? 'none' : '0 10px 25px rgba(59, 130, 246, 0.4)', transition: 'all 0.2s ease' }}
-            >
-              {isTimerActiveForThisTask ? <Square size={32} fill="currentColor" /> : <Play size={36} fill="currentColor" style={{ marginLeft: 6 }} />}
-            </ActionIcon>
-          )}
+        <Group justify="space-between" align="flex-end" wrap="nowrap">
+          <Group gap="xl" align="center" wrap="nowrap" style={{ flex: 1 }}>
+            {/* Large Play/Stop Button */}
+            {task.status !== 'completed' && (
+              <ActionIcon 
+                size={80} 
+                radius="100%" 
+                color={isTimerActiveForThisTask ? "red" : "blue"}
+                variant={isTimerActiveForThisTask ? "light" : "filled"}
+                onClick={isTimerActiveForThisTask ? handleStopTimer : handleStartTimer}
+                style={{ boxShadow: isTimerActiveForThisTask ? 'none' : '0 10px 25px rgba(59, 130, 246, 0.4)', transition: 'all 0.2s ease' }}
+              >
+                {isTimerActiveForThisTask ? <Square size={32} fill="currentColor" /> : <Play size={36} fill="currentColor" style={{ marginLeft: 6 }} />}
+              </ActionIcon>
+            )}
 
-          {/* Progress Bar Container — Responsive & Live Updating */}
-          <div style={{ flex: 1, minWidth: '240px', maxWidth: '550px' }}>
-            <Group justify="space-between" mb={8}>
-              <Text fw={600} size="sm">Task Progress</Text>
-              <Text fw={700} size="sm" color={totalSpentHours > task.estimatedHours ? 'red' : 'blue'}>
-                {Number(totalSpentHours.toFixed(2))}h / {formatHours(task.estimatedHours)}
-              </Text>
-            </Group>
-            <Progress 
-              value={progressPercent} 
-              size="lg" 
-              radius="xl" 
-              color={task.status === 'completed' ? 'green' : (totalSpentHours > task.estimatedHours ? 'red' : 'blue')} 
-              striped={isTimerActiveForThisTask}
-              animated={isTimerActiveForThisTask}
-            />
-          </div>
+            {/* Progress Bar Container — Responsive & Live Updating */}
+            <div style={{ flex: 1, minWidth: '240px', maxWidth: '550px' }}>
+              <Group justify="space-between" mb={8}>
+                <Text fw={600} size="sm">Task Progress</Text>
+                <Text fw={700} size="sm" color={totalSpentHours > task.estimatedHours ? 'red' : 'blue'}>
+                  {Number(totalSpentHours.toFixed(2))}h / {formatHours(task.estimatedHours)}
+                </Text>
+              </Group>
+              <Progress 
+                value={progressPercent} 
+                size="lg" 
+                radius="xl" 
+                color={task.status === 'completed' ? 'green' : (totalSpentHours > task.estimatedHours ? 'red' : 'blue')} 
+                striped={isTimerActiveForThisTask}
+                animated={isTimerActiveForThisTask}
+              />
+            </div>
+          </Group>
+
+          <SegmentedControl
+            value={task.status}
+            onChange={handleStatusChange}
+            data={[
+              { label: 'Assigned', value: 'assigned' },
+              { label: 'In Progress', value: 'in_progress' },
+              { label: 'In Review', value: 'in_review' },
+              ...((user?.role === Role.ADMIN || user?.role === Role.PM || task.status === 'completed') 
+                ? [{ label: 'Completed', value: 'completed' }] 
+                : []),
+            ]}
+            size="sm"
+            mb="xs"
+            radius="md"
+            color="blue"
+            styles={{
+              root: {
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                padding: '4px',
+              },
+              label: {
+                fontWeight: 600,
+                padding: '4px 12px',
+                '&[data-active]': {
+                  color: 'white',
+                },
+                '&[data-disabled]': {
+                  color: 'white !important',
+                  opacity: 1,
+                },
+              },
+            }}
+          />
         </Group>
       </Card>
 
