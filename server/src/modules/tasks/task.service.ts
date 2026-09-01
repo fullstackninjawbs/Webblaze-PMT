@@ -30,6 +30,16 @@ const enforceHourCap = async (milestoneId: string, estimatedHours: number, curre
 };
 
 export const createTask = async (data: Partial<ITask>): Promise<ITask> => {
+  if (data.milestone) {
+    const milestone = await Milestone.findById(data.milestone).populate('project');
+    if (milestone) {
+      const project = milestone.project as any;
+      if (project && project.status === 'completed') {
+        throw new ApiError(400, 'Cannot add tasks to a completed project');
+      }
+    }
+  }
+
   await enforceHourCap(data.milestone as unknown as string, data.estimatedHours!);
   
   const task = await Task.create(data);

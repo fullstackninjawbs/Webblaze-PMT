@@ -854,7 +854,7 @@ export const ProjectDetails = () => {
         <Tabs.Panel value="milestones">
           <Group justify="space-between" mb="md">
             <Title order={3}>Project Milestones</Title>
-            {isAdminOrPM && (
+            {isAdminOrPM && project?.status !== 'completed' && (
               <Button
                 leftSection={<Plus size={16} />}
                 onClick={() => navigate(`/projects/${id}/milestones/new`)}
@@ -892,6 +892,7 @@ export const ProjectDetails = () => {
                         milestone={milestone}
                         onDelete={handleOpenDeleteMilestone}
                         canManage={isAdminOrPM}
+                        projectStatus={project?.status}
                       />
                     ))}
                   </Table.Tbody>
@@ -909,6 +910,7 @@ export const ProjectDetails = () => {
           <ProjectTasks
             projectId={id!}
             milestones={milestones}
+            projectStatus={project?.status}
             selectedMilestoneFilter={selectedMilestoneFilter}
             onMilestoneFilterChange={setSelectedMilestoneFilter}
             onEditTask={handleOpenEditTask}
@@ -1262,14 +1264,17 @@ const MilestoneTableRow = ({
   milestone,
   onDelete,
   canManage = true,
+  projectStatus,
 }: {
   milestone: any;
   onDelete?: (milestone: any) => void;
   canManage?: boolean;
+  projectStatus?: string;
 }) => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
-  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER;
+  const isCompleted = projectStatus === 'completed';
+  const canCreateTask = !isCompleted && (user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER);
   const { data: tasksData } = useGetTasksByMilestoneQuery(milestone._id);
   const tasks = tasksData?.data || [];
 
@@ -1351,7 +1356,7 @@ const MilestoneTableRow = ({
             </ActionIcon>
           </Tooltip>
 
-          {canCreateTask && (
+          {canCreateTask && projectStatus !== 'completed' && (
             <Button
               display='none'
               size="xs"
@@ -1366,7 +1371,7 @@ const MilestoneTableRow = ({
             </Button>
           )}
 
-          {canManage && (
+          {canManage && projectStatus !== 'completed' && (
             <>
               <Tooltip label="Edit Milestone" withArrow>
                 <ActionIcon
@@ -1562,6 +1567,7 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
 const ProjectTasks = ({
   projectId: _projectId,
   milestones,
+  projectStatus,
   selectedMilestoneFilter,
   onMilestoneFilterChange,
   onEditTask,
@@ -1571,6 +1577,7 @@ const ProjectTasks = ({
 }: {
   projectId: string;
   milestones: any[];
+  projectStatus?: string;
   selectedMilestoneFilter?: string | null;
   onMilestoneFilterChange?: (id: string | null) => void;
   onEditTask?: (task: any) => void;
@@ -1683,7 +1690,8 @@ const ProjectTasks = ({
   };
 
   const { user } = useSelector((state: RootState) => state.auth);
-  const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER;
+  const isCompleted = projectStatus === 'completed';
+  const canCreateTask = !isCompleted && (user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER);
 
   return (
     <Card withBorder shadow="sm" p="md" radius="md">

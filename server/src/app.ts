@@ -28,7 +28,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc.) or matching CLIENT_URL / Vercel domains
-    if (!origin || !process.env.CLIENT_URL || origin === process.env.CLIENT_URL || origin.endsWith('.vercel.app')) {
+    if (!origin || !process.env.CLIENT_URL || origin === process.env.CLIENT_URL || origin.endsWith('.vercel.app') || origin === "http://localhost:5174") {
       callback(null, true);
     } else {
       callback(null, true); // Permissive CORS for deployed API

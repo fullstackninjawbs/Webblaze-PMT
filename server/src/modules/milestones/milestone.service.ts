@@ -43,6 +43,10 @@ export const createMilestone = async (data: Partial<IMilestone>): Promise<IMiles
     throw new ApiError(404, 'Project not found');
   }
 
+  if (project.status === 'completed') {
+    throw new ApiError(400, 'Cannot add milestones to a completed project');
+  }
+
   const milestone = await Milestone.create(data);
   return milestone;
 };
