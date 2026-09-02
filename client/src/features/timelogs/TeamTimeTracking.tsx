@@ -10,15 +10,13 @@ export const TeamTimeTracking = () => {
   const { page, limit, setPage, setLimit, resetPage } = usePagination();
   
   const { data: logsData, isLoading } = useGetTeamTimeLogsQuery({
-    page,
-    limit,
+    limit: 1000,
     status: activeTab || undefined
   });
   
   const [searchQuery, setSearchQuery] = useState('');
 
   const logs = logsData?.data || [];
-  const meta = logsData?.meta;
   const query = searchQuery.trim().toLowerCase();
 
   const handleTabChange = (val: string | null) => {
@@ -79,6 +77,17 @@ export const TeamTimeTracking = () => {
       );
     });
   }, [logs, query]);
+
+  const paginatedLogs = useMemo(() => {
+    return filteredLogs.slice((page - 1) * limit, page * limit);
+  }, [filteredLogs, page, limit]);
+
+  const localMeta = {
+    page,
+    limit,
+    total: filteredLogs.length,
+    totalPages: Math.ceil(filteredLogs.length / limit) || 1,
+  };
 
   return (
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -162,7 +171,7 @@ export const TeamTimeTracking = () => {
 
         <Tabs.Panel value="running">
           <Card shadow="sm" p="0" radius="lg" withBorder>
-            <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+            <PaginatedTable meta={localMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
               <Table verticalSpacing="sm">
               <Table.Thead bg="#f8fafc">
                 <Table.Tr>
@@ -174,7 +183,7 @@ export const TeamTimeTracking = () => {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {filteredLogs.map((log) => {
+                {paginatedLogs.map((log) => {
                   const user = typeof log.user === 'object' ? log.user : null;
                   const task = typeof log.task === 'object' ? log.task : null;
                   const project = (task?.milestone as any)?.project;
@@ -224,7 +233,7 @@ export const TeamTimeTracking = () => {
 
         <Tabs.Panel value="completed">
           <Card shadow="sm" p="0" radius="lg" withBorder>
-            <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+            <PaginatedTable meta={localMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
               <Table verticalSpacing="sm">
               <Table.Thead bg="#f8fafc">
                 <Table.Tr>
@@ -236,7 +245,7 @@ export const TeamTimeTracking = () => {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {filteredLogs.map((log) => {
+                {paginatedLogs.map((log) => {
                   const user = typeof log.user === 'object' ? log.user : null;
                   const task = typeof log.task === 'object' ? log.task : null;
                   const project = (task?.milestone as any)?.project;

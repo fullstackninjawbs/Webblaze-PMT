@@ -41,6 +41,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
 import { useGetProjectsQuery } from '../projects/project.slice';
+import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
@@ -100,7 +101,7 @@ export const UNIQUE_COUNTRY_CODES = Array.from(
 );
 
 export const ClientsList: React.FC = () => {
-  const { data } = useGetClientsQuery();
+  const { data, isLoading } = useGetClientsQuery({ limit: 1000 });
   const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
   const navigate = useNavigate();
   const [createClient, { isLoading: isCreating }] = useCreateClientMutation();
@@ -117,6 +118,8 @@ export const ClientsList: React.FC = () => {
 
   const [phoneCode, setPhoneCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
+  
+  const { page, limit, setPage, setLimit } = usePagination();
 
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
@@ -249,6 +252,17 @@ export const ClientsList: React.FC = () => {
     return result;
   }, [clients, searchQuery, sourceFilter, billingFilter]);
 
+  const paginatedClients = useMemo(() => {
+    return filteredClients.slice((page - 1) * limit, page * limit);
+  }, [filteredClients, page, limit]);
+
+  const localMeta = {
+    page,
+    limit,
+    total: filteredClients.length,
+    totalPages: Math.ceil(filteredClients.length / limit) || 1,
+  };
+
   // Compute active projects per client
   const projects = projectsData?.data || [];
   const getActiveProjectsCount = (clientId: string) => {
@@ -269,7 +283,7 @@ export const ClientsList: React.FC = () => {
     return { totalClients, upworkCount, directCount, hourlyCount };
   }, [clients]);
 
-  const rows = filteredClients.map((client) => (
+  const rows = paginatedClients.map((client) => (
     <Table.Tr key={client._id}>
       <Table.Td>
         <Group gap="sm">
@@ -507,8 +521,9 @@ export const ClientsList: React.FC = () => {
       </Paper>
 
       {/* Data Table */}
-      <Card
-        shadow="xs"
+      <PaginatedTable meta={localMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+        <Card
+          shadow="xs"
         p={0}
         radius="xl"
         withBorder
@@ -547,6 +562,7 @@ export const ClientsList: React.FC = () => {
           </Table>
         </Table.ScrollContainer>
       </Card>
+      </PaginatedTable>
 
       {/* Add/Edit Drawer */}
       <Drawer

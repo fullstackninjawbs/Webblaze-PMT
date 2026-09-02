@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { Role, DEPARTMENT_OPTIONS } from '../../types';
-import { PaginatedTable } from '../../components/common/PaginatedTable';
+import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
@@ -62,6 +62,8 @@ export const UsersList: React.FC = () => {
   const [modalOpened, setModalOpened] = useState(false);
   const [editModalOpened, setEditModalOpened] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+
+  const { page, limit, setPage, setLimit } = usePagination();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
@@ -142,7 +144,6 @@ export const UsersList: React.FC = () => {
   };
 
   const users = usersData?.data || [];
-  const meta = usersData?.meta || { page: 1, limit: 1000, total: users.length, totalPages: 1 };
 
   // Filtered Users
   const filteredUsers = useMemo(() => {
@@ -167,7 +168,18 @@ export const UsersList: React.FC = () => {
     return { totalCount, adminPmCount, tlCount, memberCount };
   }, [users]);
 
-  const rows = filteredUsers.map((user) => (
+  const paginatedUsers = useMemo(() => {
+    return filteredUsers.slice((page - 1) * limit, page * limit);
+  }, [filteredUsers, page, limit]);
+
+  const localMeta = {
+    page,
+    limit,
+    total: filteredUsers.length,
+    totalPages: Math.ceil(filteredUsers.length / limit) || 1,
+  };
+
+  const rows = paginatedUsers.map((user) => (
     <Table.Tr key={user._id}>
       <Table.Td>
         <Group gap="sm" style={{ cursor: 'pointer' }} onClick={() => navigate(`/team/${user._id}`)}>
@@ -383,7 +395,7 @@ export const UsersList: React.FC = () => {
       </Paper>
 
       {/* Data Table */}
-      <PaginatedTable meta={meta} onPageChange={() => {}} onLimitChange={() => {}} isLoading={isLoading}>
+      <PaginatedTable meta={localMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
         <Card
           shadow="xs"
           p={0}
