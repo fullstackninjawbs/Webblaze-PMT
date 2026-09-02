@@ -9,8 +9,13 @@ export const createProject = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const getProjects = asyncHandler(async (req: Request, res: Response) => {
-  const projects = await ProjectService.getProjects((req as any).user);
-  res.status(200).json({ success: true, data: projects });
+  const params: any = {
+    page: req.query.page as string,
+    limit: req.query.limit as string,
+    sort: req.query.sort as string,
+  };
+  const result = await ProjectService.getProjects((req as any).user, params);
+  res.status(200).json({ success: true, data: result.data, meta: result.meta });
 });
 
 export const getProjectById = asyncHandler(async (req: Request, res: Response) => {

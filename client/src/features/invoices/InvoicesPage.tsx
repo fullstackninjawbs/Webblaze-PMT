@@ -21,7 +21,7 @@ const invoiceSchema = z.object({
 
 export const InvoicesPage = () => {
   const { data: invoicesData, isLoading } = useGetInvoicesQuery();
-  const { data: projectsData } = useGetProjectsQuery();
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
   const [createInvoice, { isLoading: isCreating }] = useCreateInvoiceMutation();
   const [updateInvoice, { isLoading: isUpdating }] = useUpdateInvoiceMutation();
   const [deleteInvoice] = useDeleteInvoiceMutation();

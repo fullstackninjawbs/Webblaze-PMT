@@ -89,8 +89,8 @@ export const UserProfile: React.FC = () => {
     currentUser?.role === Role.TEAM_LEAD;
 
   const { data: userData, isLoading: isUserLoading } = useGetUserByIdQuery(id!);
-  const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByUserQuery(id!, { skip: !id });
-  const { data: projectsData } = useGetProjectsQuery();
+  const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByUserQuery({ userId: id!, limit: 1000 }, { skip: !id });
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
   const { data: timeLogsData } = useGetTeamTimeLogsQuery();
 
   const { data: myDailyLogsData, isLoading: isMyLogsLoading } = useGetMyDailyStatusesQuery();

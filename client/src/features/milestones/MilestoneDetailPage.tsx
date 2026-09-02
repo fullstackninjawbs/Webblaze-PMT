@@ -45,7 +45,7 @@ export const MilestoneDetailPage: React.FC = () => {
   const canCreateTask = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER;
 
   const { data: milestoneData, isLoading: isMilestoneLoading } = useGetMilestoneByIdQuery(id!);
-  const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByMilestoneQuery(id!);
+  const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByMilestoneQuery({ milestoneId: id!, limit: 1000 });
   const { data: projectsData } = useGetProjectsQuery();
 
   const milestone = milestoneData?.data;

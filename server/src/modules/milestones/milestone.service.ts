@@ -2,6 +2,7 @@ import { Milestone, IMilestone } from './milestone.model';
 import { Project } from '../projects/project.model';
 import { Task } from '../tasks/task.model';
 import { ApiError } from '../../utils/ApiError';
+import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
 
 export const evaluateAndUpdateMilestoneStatus = async (milestoneId: string): Promise<IMilestone | null> => {
   const milestone = await Milestone.findById(milestoneId);
@@ -51,18 +52,19 @@ export const createMilestone = async (data: Partial<IMilestone>): Promise<IMiles
   return milestone;
 };
 
-export const getMilestonesByProject = async (projectId: string): Promise<IMilestone[]> => {
-  const milestones = await Milestone.find({ project: projectId }).sort({ createdAt: -1 });
+export const getMilestonesByProject = async (projectId: string, params: PaginationParams = {}): Promise<PaginatedResult<IMilestone>> => {
+  const result = await paginate(Milestone, { project: projectId }, params);
 
   // Evaluate & sync status for all milestones
   const updatedMilestones = await Promise.all(
-    milestones.map(async (m) => {
+    result.data.map(async (m) => {
       const updated = await evaluateAndUpdateMilestoneStatus(m._id as unknown as string);
       return updated || m;
     })
   );
 
-  return updatedMilestones;
+  result.data = updatedMilestones;
+  return result;
 };
 
 export const getMilestoneById = async (id: string): Promise<IMilestone> => {

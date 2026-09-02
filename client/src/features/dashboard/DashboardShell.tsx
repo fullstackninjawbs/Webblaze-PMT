@@ -24,9 +24,9 @@ export const DashboardShell: React.FC = () => {
       navigate('/projects', { replace: true });
     }
   }, [user, navigate]);
-  const { data: projectsData } = useGetProjectsQuery();
-  const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id });
-  const { data: allTasksData } = useGetAllTasksQuery(undefined, { skip: user?.role === Role.TEAM_MEMBER });
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
+  const { data: tasksData } = useGetTasksByUserQuery({ userId: user?._id || '', limit: 1000 }, { skip: !user?._id });
+  const { data: allTasksData } = useGetAllTasksQuery({ limit: 1000 }, { skip: user?.role === Role.TEAM_MEMBER });
   const { data: releasesData } = useGetReleasesQuery();
 
   const [searchQuery, setSearchQuery] = useState('');

@@ -54,7 +54,7 @@ export const DailyStatus: React.FC = () => {
     user?.role === Role.TEAM_LEAD;
 
   // API Queries & Mutations
-  const { data: projectsData } = useGetProjectsQuery();
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
   const { data: myLogsData, isLoading: isMyLogsLoading } = useGetMyDailyStatusesQuery();
   const { data: teamLogsData, isLoading: isTeamLogsLoading } = useGetTeamDailyStatusesQuery(
     undefined,

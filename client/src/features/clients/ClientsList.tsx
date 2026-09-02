@@ -101,7 +101,7 @@ export const UNIQUE_COUNTRY_CODES = Array.from(
 
 export const ClientsList: React.FC = () => {
   const { data } = useGetClientsQuery();
-  const { data: projectsData } = useGetProjectsQuery();
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
   const navigate = useNavigate();
   const [createClient, { isLoading: isCreating }] = useCreateClientMutation();
   const [updateClient, { isLoading: isUpdating }] = useUpdateClientMutation();
@@ -411,7 +411,7 @@ export const ClientsList: React.FC = () => {
         <Paper p="lg" radius="xl" withBorder style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
           <Group justify="space-between" mb="xs">
             <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>
-              Total Accounts
+              Total Clients
             </Text>
             <Paper p={8} radius="md" bg="#eff6ff">
               <Users size={18} color="#2563eb" />

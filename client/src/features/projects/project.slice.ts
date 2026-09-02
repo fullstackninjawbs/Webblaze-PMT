@@ -1,5 +1,5 @@
 import { baseApi } from '../../app/api';
-import { ProjectStatus } from '../../types';
+import { ProjectStatus, PaginatedResponse } from '../../types';
 import { Client } from '../clients/client.slice';
 import { User } from '../auth/auth.slice';
 
@@ -23,8 +23,21 @@ export interface Project {
 
 export const projectApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getProjects: builder.query<{ success: boolean; data: Project[] }, void>({
-      query: () => '/projects',
+    getProjects: builder.query<PaginatedResponse<Project[]>, { page?: number; limit?: number; sort?: string; [key: string]: any } | void>({
+      query: (params) => {
+        let url = '/projects';
+        if (params) {
+          const queryParams = new URLSearchParams();
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              queryParams.append(key, value.toString());
+            }
+          });
+          const qs = queryParams.toString();
+          if (qs) url += `?${qs}`;
+        }
+        return url;
+      },
       providesTags: ['Project'],
     }),
     getProjectById: builder.query<{ success: boolean; data: Project }, string>({

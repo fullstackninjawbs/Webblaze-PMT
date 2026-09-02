@@ -2,9 +2,10 @@ import { User } from './user.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
+import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
 
 export class UserService {
-  static async getUsers(user?: any) {
+  static async getUsers(user?: any, params: PaginationParams = {}): Promise<PaginatedResult<any>> {
     const query: any = {};
     if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
       if (user.department) {
@@ -16,7 +17,13 @@ export class UserService {
         ];
       }
     }
-    return User.find(query).select('-password').sort({ createdAt: -1 });
+    if (params.search) {
+      query.$or = [
+        { name: { $regex: new RegExp(params.search, 'i') } },
+        { email: { $regex: new RegExp(params.search, 'i') } }
+      ];
+    }
+    return paginate(User, query, params, [], '-password');
   }
 
   static async getUserById(id: string) {

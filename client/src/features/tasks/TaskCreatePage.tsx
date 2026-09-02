@@ -51,11 +51,12 @@ export const TaskCreatePage: React.FC = () => {
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
 
-  const { data: projectsData } = useGetProjectsQuery();
-  const { data: milestonesData } = useGetMilestonesByProjectQuery(selectedProjectId, {
-    skip: !selectedProjectId,
-  });
-  const { data: usersData } = useGetUsersQuery();
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
+  const { data: milestonesData } = useGetMilestonesByProjectQuery(
+    { projectId: selectedProjectId, limit: 1000 },
+    { skip: !selectedProjectId }
+  );
+  const { data: usersData } = useGetUsersQuery({ limit: 1000 });
   const [createTask, { isLoading }] = useCreateTaskMutation();
 
   const projects = projectsData?.data || [];

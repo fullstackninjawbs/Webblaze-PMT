@@ -24,11 +24,11 @@ export const GlobalSearchModal = ({ opened, onClose }: GlobalSearchModalProps) =
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const { data: projectsData } = useGetProjectsQuery(undefined, { skip: !opened });
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 }, { skip: !opened });
   const { data: tasksData } = useGetAllTasksQuery(undefined, { skip: !opened });
   const { data: clientsData } = useGetClientsQuery(undefined, { skip: !opened });
   const { data: invoicesData } = useGetInvoicesQuery(undefined, { skip: !opened });
-  const { data: usersData } = useGetUsersQuery(undefined, { skip: !opened });
+  const { data: usersData } = useGetUsersQuery({ limit: 1000 }, { skip: !opened });
 
   const projects = projectsData?.data || [];
   const tasks = tasksData?.data || [];

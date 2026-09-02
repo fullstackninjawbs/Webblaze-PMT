@@ -5,28 +5,39 @@ import {
 } from '@mantine/core';
 import { 
   Play, Square, Eye, Clock, AlertCircle, Search, Calendar, MessageSquare, 
-  Paperclip, LayoutGrid, List as ListIcon, X
+  Paperclip, LayoutGrid, List as ListIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useGetTasksByUserQuery } from './task.slice';
-import { useGetActiveTimerQuery, useStartTimerMutation, useStopTimerMutation } from '../timelogs/timeLog.slice';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { formatHours } from '../../utils/formatHours';
+import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
+import { useGetProjectsQuery } from '../projects/project.slice';
+import { useGetTasksByUserQuery } from './task.slice';
+import { useGetActiveTimerQuery, useStartTimerMutation, useStopTimerMutation } from '../timelogs/timeLog.slice';
 
 export const MyTasks = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
   
-  const { data: tasksData, isLoading } = useGetTasksByUserQuery((user as any)?._id || (user as any)?.id || '');
+  const { page, limit, setPage, setLimit, resetPage } = usePagination();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+
+  const { data: tasksData, isLoading } = useGetTasksByUserQuery({
+    userId: (user as any)?._id || (user as any)?.id || '',
+    page,
+    limit,
+    search: searchQuery,
+  });
   const { data: activeTimerData } = useGetActiveTimerQuery();
   const [startTimer] = useStartTimerMutation();
   const [stopTimer] = useStopTimerMutation();
 
-  // Search & Filter & View state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  // View state
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
 
   const activeTimer = activeTimerData?.data;
   const activeTimerTaskId = activeTimer
@@ -34,18 +45,23 @@ export const MyTasks = () => {
     : null;
 
   const tasks = tasksData?.data || [];
+  const meta = tasksData?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
 
-  // Unique project list for filter
+  // Unique project list for filter from all projects
   const projectOptions = useMemo(() => {
-    const projectsMap = new Map<string, string>();
-    tasks.forEach((t: any) => {
-      const proj = t.milestone?.project || t.project;
-      if (proj && proj._id && proj.name) {
-        projectsMap.set(proj._id, proj.name);
-      }
-    });
-    return Array.from(projectsMap.entries()).map(([id, name]) => ({ value: id, label: name }));
-  }, [tasks]);
+    const allProjects = projectsData?.data || [];
+    return allProjects.map((proj: any) => ({ value: proj._id, label: proj.name }));
+  }, [projectsData]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.currentTarget.value);
+    resetPage();
+  };
+
+  const handleProjectFilterChange = (val: string | null) => {
+    setProjectFilter(val);
+    resetPage();
+  };
 
   // Filtered tasks based on search & project dropdown
   const filteredTasks = useMemo(() => {
@@ -250,34 +266,29 @@ export const MyTasks = () => {
         <Grid align="center" gutter="md">
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <TextInput
-              placeholder="Search tasks by title or project..."
-              leftSection={<Search size={16} />}
-              rightSection={searchQuery ? <X size={14} style={{ cursor: 'pointer' }} onClick={() => setSearchQuery('')} /> : null}
+              placeholder="Search tasks..."
+              leftSection={<Search size={16} color="#94a3b8" />}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.currentTarget.value)}
+              onChange={handleSearchChange}
+              style={{ flex: 1 }}
             />
           </Grid.Col>
-
           <Grid.Col span={{ base: 12, sm: 4 }}>
             <Select
               placeholder="Filter by Project"
-              clearable
               data={projectOptions}
               value={projectFilter}
-              onChange={setProjectFilter}
+              onChange={handleProjectFilterChange}
+              clearable
+              searchable
+              style={{ flex: 1 }}
             />
-          </Grid.Col>
-
-          <Grid.Col span={{ base: 12, sm: 2 }}>
-            <Text size="xs" c="dimmed" ta="right">
-              Showing {filteredTasks.length} / {tasks.length} Tasks
-            </Text>
           </Grid.Col>
         </Grid>
       </Card>
 
-      {/* View Mode: Kanban Grid vs List Table */}
-      {viewMode === 'kanban' ? (
+      <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+        {viewMode === 'kanban' ? (
         <Grid gutter="xl">
           {/* Active Tasks Column */}
           <Grid.Col span={{ base: 12, md: 4 }}>
@@ -405,10 +416,7 @@ export const MyTasks = () => {
           </Table>
         </Card>
       )}
-
+      </PaginatedTable>
     </Container>
   );
 };
-
-
-

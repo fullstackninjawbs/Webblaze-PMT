@@ -3,13 +3,28 @@ import { Container, Title, Text, Card, Table, Badge, Group, ActionIcon, TextInpu
 import { Search, X } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTeamTimeLogsQuery } from './timeLog.slice';
+import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 
 export const TeamTimeTracking = () => {
-  const { data: logsData, isLoading } = useGetTeamTimeLogsQuery();
+  const [activeTab, setActiveTab] = useState<string | null>('running');
+  const { page, limit, setPage, setLimit, resetPage } = usePagination();
+  
+  const { data: logsData, isLoading } = useGetTeamTimeLogsQuery({
+    page,
+    limit,
+    status: activeTab || undefined
+  });
+  
   const [searchQuery, setSearchQuery] = useState('');
 
   const logs = logsData?.data || [];
+  const meta = logsData?.meta;
   const query = searchQuery.trim().toLowerCase();
+
+  const handleTabChange = (val: string | null) => {
+    setActiveTab(val);
+    resetPage();
+  };
 
   const formatDuration = (seconds?: number) => {
     if (seconds === undefined || seconds === null) return '0h 0m';
@@ -64,9 +79,6 @@ export const TeamTimeTracking = () => {
       );
     });
   }, [logs, query]);
-
-  const activeLogs = filteredLogs.filter(log => !log.endTime);
-  const historicalLogs = filteredLogs.filter(log => log.endTime);
 
   return (
     <Container size="xl" style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -138,19 +150,20 @@ export const TeamTimeTracking = () => {
         </Card>
       )}
 
-      <Tabs defaultValue="running" radius="md">
+      <Tabs value={activeTab} onChange={handleTabChange} radius="md">
         <Tabs.List mb="md">
           <Tabs.Tab value="running" color="blue" style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-            Running ({activeLogs.length})
+            Running
           </Tabs.Tab>
-          <Tabs.Tab value="not-running" color="gray" style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-            Not Running ({historicalLogs.length})
+          <Tabs.Tab value="completed" color="gray" style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+            Not Running
           </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="running">
           <Card shadow="sm" p="0" radius="lg" withBorder>
-            <Table verticalSpacing="sm">
+            <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+              <Table verticalSpacing="sm">
               <Table.Thead bg="#f8fafc">
                 <Table.Tr>
                   <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Team Member</Table.Th>
@@ -161,7 +174,7 @@ export const TeamTimeTracking = () => {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {activeLogs.map((log) => {
+                {filteredLogs.map((log) => {
                   const user = typeof log.user === 'object' ? log.user : null;
                   const task = typeof log.task === 'object' ? log.task : null;
                   const project = (task?.milestone as any)?.project;
@@ -194,10 +207,10 @@ export const TeamTimeTracking = () => {
                     </Table.Tr>
                   );
                 })}
-                {activeLogs.length === 0 && !isLoading && (
+                {filteredLogs.length === 0 && !isLoading && (
                   <Table.Tr>
                     <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>
-                      <Text color="dimmed">
+                      <Text c="dimmed">
                         {query ? `No active timers matching "${searchQuery}".` : 'No active timers right now.'}
                       </Text>
                     </Table.Td>
@@ -205,12 +218,14 @@ export const TeamTimeTracking = () => {
                 )}
               </Table.Tbody>
             </Table>
+            </PaginatedTable>
           </Card>
         </Tabs.Panel>
 
-        <Tabs.Panel value="not-running">
+        <Tabs.Panel value="completed">
           <Card shadow="sm" p="0" radius="lg" withBorder>
-            <Table verticalSpacing="sm">
+            <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+              <Table verticalSpacing="sm">
               <Table.Thead bg="#f8fafc">
                 <Table.Tr>
                   <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Team Member</Table.Th>
@@ -221,7 +236,7 @@ export const TeamTimeTracking = () => {
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {historicalLogs.map((log) => {
+                {filteredLogs.map((log) => {
                   const user = typeof log.user === 'object' ? log.user : null;
                   const task = typeof log.task === 'object' ? log.task : null;
                   const project = (task?.milestone as any)?.project;
@@ -256,17 +271,18 @@ export const TeamTimeTracking = () => {
                     </Table.Tr>
                   );
                 })}
-                {historicalLogs.length === 0 && !isLoading && (
+                {filteredLogs.length === 0 && !isLoading && (
                   <Table.Tr>
                     <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>
-                      <Text color="dimmed">
-                        {query ? `No logged time records matching "${searchQuery}".` : 'No historical time logs found.'}
+                      <Text c="dimmed">
+                        {query ? `No historical logs matching "${searchQuery}".` : 'No historical logs found.'}
                       </Text>
                     </Table.Td>
                   </Table.Tr>
                 )}
               </Table.Tbody>
             </Table>
+            </PaginatedTable>
           </Card>
         </Tabs.Panel>
       </Tabs>

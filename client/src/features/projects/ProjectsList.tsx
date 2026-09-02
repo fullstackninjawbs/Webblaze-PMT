@@ -8,6 +8,7 @@ import {
 import { useGetClientsQuery } from '../clients/client.slice';
 
 import { useGetTasksByUserQuery } from '../tasks/task.slice';
+import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 import {
   Table,
   Button,
@@ -75,20 +76,31 @@ const PROJECT_DEPARTMENT_OPTIONS = [
 
 export const ProjectsList: React.FC = () => {
   const navigate = useNavigate();
-  const { data: projectsData } = useGetProjectsQuery();
+  
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
+
+  const { page, limit, setPage, setLimit, resetPage } = usePagination();
+
+  const { data: projectsData, isLoading } = useGetProjectsQuery({
+    page,
+    limit,
+    status: activeTab,
+    department: departmentFilter || 'all',
+    search: searchQuery,
+  });
+  
   const { data: clientsData } = useGetClientsQuery();
 
   const { user } = useSelector((state: RootState) => state.auth);
-  const { data: tasksData } = useGetTasksByUserQuery(user?._id || '', { skip: !user?._id || (user.role !== Role.TEAM_LEAD && user.role !== Role.TEAM_MEMBER) });
+  const { data: tasksData } = useGetTasksByUserQuery({ userId: user?._id || '', limit: 1000 }, { skip: !user?._id || (user.role !== Role.TEAM_LEAD && user.role !== Role.TEAM_MEMBER) });
   
   const [createProject, { isLoading: isCreating }] = useCreateProjectMutation();
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const [deleteProject] = useDeleteProjectMutation();
   const [modalOpened, setModalOpened] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [showOverview, setShowOverview] = useState(false);
 
   const canManageProjects = user?.role === Role.ADMIN || user?.role === Role.PM;
@@ -247,29 +259,24 @@ export const ProjectsList: React.FC = () => {
 
 
   const allProjects = projectsData?.data || [];
+  const meta = projectsData?.meta;
 
-  const filteredProjects = useMemo(() => {
-    return allProjects.filter((p) => {
-      const matchesTab = activeTab === 'all' || p.status === activeTab;
-      const matchesDept = !departmentFilter || (p.type || '').toLowerCase() === departmentFilter.toLowerCase();
-      const matchesQuery =
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.client?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (p.type || '').toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesTab && matchesDept && matchesQuery;
-    });
-  }, [allProjects, activeTab, departmentFilter, searchQuery]);
+  const handleTabChange = (val: string | null) => {
+    setActiveTab(val || 'all');
+    resetPage();
+  };
 
-  // KPI Metrics Calculation
-  const metrics = useMemo(() => {
-    const activeCount = allProjects.filter((p) => p.status === ProjectStatus.ACTIVE).length;
-    const totalBudgetSum = allProjects.reduce((sum, p) => sum + (p.totalBudget || 0), 0);
-    const totalReceivedSum = allProjects.reduce((sum, p) => sum + (p.receivedAmount || 0), 0);
-    const totalPendingSum = allProjects.reduce((sum, p) => sum + (p.pendingAmount || 0), 0);
-    return { activeCount, totalBudgetSum, totalReceivedSum, totalPendingSum };
-  }, [allProjects]);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    resetPage();
+  };
 
-  const rows = filteredProjects.map((project: any) => (
+  const handleDeptChange = (val: string | null) => {
+    setDepartmentFilter(val);
+    resetPage();
+  };
+
+  const rows = allProjects.map((project: any) => (
     <Table.Tr
       key={project._id}
       onClick={() => navigate(`/projects/${project._id}`)}
@@ -520,7 +527,7 @@ export const ProjectsList: React.FC = () => {
                   </Paper>
                 </Group>
                 <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
-                  {metrics.activeCount}
+                  {(meta as any)?.activeCount || 0}
                 </Text>
               </Paper>
 
@@ -541,7 +548,7 @@ export const ProjectsList: React.FC = () => {
                       </Paper>
                     </Group>
                     <Text fw={800} style={{ fontSize: '1.75rem', color: '#0f172a', lineHeight: 1 }}>
-                      ${metrics.totalBudgetSum.toLocaleString()}
+                      ${((meta as any)?.totalBudgetSum || 0).toLocaleString()}
                     </Text>
                   </Paper>
 
@@ -560,7 +567,7 @@ export const ProjectsList: React.FC = () => {
                       </Paper>
                     </Group>
                     <Text fw={800} style={{ fontSize: '1.75rem', color: '#059669', lineHeight: 1 }}>
-                      ${metrics.totalReceivedSum.toLocaleString()}
+                      ${((meta as any)?.totalReceivedSum || 0).toLocaleString()}
                     </Text>
                   </Paper>
 
@@ -579,12 +586,12 @@ export const ProjectsList: React.FC = () => {
                       </Paper>
                     </Group>
                     <Text fw={800} style={{ fontSize: '1.75rem', color: '#d97706', lineHeight: 1 }}>
-                      ${metrics.totalPendingSum.toLocaleString()}
+                      ${((meta as any)?.totalPendingSum || 0).toLocaleString()}
                     </Text>
                   </Paper>
                 </>
               )}
-            </SimpleGrid>
+              </SimpleGrid>
           </Box>
         </Collapse>
       )}
@@ -592,7 +599,7 @@ export const ProjectsList: React.FC = () => {
       {/* Tabs & Search Filter Toolbar */}
       <Paper p="md" radius="lg" withBorder mb="lg" style={{ borderColor: '#e8ecf4', background: '#ffffff' }}>
         <Group justify="space-between">
-          <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'all')} radius="md">
+          <Tabs value={activeTab} onChange={handleTabChange} radius="md">
             <Tabs.List style={{ borderBottom: 'none' }}>
               <Tabs.Tab value="all">All Projects</Tabs.Tab>
               <Tabs.Tab value={ProjectStatus.NEW}>New</Tabs.Tab>
@@ -608,7 +615,7 @@ export const ProjectsList: React.FC = () => {
               placeholder="Filter Department"
               data={PROJECT_DEPARTMENT_OPTIONS}
               value={departmentFilter}
-              onChange={setDepartmentFilter}
+              onChange={handleDeptChange}
               clearable
               style={{ width: 180 }}
               radius="md"
@@ -617,7 +624,7 @@ export const ProjectsList: React.FC = () => {
               placeholder="Search project name, client..."
               leftSection={<Search size={16} color="#94a3b8" />}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               style={{ width: 240 }}
               radius="md"
             />
@@ -625,54 +632,45 @@ export const ProjectsList: React.FC = () => {
         </Group>
       </Paper>
 
-      {/* Data Table */}
-      <Card
-        shadow="xs"
-        p={0}
-        radius="xl"
-        withBorder
-        style={{
-          borderColor: '#e8ecf4',
-          boxShadow: 'none',
-          overflow: 'hidden',
-          backgroundColor: '#ffffff',
-        }}
-      >
-        <Table.ScrollContainer minWidth={1200}>
-          <Table verticalSpacing="md" horizontalSpacing="lg">
-            <Table.Thead style={{ backgroundColor: '#f8faff' }}>
-              <Table.Tr>
-                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROJECT</Table.Th>
-                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
-                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
-                {isFinancialsVisible && (
-                  <>
-                    <Table.Th>Total Amount</Table.Th>
-                    <Table.Th>Received</Table.Th>
-                    <Table.Th>Pending</Table.Th>
-                  </>
-                )}
-                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
-                <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
-                <Table.Th ta="right" style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIONS</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {rows?.length ? (
-                rows
-              ) : (
+      {/* Table wrapped with PaginatedTable */}
+      <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+        <Card shadow="sm" p={0} radius="lg" withBorder style={{ borderColor: '#e8ecf4', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <Table verticalSpacing="md" horizontalSpacing="lg" style={{ minWidth: 900 }}>
+              <Table.Thead style={{ backgroundColor: '#f8faff' }}>
                 <Table.Tr>
-                  <Table.Td colSpan={isFinancialsVisible ? 9 : 6} style={{ textAlign: 'center', padding: '40px' }}>
-                    <Text style={{ color: '#64748b' }} fw={500}>
-                      No projects found matching criteria.
-                    </Text>
-                  </Table.Td>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROJECT</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
+                  {isFinancialsVisible && (
+                    <>
+                      <Table.Th>Total Amount</Table.Th>
+                      <Table.Th>Received</Table.Th>
+                      <Table.Th>Pending</Table.Th>
+                    </>
+                  )}
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
+                  <Table.Th ta="right" style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIONS</Table.Th>
                 </Table.Tr>
-              )}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      </Card>
+              </Table.Thead>
+              <Table.Tbody>
+                {rows?.length ? (
+                  rows
+                ) : (
+                  <Table.Tr>
+                    <Table.Td colSpan={isFinancialsVisible ? 9 : 6} style={{ textAlign: 'center', padding: '40px' }}>
+                      <Text style={{ color: '#64748b' }} fw={500}>
+                        No projects found matching criteria.
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                )}
+              </Table.Tbody>
+            </Table>
+          </div>
+        </Card>
+      </PaginatedTable>
 
       {/* Create / Edit Project Modal */}
       <Modal

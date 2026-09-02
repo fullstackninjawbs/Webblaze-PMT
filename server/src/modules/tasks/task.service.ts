@@ -2,8 +2,10 @@ import { Task, ITask } from './task.model';
 import { Milestone } from '../milestones/milestone.model';
 import { User } from '../users/user.model';
 import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
+import { Project } from '../projects/project.model';
 import { sendTaskAssignmentEmail, sendTaskStatusChangeEmail } from '../../utils/emailService';
 import { ApiError } from '../../utils/ApiError';
+import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
 
@@ -68,7 +70,7 @@ export const createTask = async (data: Partial<ITask>): Promise<ITask> => {
 };
 
 
-export const getTasksByMilestone = async (milestoneId: string, user?: any): Promise<ITask[]> => {
+export const getTasksByMilestone = async (milestoneId: string, user?: any, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
   let query: any = { milestone: milestoneId };
 
   if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
@@ -80,34 +82,68 @@ export const getTasksByMilestone = async (milestoneId: string, user?: any): Prom
         { department: user.department }
       ];
     } else {
-      // If user has no department, they can only see tasks explicitly assigned to them
       query.assignedTo = user.id || user._id;
     }
   }
 
-  const tasks = await Task.find(query)
-    .populate('assignedTo', 'name email avatarUrl role department')
-    .sort({ createdAt: -1 });
+  if (params.status && params.status !== 'all') {
+    query.status = params.status;
+  }
+  if (params.search) {
+    query.title = { $regex: new RegExp(params.search, 'i') };
+  }
 
-  return tasks;
+  const populateOptions = [
+    { path: 'assignedTo', select: 'name email avatarUrl role department' }
+  ];
+
+  return paginate(Task, query, params, populateOptions);
 };
 
-export const getTasksByUser = async (userId: string): Promise<ITask[]> => {
-  return Task.find({ assignedTo: userId })
-    .populate({
+export const getTasksByUser = async (userId: string, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
+  const query: any = { assignedTo: userId };
+  if (params.status && params.status !== 'all') {
+    query.status = params.status;
+  }
+  if (params.search) {
+    query.title = { $regex: new RegExp(params.search, 'i') };
+  }
+
+  const populateOptions = [
+    {
       path: 'milestone',
       populate: {
         path: 'project',
         select: 'name client type',
       },
-    })
-    .sort({ createdAt: -1 });
+    }
+  ];
+  return paginate(Task, query, params, populateOptions);
 };
 
-export const getAllTasks = async (user?: any): Promise<ITask[]> => {
+export const getAllTasks = async (user?: any, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
   let query: any = {};
 
-  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
+  if (user && user.role === Role.TEAM_LEAD && user.department) {
+    const deptVariants = normalizeDept(user.department);
+    const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
+    
+    const projects = await Project.find({ type: { $in: regexes } });
+    const projectIds = projects.map(p => p._id);
+    const milestones = await Milestone.find({ project: { $in: projectIds } });
+    const milestoneIds = milestones.map(m => m._id);
+    
+    const users = await User.find({ department: { $in: regexes } });
+    const userIds = users.map(u => u._id);
+    
+    query.$or = [
+      { department: { $in: regexes } },
+      { department: user.department },
+      { assignedTo: { $in: userIds } },
+      { milestone: { $in: milestoneIds } },
+      { assignedTo: user.id || user._id }
+    ];
+  } else if (user && user.role === Role.TEAM_MEMBER) {
     if (user.department) {
       const deptVariants = normalizeDept(user.department);
       const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
@@ -120,39 +156,28 @@ export const getAllTasks = async (user?: any): Promise<ITask[]> => {
     }
   }
 
-  const tasks = await Task.find(query)
-    .populate('assignedTo', 'name email avatarUrl role department')
-    .populate({
-      path: 'milestone',
-      populate: {
-        path: 'project',
-        select: 'name client type',
-      },
-    })
-    .sort({ createdAt: -1 });
-
-  // Additional check for TEAM_LEAD to match project type as well
-  if (user && user.role === Role.TEAM_LEAD && user.department) {
-    const deptVariants = normalizeDept(user.department);
-    return tasks.filter((t: any) => {
-      // 1. Direct task department match
-      if (t.department && deptVariants.some(v => t.department.toLowerCase().includes(v.replace('_', '')))) return true;
-      // 2. Assigned user department match
-      if (t.assignedTo && typeof t.assignedTo === 'object' && t.assignedTo.department) {
-        if (deptVariants.some(v => t.assignedTo.department.toLowerCase().includes(v.replace('_', '')))) return true;
-      }
-      // 3. Project type match
-      const projectType = t.milestone?.project?.type;
-      if (projectType && deptVariants.some(v => projectType.toLowerCase().includes(v.replace('_', '')))) return true;
-      // 4. Assigned directly to lead
-      const assignedId = t.assignedTo?._id?.toString() || t.assignedTo?.toString();
-      if (assignedId === (user.id || user._id)?.toString()) return true;
-
-      return false;
-    });
+  if (params.status && params.status !== 'all') {
+    query.status = params.status;
+  }
+  if (params.search) {
+    query.title = { $regex: new RegExp(params.search, 'i') };
+  }
+  if (params.department && params.department !== 'all') {
+    query.department = { $regex: new RegExp(params.department, 'i') };
+  }
+  if (params.userId && params.userId !== 'all') {
+    query.assignedTo = params.userId;
   }
 
-  return tasks;
+  const populateOptions = [
+    { path: 'assignedTo', select: 'name email avatarUrl role department' },
+    {
+      path: 'milestone',
+      populate: { path: 'project', select: 'name client type' }
+    }
+  ];
+
+  return paginate(Task, query, params, populateOptions);
 };
 
 export const getTaskById = async (id: string, user?: any): Promise<ITask> => {

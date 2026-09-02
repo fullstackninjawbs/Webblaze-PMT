@@ -34,7 +34,7 @@ export const MilestoneEditPage: React.FC = () => {
   const navigate = useNavigate();
   const { data: milestoneData, isLoading: isMilestoneLoading } = useGetMilestoneByIdQuery(id!);
   const [updateMilestone, { isLoading: isUpdating }] = useUpdateMilestoneMutation();
-  const { data: projectsData } = useGetProjectsQuery();
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
 
   const milestone = milestoneData?.data;
   const project = projectsData?.data?.find(p => p._id === (projectId || milestone?.project));

@@ -8,6 +8,7 @@ import { DailyStatus } from '../daily-status/dailyStatus.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
+import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
 
 export class ProjectService {
   /**
@@ -52,7 +53,7 @@ export class ProjectService {
     return Project.create({ ...data, createdBy: userId });
   }
 
-  static async getProjects(user: any) {
+  static async getProjects(user: any, params: PaginationParams = {}): Promise<PaginatedResult<any>> {
     const query: any = {};
     const userRole = user.role;
 
@@ -70,17 +71,37 @@ export class ProjectService {
       }
     }
 
-    const projects = await Project.find(query)
-      .populate('client', 'name companyName email')
-      .populate('team', 'name email role department avatarUrl')
-      .populate('createdBy', 'name email')
-      .sort({ createdAt: -1 });
+    if (params.status && params.status !== 'all') {
+      query.status = params.status;
+    }
+    
+    if (params.department && params.department !== 'all') {
+      // If user is TL/TM, they already have a type filter. We should only narrow it down if allowed.
+      // But for Admin/PM, they can filter by any department.
+      if (userRole === Role.ADMIN || userRole === Role.PM) {
+        query.type = { $regex: new RegExp(params.department, 'i') };
+      } else if (allowedDeptRegexes.some(r => r.test(params.department))) {
+        query.type = { $regex: new RegExp(params.department, 'i') };
+      }
+    }
+
+    if (params.search) {
+      query.name = { $regex: new RegExp(params.search, 'i') };
+    }
+
+    const populateOptions = [
+      { path: 'client', select: 'name companyName email' },
+      { path: 'team', select: 'name email role department avatarUrl' },
+      { path: 'createdBy', select: 'name email' }
+    ];
+
+    const paginatedResult = await paginate(Project, query, params, populateOptions);
 
     const projectsWithProgress = await Promise.all(
-      projects.map(p => this.attachProgress(p))
+      paginatedResult.data.map(p => this.attachProgress(p))
     );
 
-    return projectsWithProgress.map((p) => {
+    paginatedResult.data = projectsWithProgress.map((p) => {
       let result = this.stripFinancials(p, userRole);
 
       // Filter team array to only show matching department for TL/TM
@@ -94,6 +115,24 @@ export class ProjectService {
       }
       return result;
     });
+
+    // Calculate global KPI sums across ALL matching projects (ignoring pagination limits)
+    // We only need this if the user is PM/Admin, but we can compute it for all or skip if TL/TM
+    let kpiSums = { activeCount: 0, totalBudgetSum: 0, totalReceivedSum: 0, totalPendingSum: 0 };
+    if (userRole === Role.ADMIN || userRole === Role.PM) {
+      const allMatching = await Project.find(query);
+      kpiSums.activeCount = allMatching.filter(p => p.status === 'active').length;
+      kpiSums.totalBudgetSum = allMatching.reduce((s, p) => s + (p.totalBudget || 0), 0);
+      kpiSums.totalReceivedSum = allMatching.reduce((s, p) => s + (p.receivedAmount || 0), 0);
+      kpiSums.totalPendingSum = allMatching.reduce((s, p) => s + (p.pendingAmount || 0), 0);
+    }
+
+    paginatedResult.meta = {
+      ...paginatedResult.meta,
+      ...kpiSums
+    };
+
+    return paginatedResult;
   }
 
   static async getProjectById(id: string, user: any) {

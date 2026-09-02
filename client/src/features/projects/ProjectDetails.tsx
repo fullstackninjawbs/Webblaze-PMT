@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
+import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation, useUpdateMilestoneMutation, useDeleteMilestoneMutation } from '../milestones/milestone.slice';
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
@@ -81,10 +82,10 @@ export const ProjectDetails = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrPM = user?.role === Role.ADMIN || user?.role === Role.PM;
 
-  const { data: projectsData, isLoading: isProjectLoading } = useGetProjectsQuery();
+  const { data: projectsData, isLoading: isProjectLoading } = useGetProjectsQuery({ limit: 1000 });
   const project = projectsData?.data?.find(p => p._id === id);
 
-  const { data: milestonesData, isLoading: isMilestonesLoading } = useGetMilestonesByProjectQuery(id!);
+  const { data: milestonesData, isLoading: isMilestonesLoading } = useGetMilestonesByProjectQuery({ projectId: id!, limit: 1000 });
   const milestones = milestonesData?.data || [];
 
   const { data: allTasksData } = useGetAllTasksQuery();
@@ -145,7 +146,7 @@ export const ProjectDetails = () => {
   const projectEstHours = milestones.reduce((sum, m) => sum + (m.estimatedHours || 0), 0);
   const projectSpentHours = milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0);
 
-  const { data: usersData } = useGetUsersQuery();
+  const { data: usersData } = useGetUsersQuery({ limit: 1000 });
   const projectDept = project?.type ? normalizeFrontendDept(project.type) : '';
   const teamOptions = (usersData?.data || [])
     .filter(u => {
@@ -170,6 +171,12 @@ export const ProjectDetails = () => {
 
   const [activeTab, setActiveTab] = useState<string>('milestones');
   const [selectedMilestoneFilter, setSelectedMilestoneFilter] = useState<string | null>(null);
+  const { page, limit, setPage, setLimit, resetPage } = usePagination();
+
+  const paginatedMilestones = useMemo(() => {
+    return milestones.slice((page - 1) * limit, page * limit);
+  }, [milestones, page, limit]);
+  const milestoneMeta = { page, limit, total: milestones.length, totalPages: Math.ceil(milestones.length / limit) || 1 };
 
   const handleViewMilestoneTasks = (milestoneId: string) => {
     setSelectedMilestoneFilter(milestoneId);
@@ -629,7 +636,7 @@ export const ProjectDetails = () => {
       </Card>
 
       {/* Tabbed Navigation */}
-      <Tabs value={activeTab} onChange={(val) => setActiveTab(val || 'milestones')} radius="md">
+      <Tabs value={activeTab} onChange={(val) => { setActiveTab(val || 'milestones'); resetPage(); }} radius="md">
         <Tabs.List style={{ borderBottom: '1px solid #e5e7eb' }} mb="xl">
           <Tabs.Tab value="overview" leftSection={<Activity size={16} />}>Overview</Tabs.Tab>
           <Tabs.Tab value="milestones" leftSection={<CheckCircle size={16} />}>Milestones</Tabs.Tab>
@@ -906,58 +913,60 @@ export const ProjectDetails = () => {
         </Tabs.Panel>
 
         <Tabs.Panel value="milestones">
-          <Group justify="space-between" mb="md">
-            <Title order={3}>Project Milestones</Title>
-            {isAdminOrPM && project?.status !== 'completed' && (
-              <Button
-                leftSection={<Plus size={16} />}
-                onClick={() => navigate(`/projects/${id}/milestones/new`)}
-                style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                  fontWeight: 600,
-                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-                }}
-              >
-                Add Milestone
-              </Button>
-            )}
-          </Group>
+          <Card withBorder shadow="sm" p="md" radius="md">
+            <Group justify="space-between" mb="lg">
+              <Title order={3}>Project Milestones</Title>
+              {isAdminOrPM && project?.status !== 'completed' && (
+                <Button
+                  leftSection={<Plus size={16} />}
+                  onClick={() => navigate(`/projects/${id}/milestones/new`)}
+                  style={{
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                    fontWeight: 600,
+                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                  }}
+                >
+                  Add Milestone
+                </Button>
+              )}
+            </Group>
 
           {milestones.length > 0 ? (
-            <Card shadow="xs" p={0} radius="xl" withBorder style={{ borderColor: '#e8ecf4', overflow: 'hidden', backgroundColor: '#ffffff' }}>
+            <PaginatedTable meta={milestoneMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isMilestonesLoading}>
               <Table.ScrollContainer minWidth={950}>
-                <Table verticalSpacing="md" horizontalSpacing="lg">
-                  <Table.Thead style={{ backgroundColor: '#f8faff' }}>
-                    <Table.Tr>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>MILESTONE</Table.Th>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>START DATE</Table.Th>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>END DATE</Table.Th>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
-                      <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
-                      <Table.Th ta="right" style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIONS</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {milestones.map((milestone) => (
-                      <MilestoneTableRow
-                        key={milestone._id}
-                        milestone={milestone}
-                        onDelete={handleOpenDeleteMilestone}
-                        canManage={isAdminOrPM}
-                        projectStatus={project?.status}
-                      />
-                    ))}
-                  </Table.Tbody>
-                </Table>
-              </Table.ScrollContainer>
-            </Card>
+                <Table verticalSpacing="sm" striped highlightOnHover>
+                  <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Milestone</Table.Th>
+                        <Table.Th>Start Date</Table.Th>
+                        <Table.Th>End Date</Table.Th>
+                        <Table.Th>Est. Hours</Table.Th>
+                        <Table.Th>Active Hours</Table.Th>
+                        <Table.Th>Status</Table.Th>
+                        <Table.Th>Progress</Table.Th>
+                        <Table.Th w={150}></Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {paginatedMilestones.map((milestone) => (
+                        <MilestoneTableRow
+                          key={milestone._id}
+                          milestone={milestone}
+                          onDelete={handleOpenDeleteMilestone}
+                          canManage={isAdminOrPM}
+                          projectStatus={project?.status}
+                        />
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Table.ScrollContainer>
+            </PaginatedTable>
           ) : (
-            <Card withBorder padding="xl" radius="md" style={{ textAlign: 'center', backgroundColor: '#F9FAFB' }} mt="md">
+            <Box py="xl" ta="center">
               <Text color="dimmed">No milestones created yet. Add one to get started!</Text>
-            </Card>
+            </Box>
           )}
+          </Card>
         </Tabs.Panel>
 
         <Tabs.Panel value="tasks">
@@ -1639,7 +1648,7 @@ const ProjectTasks = ({
   onLogTimeTask?: (task: any) => void;
   onUpdateTaskStatus?: (taskId: string, status: string) => void;
 }) => {
-  const { data: tasksData, isLoading } = useGetAllTasksQuery();
+  const { data: tasksData, isLoading } = useGetAllTasksQuery({ limit: 1000 });
   const { data: activeTimerData } = useGetActiveTimerQuery();
   const [startTimer] = useStartTimerMutation();
   const [stopTimer] = useStopTimerMutation();
@@ -1649,6 +1658,8 @@ const ProjectTasks = ({
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [milestoneFilter, setMilestoneFilter] = useState<string | null>(selectedMilestoneFilter || null);
   const [liveElapsed, setLiveElapsed] = useState(0);
+
+  const { page, limit, setPage, setLimit } = usePagination();
 
   useEffect(() => {
     setMilestoneFilter(selectedMilestoneFilter || null);
@@ -1711,6 +1722,11 @@ const ProjectTasks = ({
 
     return result;
   }, [projectTasks, searchQuery, deptFilter, statusFilter, milestoneFilter]);
+
+  const paginatedTasks = useMemo(() => {
+    return filteredTasks.slice((page - 1) * limit, page * limit);
+  }, [filteredTasks, page, limit]);
+  const tasksMeta = { page, limit, total: filteredTasks.length, totalPages: Math.ceil(filteredTasks.length / limit) || 1 };
 
   const handleStartTimer = async (taskId: string) => {
     try { await startTimer({ taskId }).unwrap(); } catch (e) { console.error(e); }
@@ -1810,8 +1826,9 @@ const ProjectTasks = ({
         </Group>
       )}
 
-      <Table verticalSpacing="sm">
-        <Table.Thead>
+      <PaginatedTable meta={tasksMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+        <Table verticalSpacing="sm">
+          <Table.Thead>
           <Table.Tr>
             <Table.Th>Task</Table.Th>
             <Table.Th>Milestone</Table.Th>
@@ -1825,7 +1842,7 @@ const ProjectTasks = ({
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {filteredTasks.map((task) => {
+          {paginatedTasks.map((task) => {
             const milestone = typeof task.milestone === 'object' ? task.milestone : null;
             const assignee = typeof task.assignedTo === 'object' ? task.assignedTo : null;
             const isTimerActive = (activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id) && task.status !== 'completed';
@@ -1946,6 +1963,7 @@ const ProjectTasks = ({
           )}
         </Table.Tbody>
       </Table>
+      </PaginatedTable>
     </Card>
   );
 };
@@ -1959,12 +1977,13 @@ const normalizeFrontendDept = (dept: string) => {
 };
 
 const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectData: any }) => {
-  const { data: usersData } = useGetUsersQuery();
+  const { data: usersData } = useGetUsersQuery({ limit: 1000 });
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
   const { user: currentUser } = useSelector((state: RootState) => state.auth);
 
   const isAdminOrPM = currentUser?.role === Role.ADMIN || currentUser?.role === Role.PM;
   const [modalOpened, setModalOpened] = useState(false);
+  const { page, limit, setPage, setLimit } = usePagination();
 
   const team = projectData?.team || [];
   const allUsers = usersData?.data || [];
@@ -2034,6 +2053,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
         )}
       </Group>
 
+      <PaginatedTable meta={{ page, limit, total: team.length, totalPages: Math.ceil(team.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit}>
       <Table verticalSpacing="sm" striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -2045,7 +2065,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {team.map((member: any) => (
+          {team.slice((page - 1) * limit, page * limit).map((member: any) => (
             <Table.Tr key={member._id}>
               <Table.Td>
                 <Group gap="sm">
@@ -2082,6 +2102,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
           )}
         </Table.Tbody>
       </Table>
+      </PaginatedTable>
 
       {/* Manage Team Modal */}
       <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title="Manage Project Team" radius="md">
@@ -2122,13 +2143,14 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
   const [createRelease, { isLoading: isCreating }] = useCreateReleaseMutation();
   const [updateRelease, { isLoading: isUpdating }] = useUpdateReleaseMutation();
   const [deleteRelease] = useDeleteReleaseMutation();
-  const { data: usersData } = useGetUsersQuery();
+  const { data: usersData } = useGetUsersQuery({ limit: 1000 });
   const users = usersData?.data || [];
 
   const [releaseModalOpened, setReleaseModalOpened] = useState(false);
   const [editingRelease, setEditingRelease] = useState<any>(null);
 
   const releases = releasesData?.data || [];
+  const { page, limit, setPage, setLimit } = usePagination();
 
   const releaseForm = useForm({
     initialValues: {
@@ -2207,6 +2229,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
         )}
       </Group>
 
+      <PaginatedTable meta={{ page, limit, total: releases.length, totalPages: Math.ceil(releases.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
       <Table verticalSpacing="sm" striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -2219,7 +2242,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {releases.map((release) => {
+          {releases.slice((page - 1) * limit, page * limit).map((release) => {
             const member = typeof release.teamMember === 'object' ? release.teamMember : null;
             return (
               <Table.Tr key={release._id}>
@@ -2269,6 +2292,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
           )}
         </Table.Tbody>
       </Table>
+      </PaginatedTable>
 
       {/* Save Release Modal */}
       <Modal opened={releaseModalOpened} onClose={() => setReleaseModalOpened(false)} title={editingRelease ? "Edit Release" : "Create Release"} radius="md">
@@ -2355,6 +2379,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const invoices = invoicesData?.data || [];
+  const { page, limit, setPage, setLimit } = usePagination();
 
   const invoiceForm = useForm({
     initialValues: {
@@ -2480,6 +2505,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
         </Card>
       </Group>
 
+      <PaginatedTable meta={{ page, limit, total: invoices.length, totalPages: Math.ceil(invoices.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
       <Table verticalSpacing="sm" striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -2494,7 +2520,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {invoices.map((inv) => (
+          {invoices.slice((page - 1) * limit, page * limit).map((inv) => (
             <Table.Tr key={inv._id}>
               <Table.Td fw={600}>{inv.invoiceNumber}</Table.Td>
               <Table.Td>{formatDateDisplay(inv.issueDate)}</Table.Td>
@@ -2544,6 +2570,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
           )}
         </Table.Tbody>
       </Table>
+      </PaginatedTable>
 
       {/* Save Invoice Modal */}
       <Modal opened={invoiceModalOpened} onClose={() => setInvoiceModalOpened(false)} title={editingInvoice ? "Edit Invoice" : "Create Invoice"} radius="md">

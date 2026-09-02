@@ -12,20 +12,23 @@ export const createMilestone = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const getMilestones = asyncHandler(async (req: Request, res: Response) => {
-  const { projectId } = req.query;
-  let milestones: any[] = [];
-  if (projectId) {
-    milestones = await milestoneService.getMilestonesByProject(projectId as string);
-  } else {
-    // If no project ID is provided, return empty array for now
-    // Alternatively, we could fetch all milestones, but usually they are scoped
-    milestones = [];
-  }
+  const { projectId, page, limit, sort, status, search } = req.query;
+  const params: any = { page, limit, sort, status, search };
   
-  res.status(200).json({
-    success: true,
-    data: milestones,
-  });
+  if (projectId) {
+    const result = await milestoneService.getMilestonesByProject(projectId as string, params);
+    res.status(200).json({
+      success: true,
+      data: result.data,
+      meta: result.meta,
+    });
+  } else {
+    res.status(200).json({
+      success: true,
+      data: [],
+      meta: { page: 1, limit: 20, total: 0, totalPages: 1 },
+    });
+  }
 });
 
 export const getMilestoneById = asyncHandler(async (req: Request, res: Response) => {

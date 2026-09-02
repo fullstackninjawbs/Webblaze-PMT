@@ -33,7 +33,7 @@ export const MilestoneCreatePage: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const [createMilestone, { isLoading }] = useCreateMilestoneMutation();
-  const { data: projectsData } = useGetProjectsQuery();
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
 
   const project = projectsData?.data?.find(p => p._id === projectId);
 

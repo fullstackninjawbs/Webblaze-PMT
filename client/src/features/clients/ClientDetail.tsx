@@ -58,7 +58,7 @@ export const ClientDetail: React.FC = () => {
   const canManageProjects = user?.role === Role.ADMIN || user?.role === Role.PM;
 
   const { data: clientData, isLoading: isClientLoading } = useGetClientByIdQuery(id!);
-  const { data: projectsData, isLoading: isProjectsLoading } = useGetProjectsQuery();
+  const { data: projectsData, isLoading: isProjectsLoading } = useGetProjectsQuery({ limit: 1000 });
   const { data: invoicesData, isLoading: isInvoicesLoading } = useGetInvoicesQuery();
 
   const client = clientData?.data;
@@ -76,7 +76,7 @@ export const ClientDetail: React.FC = () => {
 
   const clientInvoices = useMemo(() =>
     allInvoices.filter((inv: any) => {
-      const projectMatch = clientProjects.some(p => p._id === (typeof inv.project === 'object' ? (inv.project as any)._id : inv.project));
+      const projectMatch = clientProjects.some(p => p?._id === (typeof inv.project === 'object' ? (inv.project as any)?._id : inv.project));
       return projectMatch;
     }),
     [allInvoices, clientProjects]

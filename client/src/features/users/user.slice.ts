@@ -1,10 +1,21 @@
 import { baseApi } from '../../app/api';
 import { User } from '../auth/auth.slice';
+import { PaginatedResponse } from '../../types';
 
 export const userApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getUsers: builder.query<{ success: boolean; data: User[] }, void>({
-      query: () => '/users',
+    getUsers: builder.query<PaginatedResponse<User[]>, { page?: number; limit?: number; search?: string; [key: string]: any } | void>({
+      query: (params) => {
+        let url = '/users';
+        if (params) {
+          const qs = new URLSearchParams();
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) qs.append(key, value.toString());
+          });
+          if (qs.toString()) url += `?${qs.toString()}`;
+        }
+        return url;
+      },
       providesTags: ['User'],
     }),
     getUserById: builder.query<{ success: boolean; data: User }, string>({

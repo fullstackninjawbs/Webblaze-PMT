@@ -6,6 +6,7 @@ import { ApiError } from '../../utils/ApiError';
 import { User } from '../users/user.model';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
+import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
 
 export interface TeamMemberHoursSummary {
   userId: string;
@@ -123,17 +124,24 @@ export const getTimeLogsByTask = async (taskId: string): Promise<ITimeLog[]> => 
     .sort({ startTime: -1 });
 };
 
-export const getTeamTimeLogs = async (user?: any): Promise<ITimeLog[]> => {
+export const getTeamTimeLogs = async (user?: any, params: PaginationParams = {}): Promise<PaginatedResult<ITimeLog>> => {
   // Return all active timers, plus recently stopped ones (e.g. last 7 days)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   
-  const query: any = {
-    $or: [
+  const query: any = {};
+
+  if (params.status === 'running') {
+    query.endTime = { $exists: false };
+  } else if (params.status === 'completed') {
+    query.endTime = { $exists: true };
+    query.startTime = { $gte: sevenDaysAgo };
+  } else {
+    query.$or = [
       { endTime: { $exists: false } },
       { startTime: { $gte: sevenDaysAgo } }
-    ]
-  };
+    ];
+  }
   
   if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
     if (user.department) {
@@ -154,9 +162,9 @@ export const getTeamTimeLogs = async (user?: any): Promise<ITimeLog[]> => {
     }
   }
 
-  return TimeLog.find(query)
-    .populate('user', 'name avatarUrl role')
-    .populate({
+  const populateOptions = [
+    { path: 'user', select: 'name avatarUrl role' },
+    {
       path: 'task',
       select: 'title milestone',
       populate: {
@@ -167,9 +175,10 @@ export const getTeamTimeLogs = async (user?: any): Promise<ITimeLog[]> => {
           select: 'name'
         }
       }
-    })
-    .sort({ startTime: -1 })
-    .limit(100);
+    }
+  ];
+
+  return paginate(TimeLog, query, { ...params, sort: params.sort || '-startTime' }, populateOptions);
 };
 
 export const createManualLog = async (userId: string, taskId: string, hours: number, description?: string): Promise<ITimeLog> => {

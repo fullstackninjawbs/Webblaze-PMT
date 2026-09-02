@@ -21,8 +21,8 @@ const releaseSchema = z.object({
 
 export const ReleaseSheet: React.FC = () => {
   const { data: releasesData, isLoading } = useGetReleasesQuery();
-  const { data: projectsData } = useGetProjectsQuery();
-  const { data: usersData } = useGetUsersQuery();
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
+  const { data: usersData } = useGetUsersQuery({ limit: 1000 });
   const [createRelease, { isLoading: isCreating }] = useCreateReleaseMutation();
 
   const [opened, setOpened] = useState(false);

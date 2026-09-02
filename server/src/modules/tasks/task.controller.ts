@@ -17,20 +17,22 @@ export const createTask = asyncHandler(async (req: Request, res: Response) => {
 
 export const getTasks = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const { milestoneId, userId } = req.query;
-  let tasks: any[] = [];
+  const { milestoneId, userId, page, limit, sort, status, search, department } = req.query;
+  const params: any = { page, limit, sort, status, search, department };
+  let result: any;
   
   if (milestoneId) {
-    tasks = await taskService.getTasksByMilestone(milestoneId as string, user);
+    result = await taskService.getTasksByMilestone(milestoneId as string, user, params);
   } else if (userId) {
-    tasks = await taskService.getTasksByUser(userId as string);
+    result = await taskService.getTasksByUser(userId as string, params);
   } else {
-    tasks = await taskService.getAllTasks(user);
+    result = await taskService.getAllTasks(user, params);
   }
   
   res.status(200).json({
     success: true,
-    data: tasks,
+    data: result.data,
+    meta: result.meta,
   });
 });
 

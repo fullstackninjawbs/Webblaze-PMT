@@ -49,11 +49,19 @@ export const getTimeLogsByTask = asyncHandler(async (req: Request, res: Response
 });
 
 export const getTeamTimeLogs = asyncHandler(async (req: Request, res: Response) => {
-  const timeLogs = await timeLogService.getTeamTimeLogs((req as any).user);
+  const params: any = {
+    page: req.query.page as string,
+    limit: req.query.limit as string,
+    sort: req.query.sort as string,
+    status: req.query.status as string,
+  };
+  
+  const result = await timeLogService.getTeamTimeLogs((req as any).user, params);
   
   res.status(200).json({
     success: true,
-    data: timeLogs,
+    data: result.data,
+    meta: result.meta,
   });
 });
 

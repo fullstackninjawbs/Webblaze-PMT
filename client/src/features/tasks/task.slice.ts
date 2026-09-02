@@ -1,6 +1,7 @@
 import { baseApi } from '../../app/api';
 import { User } from '../auth/auth.slice';
 import { Attachment } from '../uploads/upload.slice';
+import { PaginatedResponse } from '../../types';
 
 export interface Task {
   _id: string;
@@ -22,32 +23,62 @@ export interface Task {
 
 export const taskApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getTasksByMilestone: builder.query<{ success: boolean; data: Task[] }, string>({
-      query: (milestoneId) => `/tasks?milestoneId=${milestoneId}`,
-      providesTags: (result, _error, milestoneId) =>
+    getTasksByMilestone: builder.query<PaginatedResponse<Task[]>, { milestoneId: string; page?: number; limit?: number; search?: string; status?: string; [key: string]: any }>({
+      query: (params) => {
+        let url = `/tasks`;
+        if (params) {
+          const qs = new URLSearchParams();
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) qs.append(key, value.toString());
+          });
+          url += `?${qs.toString()}`;
+        }
+        return url;
+      },
+      providesTags: (result, _error, params) =>
         result?.data
           ? [
             ...result.data.map(({ _id }) => ({ type: 'Task' as const, id: _id })),
-            { type: 'Task', id: `LIST-MILESTONE-${milestoneId}` },
+            { type: 'Task', id: `LIST-MILESTONE-${params.milestoneId}` },
           ]
-          : [{ type: 'Task', id: `LIST-MILESTONE-${milestoneId}` }],
+          : [{ type: 'Task', id: `LIST-MILESTONE-${params.milestoneId}` }],
     }),
-    getTasksByUser: builder.query<{ success: boolean; data: Task[] }, string>({
-      query: (userId) => `/tasks?userId=${userId}`,
-      providesTags: (result, _error, userId) =>
+    getTasksByUser: builder.query<PaginatedResponse<Task[]>, { userId: string; page?: number; limit?: number; search?: string; status?: string; [key: string]: any }>({
+      query: (params) => {
+        let url = `/tasks`;
+        if (params) {
+          const qs = new URLSearchParams();
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) qs.append(key, value.toString());
+          });
+          url += `?${qs.toString()}`;
+        }
+        return url;
+      },
+      providesTags: (result, _error, params) =>
         result?.data
           ? [
             ...result.data.map(({ _id }) => ({ type: 'Task' as const, id: _id })),
-            { type: 'Task', id: `LIST-USER-${userId}` },
+            { type: 'Task', id: `LIST-USER-${params.userId}` },
           ]
-          : [{ type: 'Task', id: `LIST-USER-${userId}` }],
+          : [{ type: 'Task', id: `LIST-USER-${params.userId}` }],
     }),
     getTaskById: builder.query<{ success: boolean; data: Task }, string>({
       query: (id) => `/tasks/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Task', id }],
     }),
-    getAllTasks: builder.query<{ success: boolean; data: Task[] }, void>({
-      query: () => '/tasks',
+    getAllTasks: builder.query<PaginatedResponse<Task[]>, { page?: number; limit?: number; search?: string; status?: string; department?: string; userId?: string; [key: string]: any } | void>({
+      query: (params) => {
+        let url = `/tasks`;
+        if (params) {
+          const qs = new URLSearchParams();
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) qs.append(key, value.toString());
+          });
+          if (qs.toString()) url += `?${qs.toString()}`;
+        }
+        return url;
+      },
       providesTags: (result) =>
         result?.data
           ? [

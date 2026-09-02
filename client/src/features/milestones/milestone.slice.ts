@@ -1,4 +1,5 @@
 import { baseApi } from '../../app/api';
+import { PaginatedResponse } from '../../types';
 
 export interface Milestone {
   _id: string;
@@ -16,15 +17,28 @@ export interface Milestone {
 
 export const milestoneApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getMilestonesByProject: builder.query<{ success: boolean; data: Milestone[] }, string>({
-      query: (projectId) => `/milestones?projectId=${projectId}`,
-      providesTags: (result, _error, projectId) => 
+    getMilestonesByProject: builder.query<PaginatedResponse<Milestone[]>, { projectId: string; page?: number; limit?: number; sort?: string; [key: string]: any }>({
+      query: (params) => {
+        let url = `/milestones`;
+        if (params) {
+          const queryParams = new URLSearchParams();
+          Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+              queryParams.append(key, value.toString());
+            }
+          });
+          const qs = queryParams.toString();
+          if (qs) url += `?${qs}`;
+        }
+        return url;
+      },
+      providesTags: (result, _error, params) => 
         result?.data 
           ? [
               ...result.data.map(({ _id }) => ({ type: 'Milestone' as const, id: _id })),
-              { type: 'Milestone', id: `LIST-${projectId}` },
+              { type: 'Milestone', id: `LIST-${params.projectId}` },
             ]
-          : [{ type: 'Milestone', id: `LIST-${projectId}` }],
+          : [{ type: 'Milestone', id: `LIST-${params.projectId}` }],
     }),
     getMilestoneById: builder.query<{ success: boolean; data: Milestone }, string>({
       query: (id) => `/milestones/${id}`,

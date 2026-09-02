@@ -11,10 +11,10 @@ import { formatHours } from '../../utils/formatHours';
 export const ReportsPage: React.FC = () => {
 
   // Queries
-  const { data: projectsData, isLoading: projectsLoading } = useGetProjectsQuery();
+  const { data: projectsData, isLoading: projectsLoading } = useGetProjectsQuery({ limit: 1000 });
   const { data: tasksData, isLoading: tasksLoading } = useGetAllTasksQuery();
   const { data: timeLogsData, isLoading: logsLoading } = useGetTeamTimeLogsQuery();
-  const { data: usersData, isLoading: usersLoading } = useGetUsersQuery();
+  const { data: usersData, isLoading: usersLoading } = useGetUsersQuery({ limit: 1000 });
 
   const projects = projectsData?.data || [];
   const tasks = tasksData?.data || [];

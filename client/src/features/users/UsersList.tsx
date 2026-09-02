@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { Role, DEPARTMENT_OPTIONS } from '../../types';
+import { PaginatedTable } from '../../components/common/PaginatedTable';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
@@ -54,7 +55,7 @@ const registerSchema = z.object({
 
 export const UsersList: React.FC = () => {
   const navigate = useNavigate();
-  const { data: usersData } = useGetUsersQuery();
+  const { data: usersData, isLoading } = useGetUsersQuery({ limit: 1000 });
   const [registerUser, { isLoading: isRegistering }] = useRegisterUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
   const [deleteUser] = useDeleteUserMutation();
@@ -141,6 +142,7 @@ export const UsersList: React.FC = () => {
   };
 
   const users = usersData?.data || [];
+  const meta = usersData?.meta || { page: 1, limit: 1000, total: users.length, totalPages: 1 };
 
   // Filtered Users
   const filteredUsers = useMemo(() => {
@@ -381,44 +383,46 @@ export const UsersList: React.FC = () => {
       </Paper>
 
       {/* Data Table */}
-      <Card
-        shadow="xs"
-        p={0}
-        radius="xl"
-        withBorder
-        style={{
-          borderColor: '#e8ecf4',
-          boxShadow: 'none',
-          overflow: 'hidden',
-          backgroundColor: '#ffffff',
-        }}
-      >
-        <Table.ScrollContainer minWidth={800}>
-          <Table verticalSpacing="md" horizontalSpacing="lg">
-            <Table.Thead style={{ backgroundColor: '#f8faff' }}>
-              <Table.Tr>
-                <Table.Th>User</Table.Th>
-                <Table.Th>Role</Table.Th>
-                <Table.Th>Department</Table.Th>
-                <Table.Th w={100}></Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {rows?.length ? (
-                rows
-              ) : (
+      <PaginatedTable meta={meta} onPageChange={() => {}} onLimitChange={() => {}} isLoading={isLoading}>
+        <Card
+          shadow="xs"
+          p={0}
+          radius="xl"
+          withBorder
+          style={{
+            borderColor: '#e8ecf4',
+            boxShadow: 'none',
+            overflow: 'hidden',
+            backgroundColor: '#ffffff',
+          }}
+        >
+          <Table.ScrollContainer minWidth={800}>
+            <Table verticalSpacing="md" horizontalSpacing="lg">
+              <Table.Thead style={{ backgroundColor: '#f8faff' }}>
                 <Table.Tr>
-                  <Table.Td colSpan={4} style={{ textAlign: 'center', padding: '40px' }}>
-                    <Text style={{ color: '#64748b' }} fw={500}>
-                      No team members found matching criteria.
-                    </Text>
-                  </Table.Td>
+                  <Table.Th>User</Table.Th>
+                  <Table.Th>Role</Table.Th>
+                  <Table.Th>Department</Table.Th>
+                  <Table.Th w={100}></Table.Th>
                 </Table.Tr>
-              )}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-      </Card>
+              </Table.Thead>
+              <Table.Tbody>
+                {rows?.length ? (
+                  rows
+                ) : (
+                  <Table.Tr>
+                    <Table.Td colSpan={4} style={{ textAlign: 'center', padding: '40px' }}>
+                      <Text style={{ color: '#64748b' }} fw={500}>
+                        No team members found matching criteria.
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                )}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        </Card>
+      </PaginatedTable>
 
       {/* Invite Member Modal */}
       <Modal

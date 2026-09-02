@@ -2,6 +2,19 @@ import { baseApi } from '../../app/api';
 import { User } from '../auth/auth.slice';
 import { Task } from '../tasks/task.slice';
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  data: T;
+  meta: PaginationMeta;
+}
+
 export interface TimeLog {
   _id: string;
   task: Task | string;
@@ -32,8 +45,20 @@ export const timeLogApi = baseApi.injectEndpoints({
       query: () => '/timelogs/active',
       providesTags: ['ActiveTimer'],
     }),
-    getTeamTimeLogs: builder.query<{ success: boolean; data: TimeLog[] }, void>({
-      query: () => '/timelogs/team',
+    getTeamTimeLogs: builder.query<PaginatedResponse<TimeLog[]>, { page?: number; limit?: number; sort?: string; status?: string } | void>({
+      query: (params) => {
+        let url = '/timelogs/team';
+        if (params) {
+          const queryParams = new URLSearchParams();
+          if (params.page) queryParams.append('page', params.page.toString());
+          if (params.limit) queryParams.append('limit', params.limit.toString());
+          if (params.sort) queryParams.append('sort', params.sort);
+          if (params.status) queryParams.append('status', params.status);
+          const qs = queryParams.toString();
+          if (qs) url += `?${qs}`;
+        }
+        return url;
+      },
       providesTags: ['TimeLog'],
     }),
     getTeamHoursSummary: builder.query<{ success: boolean; data: TeamMemberHoursSummary[] }, void>({
