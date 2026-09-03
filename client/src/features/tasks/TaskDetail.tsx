@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, FileInput, Paper, NumberInput, SegmentedControl, Chip } from '@mantine/core';
+import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, FileInput, Paper, NumberInput, Chip } from '@mantine/core';
 import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Plus } from 'lucide-react';
 import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
@@ -102,6 +102,10 @@ export const TaskDetail = () => {
     await updateTask({ _id: task._id, status: selectedStatus as any }).unwrap();
     setStatusModalOpened(false);
     setStatusComment('');
+
+    if (selectedStatus === 'in_review') {
+      navigate('/daily-status?openEod=true');
+    }
   };
 
   const handleUploadAttachment = async () => {

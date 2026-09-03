@@ -373,3 +373,59 @@ export const getTeamHoursSummary = async (user?: any): Promise<TeamMemberHoursSu
     };
   });
 };
+
+export const getMyEodSummary = async (userId: string) => {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const logs = await TimeLog.find({
+    user: userId,
+    startTime: { $gte: startOfDay, $lte: endOfDay },
+    durationSeconds: { $gt: 0 }
+  }).populate({
+    path: 'task',
+    select: 'title status milestone',
+    populate: {
+      path: 'milestone',
+      select: 'project',
+      populate: {
+        path: 'project',
+        select: 'name'
+      }
+    }
+  });
+
+  const projectsMap = new Map<string, { id: string; name: string; timeSpent: number; tasks: any[] }>();
+
+  for (const log of logs) {
+    if (!log.task) continue;
+    const taskDoc: any = log.task;
+    if (!taskDoc.milestone || !taskDoc.milestone.project) continue;
+
+    const projectId = taskDoc.milestone.project._id.toString();
+    const projectName = taskDoc.milestone.project.name;
+    
+    if (!projectsMap.has(projectId)) {
+      projectsMap.set(projectId, { id: projectId, name: projectName, timeSpent: 0, tasks: [] });
+    }
+    
+    const projectData = projectsMap.get(projectId)!;
+    projectData.timeSpent += (log.durationSeconds || 0) / 3600;
+    
+    if (taskDoc.status === 'in_review') {
+      if (!projectData.tasks.find((t: any) => t.id === taskDoc._id.toString())) {
+        projectData.tasks.push({ id: taskDoc._id.toString(), title: taskDoc.title });
+      }
+    }
+  }
+
+  const projects = Array.from(projectsMap.values()).map(p => ({
+    ...p,
+    timeSpent: Number(p.timeSpent.toFixed(2))
+  }));
+
+  return { projects };
+};

@@ -105,3 +105,13 @@ export const clearTaskTimeLogs = asyncHandler(async (req: Request, res: Response
     message: 'All time logs for task cleared successfully',
   });
 });
+
+export const getMyEodSummary = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as any).user._id || (req as any).user.id;
+  const summary = await timeLogService.getMyEodSummary(userId);
+  
+  res.status(200).json({
+    success: true,
+    data: summary,
+  });
+});

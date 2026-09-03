@@ -9,6 +9,7 @@ import {
   createManualLog,
   deleteTimeLog,
   clearTaskTimeLogs,
+  getMyEodSummary,
 } from './timeLog.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
@@ -28,6 +29,7 @@ router.get('/active', getActiveTimer);
 
 // Admin/PM/TeamLead/TeamMember team view
 router.get('/team', rbacMiddleware([Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER]), getTeamTimeLogs);
+router.get('/my-eod-summary', getMyEodSummary);
 router.get('/team-hours-summary', rbacMiddleware([Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER]), getTeamHoursSummary);
 
 // View & Clear logs for a specific task

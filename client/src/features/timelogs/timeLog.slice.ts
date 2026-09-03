@@ -75,6 +75,10 @@ export const timeLogApi = baseApi.injectEndpoints({
             ]
           : [{ type: 'TimeLog', id: `LIST-TASK-${taskId}` }],
     }),
+    getMyEodSummary: builder.query<{ success: boolean; data: { projects: { id: string; name: string; timeSpent: number; tasks: { id: string; title: string }[] }[] } }, void>({
+      query: () => '/timelogs/my-eod-summary',
+      providesTags: ['TimeLog'],
+    }),
     startTimer: builder.mutation<{ success: boolean; data: TimeLog; message: string }, { taskId: string; description?: string }>({
       query: (body) => ({
         url: '/timelogs/start',
@@ -159,4 +163,5 @@ export const {
   useCreateManualTimeLogMutation,
   useDeleteTimeLogMutation,
   useClearTaskTimeLogsMutation,
+  useGetMyEodSummaryQuery,
 } = timeLogApi;

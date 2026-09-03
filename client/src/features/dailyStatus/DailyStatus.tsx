@@ -22,6 +22,7 @@ import {
   TextInput,
   Modal,
 } from '@mantine/core';
+import { useSearchParams } from 'react-router-dom';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import {
   Calendar,
@@ -40,13 +41,15 @@ import {
   useGetTeamDailyStatusesQuery,
   useSubmitDailyStatusMutation,
 } from './dailyStatus.slice';
+import { useGetMyEodSummaryQuery } from '../timelogs/timeLog.slice';
 
 export const DailyStatus: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const { user } = useSelector((state: RootState) => state.auth);
   const [activeTab, setActiveTab] = useState<string | null>('my-status');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
-  const [submitModalOpened, setSubmitModalOpened] = useState<boolean>(false);
+  const [submitModalOpened, setSubmitModalOpened] = useState<boolean>(searchParams.get('openEod') === 'true');
 
   const isManagement =
     user?.role === Role.ADMIN ||
@@ -61,6 +64,9 @@ export const DailyStatus: React.FC = () => {
     { skip: !isManagement }
   );
   const [submitDailyStatus, { isLoading: isSubmitting }] = useSubmitDailyStatusMutation();
+
+  const { data: eodSummaryData, isFetching: isEodLoading } = useGetMyEodSummaryQuery(undefined, { skip: !submitModalOpened });
+  const eodProjects = eodSummaryData?.data?.projects || [];
 
   const projects = projectsData?.data || [];
   const myLogs = myLogsData?.data || [];
@@ -353,14 +359,36 @@ export const DailyStatus: React.FC = () => {
 
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
-            <Select
-              label="Select Project (Optional)"
-              placeholder="Select a project you worked on today..."
-              data={projectOptions}
-              clearable
-              radius="md"
-              {...form.getInputProps('project')}
-            />
+            {isEodLoading ? (
+              <Center p="md"><Loader size="sm" /></Center>
+            ) : eodProjects.length > 0 ? (
+              <Stack gap="xs">
+                <Text size="sm" fw={600} style={{ color: '#334155' }}>Projects Worked On Today</Text>
+                {eodProjects.map((p: any, i: number) => (
+                  <Paper key={i} p="sm" radius="md" withBorder bg="#f8fafc">
+                    <Group justify="space-between" mb={p.tasks.length > 0 ? "xs" : 0}>
+                      <Group gap="xs">
+                        <Briefcase size={16} color="#3b82f6" />
+                        <Text size="sm" fw={600}>{p.name}</Text>
+                      </Group>
+                      <Badge color="blue" variant="light">{p.timeSpent}h</Badge>
+                    </Group>
+                    {p.tasks.length > 0 && (
+                      <Stack gap={4} pl="xl">
+                        {p.tasks.map((t: any, j: number) => (
+                          <Group key={j} gap="xs">
+                            <CheckCircle2 size={12} color="#10b981" />
+                            <Text size="xs" style={{ color: '#475569' }}>{t.title} (In Review)</Text>
+                          </Group>
+                        ))}
+                      </Stack>
+                    )}
+                  </Paper>
+                ))}
+              </Stack>
+            ) : (
+              <Text size="sm" c="dimmed">No time logged or tasks in review today.</Text>
+            )}
 
             <Textarea
               required
