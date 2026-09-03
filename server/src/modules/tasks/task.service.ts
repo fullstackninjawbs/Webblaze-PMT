@@ -44,6 +44,10 @@ export const createTask = async (data: Partial<ITask>): Promise<ITask> => {
 
   await enforceHourCap(data.milestone as unknown as string, data.estimatedHours!);
   
+  if (data.assignedTo && !data.status) {
+    data.status = 'assigned';
+  }
+
   const task = await Task.create(data);
   if (data.milestone) {
     await evaluateAndUpdateMilestoneStatus(data.milestone as unknown as string);
@@ -231,6 +235,10 @@ export const updateTask = async (
 
   if (updateData.estimatedHours !== undefined && updateData.estimatedHours !== task.estimatedHours) {
     await enforceHourCap(task.milestone as unknown as string, updateData.estimatedHours, id);
+  }
+
+  if (updateData.assignedTo && (!task.status || task.status === 'unassigned') && !updateData.status) {
+    updateData.status = 'assigned';
   }
 
   const updatedTask = await Task.findByIdAndUpdate(id, updateData, {

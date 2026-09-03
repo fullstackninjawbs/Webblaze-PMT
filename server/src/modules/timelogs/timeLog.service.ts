@@ -369,7 +369,6 @@ export const getTeamHoursSummary = async (user?: any): Promise<TeamMemberHoursSu
       avatarUrl: u.avatarUrl,
       assignedHours,
       spentHours,
-      pendingHours,
     };
   });
 };
@@ -387,7 +386,7 @@ export const getMyEodSummary = async (userId: string) => {
     durationSeconds: { $gt: 0 }
   }).populate({
     path: 'task',
-    select: 'title status milestone',
+    select: 'title status milestone estimatedHours spentHours',
     populate: {
       path: 'milestone',
       select: 'project',
@@ -417,7 +416,12 @@ export const getMyEodSummary = async (userId: string) => {
     
     if (taskDoc.status === 'in_review') {
       if (!projectData.tasks.find((t: any) => t.id === taskDoc._id.toString())) {
-        projectData.tasks.push({ id: taskDoc._id.toString(), title: taskDoc.title });
+        projectData.tasks.push({ 
+          id: taskDoc._id.toString(), 
+          title: taskDoc.title,
+          estimatedHours: taskDoc.estimatedHours || 0,
+          spentHours: taskDoc.spentHours || 0
+        });
       }
     }
   }

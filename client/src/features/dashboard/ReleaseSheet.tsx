@@ -9,6 +9,7 @@ import { useGetUsersQuery } from '../users/user.slice';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 import { DEPARTMENT_OPTIONS } from '../../types';
+import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 
 const releaseSchema = z.object({
   project: z.string().min(1, 'Project is required'),
@@ -35,6 +36,16 @@ export const ReleaseSheet: React.FC = () => {
   const filteredReleases = filterStatus 
     ? releases.filter(r => r.status === filterStatus)
     : releases;
+
+  const { page, limit, setPage, setLimit } = usePagination(10, 'release_');
+  const paginatedReleases = filteredReleases.slice((page - 1) * limit, page * limit);
+
+  const meta = {
+    page,
+    limit,
+    total: filteredReleases.length,
+    totalPages: Math.ceil(filteredReleases.length / limit) || 1,
+  };
 
   const form = useForm({
     initialValues: {
@@ -81,8 +92,9 @@ export const ReleaseSheet: React.FC = () => {
         />
       </Group>
 
-      <Table>
-        <Table.Thead>
+      <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+        <Table>
+          <Table.Thead>
           <Table.Tr>
             <Table.Th>Project</Table.Th>
             <Table.Th>Department</Table.Th>
@@ -93,7 +105,7 @@ export const ReleaseSheet: React.FC = () => {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {filteredReleases.map((release) => {
+          {paginatedReleases.map((release) => {
             const project = typeof release.project === 'object' ? release.project : null;
             const member = typeof release.teamMember === 'object' ? release.teamMember : null;
             
@@ -136,8 +148,9 @@ export const ReleaseSheet: React.FC = () => {
           )}
         </Table.Tbody>
       </Table>
+      </PaginatedTable>
 
-      <Modal opened={opened} onClose={() => setOpened(false)} title="Create New Release">
+      <Modal opened={opened} onClose={() => setOpened(false)} title="Add Release" size="lg">
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Select
             label="Project"

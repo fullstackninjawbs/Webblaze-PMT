@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, Text, Group, Table, Badge, Progress } from '@mantine/core';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTeamTimeLogsQuery } from '../timelogs/timeLog.slice';
+import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 
 export const TeamTimeTrackingPanel: React.FC = () => {
   const { data: logsData, isLoading } = useGetTeamTimeLogsQuery();
@@ -39,6 +40,15 @@ export const TeamTimeTrackingPanel: React.FC = () => {
 
   const members = Object.values(logsByMember) as any[];
 
+  const { page, limit, setPage, setLimit } = usePagination(10, 'timelog_');
+  const paginatedMembers = members.slice((page - 1) * limit, page * limit);
+  const meta = {
+    page,
+    limit,
+    total: members.length,
+    totalPages: Math.ceil(members.length / limit) || 1,
+  };
+
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -49,6 +59,7 @@ export const TeamTimeTrackingPanel: React.FC = () => {
     <Card shadow="sm" p="lg" radius="lg" withBorder mb="xl">
       <Text fw={700} size="lg" mb="md" style={{ color: '#111827' }}>Team Time Tracking</Text>
       
+      <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -60,7 +71,7 @@ export const TeamTimeTrackingPanel: React.FC = () => {
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {members.map((member: any) => {
+          {paginatedMembers.map((member: any) => {
             const activeTimer = member.activeTimer;
             const task = activeTimer && typeof activeTimer.task === 'object' ? activeTimer.task : null;
             const milestone = task && typeof task.milestone === 'object' ? task.milestone : null;
@@ -118,6 +129,7 @@ export const TeamTimeTrackingPanel: React.FC = () => {
           )}
         </Table.Tbody>
       </Table>
+      </PaginatedTable>
     </Card>
   );
 };

@@ -9,18 +9,21 @@ export interface UsePaginationReturn {
   resetPage: () => void;
 }
 
-export function usePagination(defaultLimit = 20): UsePaginationReturn {
+export function usePagination(defaultLimit = 20, prefix = ''): UsePaginationReturn {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const limit = parseInt(searchParams.get('limit') || String(defaultLimit), 10);
+  const pageParam = `${prefix}page`;
+  const limitParam = `${prefix}limit`;
+
+  const page = parseInt(searchParams.get(pageParam) || '1', 10);
+  const limit = parseInt(searchParams.get(limitParam) || String(defaultLimit), 10);
 
   const setPage = useCallback(
     (newPage: number) => {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          next.set('page', String(newPage));
+          next.set(pageParam, String(newPage));
           return next;
         },
         { replace: true }
@@ -34,8 +37,8 @@ export function usePagination(defaultLimit = 20): UsePaginationReturn {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
-          next.set('limit', String(newLimit));
-          next.set('page', '1'); // Reset to page 1 when limit changes
+          next.set(limitParam, String(newLimit));
+          next.set(pageParam, '1'); // Reset to page 1 when limit changes
           return next;
         },
         { replace: true }
@@ -48,7 +51,7 @@ export function usePagination(defaultLimit = 20): UsePaginationReturn {
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
-        next.set('page', '1');
+        next.set(pageParam, '1');
         return next;
       },
       { replace: true }

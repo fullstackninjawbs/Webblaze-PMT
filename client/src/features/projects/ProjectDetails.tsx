@@ -1812,9 +1812,8 @@ const ProjectTasks = ({
             <Table.Th>Assigned To</Table.Th>
             <Table.Th>Est. Time</Table.Th>
             <Table.Th>Active Hours</Table.Th>
-            <Table.Th>Status</Table.Th>
             <Table.Th>Progress</Table.Th>
-            <Table.Th w={150}></Table.Th>
+            <Table.Th w={150} style={{ textAlign: 'center' }}>Actions</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -1860,29 +1859,6 @@ const ProjectTasks = ({
                   </Text>
                 </Table.Td>
                 <Table.Td>
-                  <Menu shadow="md" width={140} position="bottom-start">
-                    <Menu.Target>
-                      <Badge
-                        color={getStatusColor(task.status)}
-                        variant="light"
-                        size="sm"
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {task.status?.replace('_', ' ') || 'assigned'} ▾
-                      </Badge>
-                    </Menu.Target>
-
-                    <Menu.Dropdown>
-                      <Menu.Label>Change Status</Menu.Label>
-                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'assigned')}>Assigned</Menu.Item>
-                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'in_progress')}>In Progress</Menu.Item>
-                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'in_review')}>In Review</Menu.Item>
-                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'completed')}>Completed</Menu.Item>
-                      <Menu.Item onClick={() => onUpdateTaskStatus?.(task._id, 'on_hold')}>On Hold</Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
-                </Table.Td>
-                <Table.Td>
                   <Tooltip label={`${liveSpent.toFixed(2)}h / ${formatHours(task.estimatedHours)} (${Math.round(liveProgress)}%)`}>
                     <Progress value={liveProgress} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} animated={isTimerActive && task.status !== 'completed'} />
                   </Tooltip>
@@ -1897,8 +1873,8 @@ const ProjectTasks = ({
                         variant="light"
                         leftSection={<Play size={14} />}
                         onClick={() => handleStartTimer(task._id)}
-                        disabled={!!activeTimer || task.status === 'completed' || isMaxed}
-                        title={isMaxed ? 'Estimated hours reached' : ''}
+                        disabled={!!activeTimer || task.status === 'completed' || isMaxed || user?._id !== assignee?._id}
+                        title={isMaxed ? 'Estimated hours reached' : user?._id !== assignee?._id ? 'Only assigned person can start timer' : ''}
                       >Start</Button>
                     )}
 

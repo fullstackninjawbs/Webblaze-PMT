@@ -170,7 +170,7 @@ export const TaskDetail = () => {
         <Group justify="space-between" align="flex-end" wrap="nowrap">
           <Group gap="xl" align="center" wrap="nowrap" style={{ flex: 1 }}>
             {/* Large Play/Stop Button */}
-            {task.status !== 'completed' && (
+            {task.status !== 'completed' && (!task.assignedTo || (typeof task.assignedTo === 'object' ? (task.assignedTo as any)._id : task.assignedTo) === user?._id) && (
               <ActionIcon 
                 size={60} 
                 radius="100%" 
@@ -342,13 +342,20 @@ export const TaskDetail = () => {
       <Modal opened={statusModalOpened} onClose={() => setStatusModalOpened(false)} title={<Text fw={700}>Status Update Required</Text>}>
         <Stack>
           <Text size="sm">Please provide a quick comment on what was completed before moving to <strong>{selectedStatus.replace('_', ' ')}</strong>.</Text>
+          {selectedStatus === 'in_review' && (
+            <Text size="sm" mt={-8} c="dimmed">
+              Total time logged: <strong>{Number(totalSpentHours.toFixed(2))}h</strong> / {formatHours(task.estimatedHours)}
+            </Text>
+          )}
           <Textarea 
             placeholder="E.g., Finished the UI layout, pushed to staging..." 
             value={statusComment}
             onChange={(e) => setStatusComment(e.target.value)}
             minRows={3}
           />
-          <Button onClick={confirmStatusUpdate}>Confirm Update</Button>
+          <Button onClick={confirmStatusUpdate}>
+            {selectedStatus === 'in_review' ? 'Mark In Review' : 'Confirm Update'}
+          </Button>
         </Stack>
       </Modal>
 
