@@ -23,7 +23,7 @@ export const TaskTable = ({ tasks }: any) => {
       }}
     >
       <Table.ScrollContainer minWidth={800}>
-        <Table verticalSpacing="md" horizontalSpacing="lg" highlightOnHover>
+        <Table verticalSpacing="lg" borderColor="#cbd5e1" highlightOnHover>
           <Table.Thead style={{ backgroundColor: '#f8faff' }}>
             <Table.Tr>
               <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap', textTransform: 'uppercase', width: '25%' }}>Assignee</Table.Th>
@@ -97,8 +97,8 @@ export const TaskTable = ({ tasks }: any) => {
                                 <Text size="sm" fw={700} style={{ color: '#dc2626' }}>{formatHours(totalHours)}</Text>
                               </Group>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {dateTasks.map((task: any) => (
-                                  <Group key={task._id} gap="sm" wrap="nowrap" align="center">
+                                {dateTasks.map((task: any, index: number) => (
+                                  <Group key={task._id} gap="sm" wrap="nowrap" align="center" style={{ borderBottom: index !== dateTasks.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: index !== dateTasks.length - 1 ? '8px' : '0' }}>
                                     <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light" size="sm">
                                       {task.status?.replace('_', ' ') || 'Assigned'}
                                     </Badge>
