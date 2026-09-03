@@ -170,8 +170,8 @@ export const TeamTimeTracking = () => {
         </Tabs.List>
 
         <Tabs.Panel value="running">
-          <Card shadow="sm" p="0" radius="lg" withBorder>
-            <PaginatedTable meta={localMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+          <PaginatedTable meta={localMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+            <Card shadow="sm" p="0" radius="lg" withBorder>
               <Table verticalSpacing="sm">
               <Table.Thead bg="#f8fafc">
                 <Table.Tr>
@@ -227,13 +227,13 @@ export const TeamTimeTracking = () => {
                 )}
               </Table.Tbody>
             </Table>
-            </PaginatedTable>
-          </Card>
+            </Card>
+          </PaginatedTable>
         </Tabs.Panel>
 
         <Tabs.Panel value="completed">
-          <Card shadow="sm" p="0" radius="lg" withBorder>
-            <PaginatedTable meta={localMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+          <PaginatedTable meta={localMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
+            <Card shadow="sm" p="0" radius="lg" withBorder>
               <Table verticalSpacing="sm">
               <Table.Thead bg="#f8fafc">
                 <Table.Tr>
@@ -291,8 +291,8 @@ export const TeamTimeTracking = () => {
                 )}
               </Table.Tbody>
             </Table>
-            </PaginatedTable>
-          </Card>
+            </Card>
+          </PaginatedTable>
         </Tabs.Panel>
       </Tabs>
 

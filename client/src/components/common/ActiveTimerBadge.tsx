@@ -81,8 +81,8 @@ export const ActiveTimerBadge: React.FC = () => {
   const taskTitle = typeof activeTimer.task === 'object' ? activeTimer.task.title : 'Unknown Task';
   const projectTitle =
     typeof activeTimer.task === 'object' &&
-    typeof activeTimer.task.milestone === 'object' &&
-    typeof activeTimer.task.milestone.project === 'object'
+      typeof activeTimer.task.milestone === 'object' &&
+      typeof activeTimer.task.milestone.project === 'object'
       ? activeTimer.task.milestone.project.name
       : '';
 
