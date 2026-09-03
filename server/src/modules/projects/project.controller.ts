@@ -13,6 +13,9 @@ export const getProjects = asyncHandler(async (req: Request, res: Response) => {
     page: req.query.page as string,
     limit: req.query.limit as string,
     sort: req.query.sort as string,
+    status: req.query.status as string,
+    department: req.query.department as string,
+    search: req.query.search as string,
   };
   const result = await ProjectService.getProjects((req as any).user, params);
   res.status(200).json({ success: true, data: result.data, meta: result.meta });
