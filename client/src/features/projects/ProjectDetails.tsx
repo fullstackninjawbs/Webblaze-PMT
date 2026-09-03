@@ -955,7 +955,6 @@ export const ProjectDetails = () => {
             onEditTask={handleOpenEditTask}
             onDeleteTask={handleOpenDeleteTask}
             onLogTimeTask={handleOpenLogTime}
-            onUpdateTaskStatus={handleUpdateTaskStatus}
           />
         </Tabs.Panel>
         <Tabs.Panel value="team">
