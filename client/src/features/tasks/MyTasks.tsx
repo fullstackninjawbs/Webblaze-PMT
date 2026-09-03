@@ -338,7 +338,7 @@ export const MyTasks = () => {
       ) : (
         /* List View Table */
         <Card withBorder radius="md" p={0}>
-          <Table verticalSpacing="sm" horizontalSpacing="md" highlightOnHover>
+          <Table verticalSpacing="sm" horizontalSpacing="md">
             <Table.Thead bg="#f8fafc">
               <Table.Tr>
                 <Table.Th>Task</Table.Th>

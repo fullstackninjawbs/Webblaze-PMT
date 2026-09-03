@@ -101,6 +101,13 @@ const theme = createTheme({
         radius: 'sm',
       },
     },
+    Table: {
+      defaultProps: {
+        striped: true,
+        stripedColor: '#f0f9ff',
+        highlightOnHover: false,
+      },
+    },
     Modal: {
       defaultProps: {
         radius: 'lg',

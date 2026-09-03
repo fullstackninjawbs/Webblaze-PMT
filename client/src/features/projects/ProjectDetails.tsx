@@ -910,7 +910,7 @@ export const ProjectDetails = () => {
           {milestones.length > 0 ? (
             <PaginatedTable meta={milestoneMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isMilestonesLoading}>
               <Table.ScrollContainer minWidth={950}>
-                <Table verticalSpacing="sm" striped highlightOnHover>
+                <Table verticalSpacing="sm" striped>
                   <Table.Thead>
                       <Table.Tr>
                         <Table.Th>Milestone</Table.Th>
@@ -2030,7 +2030,7 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
       </Group>
 
       <PaginatedTable meta={{ page, limit, total: team.length, totalPages: Math.ceil(team.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit}>
-      <Table verticalSpacing="sm" striped highlightOnHover>
+      <Table verticalSpacing="sm" striped>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Name</Table.Th>
@@ -2206,7 +2206,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
       </Group>
 
       <PaginatedTable meta={{ page, limit, total: releases.length, totalPages: Math.ceil(releases.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
-      <Table verticalSpacing="sm" striped highlightOnHover>
+      <Table verticalSpacing="sm" striped>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Details</Table.Th>
@@ -2482,7 +2482,7 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
       </Group>
 
       <PaginatedTable meta={{ page, limit, total: invoices.length, totalPages: Math.ceil(invoices.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
-      <Table verticalSpacing="sm" striped highlightOnHover>
+      <Table verticalSpacing="sm" striped>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Invoice #</Table.Th>

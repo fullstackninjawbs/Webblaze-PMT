@@ -23,7 +23,7 @@ export const TaskTable = ({ tasks }: any) => {
       }}
     >
       <Table.ScrollContainer minWidth={800}>
-        <Table verticalSpacing="lg" borderColor="#cbd5e1" highlightOnHover>
+        <Table verticalSpacing="lg" borderColor="#cbd5e1">
           <Table.Thead style={{ backgroundColor: '#f8faff' }}>
             <Table.Tr>
               <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap', textTransform: 'uppercase', width: '25%' }}>Assignee</Table.Th>
