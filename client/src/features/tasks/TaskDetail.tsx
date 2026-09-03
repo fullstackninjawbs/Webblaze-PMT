@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, FileInput, Paper, NumberInput, SegmentedControl } from '@mantine/core';
+import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, FileInput, Paper, NumberInput, SegmentedControl, Chip } from '@mantine/core';
 import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Plus } from 'lucide-react';
 import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
 import { UserAvatar } from '../../components/common/UserAvatar';
@@ -168,14 +168,14 @@ export const TaskDetail = () => {
             {/* Large Play/Stop Button */}
             {task.status !== 'completed' && (
               <ActionIcon 
-                size={80} 
+                size={60} 
                 radius="100%" 
                 color={isTimerActiveForThisTask ? "red" : "blue"}
                 variant={isTimerActiveForThisTask ? "light" : "filled"}
                 onClick={isTimerActiveForThisTask ? handleStopTimer : handleStartTimer}
-                style={{ boxShadow: isTimerActiveForThisTask ? 'none' : '0 10px 25px rgba(59, 130, 246, 0.4)', transition: 'all 0.2s ease' }}
+                style={{ boxShadow: isTimerActiveForThisTask ? 'none' : '0 6px 16px rgba(59, 130, 246, 0.4)', transition: 'all 0.2s ease' }}
               >
-                {isTimerActiveForThisTask ? <Square size={32} fill="currentColor" /> : <Play size={36} fill="currentColor" style={{ marginLeft: 6 }} />}
+                {isTimerActiveForThisTask ? <Square size={24} fill="currentColor" /> : <Play size={28} fill="currentColor" style={{ marginLeft: 4 }} />}
               </ActionIcon>
             )}
 
@@ -198,40 +198,20 @@ export const TaskDetail = () => {
             </div>
           </Group>
 
-          <SegmentedControl
+          <Chip.Group
+            multiple={false}
             value={task.status}
-            onChange={handleStatusChange}
-            data={[
-              { label: 'Assigned', value: 'assigned' },
-              { label: 'In Progress', value: 'in_progress' },
-              { label: 'In Review', value: 'in_review' },
-              ...((user?.role === Role.ADMIN || user?.role === Role.PM || task.status === 'completed') 
-                ? [{ label: 'Completed', value: 'completed' }] 
-                : []),
-            ]}
-            size="sm"
-            mb="xs"
-            radius="md"
-            color="blue"
-            styles={{
-              root: {
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                padding: '4px',
-              },
-              label: {
-                fontWeight: 600,
-                padding: '4px 12px',
-                '&[data-active]': {
-                  color: 'white',
-                },
-                '&[data-disabled]': {
-                  color: 'white !important',
-                  opacity: 1,
-                },
-              },
-            }}
-          />
+            onChange={(val: string) => val && handleStatusChange(val)}
+          >
+            <Group gap={8}>
+              <Chip size="sm" radius="md" value="assigned" color="blue" variant="filled">Assigned</Chip>
+              <Chip size="sm" radius="md" value="in_progress" color="orange" variant="filled">In Progress</Chip>
+              <Chip size="sm" radius="md" value="in_review" color="grape" variant="filled">In Review</Chip>
+              {(user?.role === Role.ADMIN || user?.role === Role.PM || task.status === 'completed') && (
+                <Chip size="sm" radius="md" value="completed" color="green" variant="filled">Completed</Chip>
+              )}
+            </Group>
+          </Chip.Group>
         </Group>
       </Card>
 

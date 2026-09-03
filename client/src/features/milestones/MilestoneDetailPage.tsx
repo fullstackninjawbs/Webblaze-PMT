@@ -2,12 +2,12 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container, Title, Text, Card, Badge, Group, Stack, SimpleGrid, Table,
-  Progress, Loader, Center, Button, Paper, Breadcrumbs, Anchor,
+  Progress, Loader, Center, Button, Paper, Breadcrumbs, Anchor, Chip,
 } from '@mantine/core';
 import {
   ArrowLeft, Edit, Plus, Calendar, Clock, CheckCircle, Flag, Briefcase, ListTodo, AlertCircle
 } from 'lucide-react';
-import { useGetMilestoneByIdQuery } from './milestone.slice';
+import { useGetMilestoneByIdQuery, useUpdateMilestoneMutation } from './milestone.slice';
 import { useGetTasksByMilestoneQuery } from '../tasks/task.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { formatDateDisplay, formatHoursDisplay } from '../../utils/dateUtils';
@@ -46,7 +46,8 @@ export const MilestoneDetailPage: React.FC = () => {
 
   const { data: milestoneData, isLoading: isMilestoneLoading } = useGetMilestoneByIdQuery(id!);
   const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByMilestoneQuery({ milestoneId: id!, limit: 1000 });
-  const { data: projectsData } = useGetProjectsQuery();
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
+  const [updateMilestone] = useUpdateMilestoneMutation();
 
   const milestone = milestoneData?.data;
   const tasks = tasksData?.data || [];
@@ -129,7 +130,12 @@ export const MilestoneDetailPage: React.FC = () => {
 
       {/* Header Card */}
       <Card withBorder shadow="sm" radius="xl" p="xl" mb="xl"
-        style={{ background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', borderColor: '#bae6fd' }}>
+        style={{
+          borderColor: '#e8ecf4',
+          background: '#ffffff',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)',
+        }}
+      >
         <Group align="flex-start" justify="space-between" wrap="wrap">
           <Stack gap="xs" style={{ flex: 1 }}>
             <Group gap="sm">
@@ -154,12 +160,8 @@ export const MilestoneDetailPage: React.FC = () => {
             )}
           </Stack>
 
-          <Stack align="flex-end" gap="xs">
-            <Badge color={getStatusColor(milestone.status)} size="lg" variant="filled" radius="sm">
-              {milestone.status?.replace('_', ' ').toUpperCase()}
-            </Badge>
-
-            <Group gap="md" mt="xs">
+          <Stack align="flex-end" gap="md">
+            <Group gap="md">
               <Group gap={4}>
                 <Calendar size={14} color="#64748b" />
                 <Text size="xs" c="dimmed">Start:</Text>
@@ -172,6 +174,32 @@ export const MilestoneDetailPage: React.FC = () => {
                 <Text size="xs" fw={700}>{formatDateDisplay(milestone.endDate)}</Text>
               </Group>
             </Group>
+
+            {canManageMilestones ? (
+              <Chip.Group
+                multiple={false}
+                value={milestone.status}
+                onChange={async (val: string) => {
+                  if (!val || val === milestone.status) return;
+                  try {
+                    await updateMilestone({ id: milestone._id, data: { status: val } as any }).unwrap();
+                  } catch (e) {
+                    console.error('Failed to update milestone status', e);
+                  }
+                }}
+              >
+                <Group gap={8}>
+                  <Chip size="sm" radius="md" value="not_started" color="gray" variant="filled">Not Started</Chip>
+                  <Chip size="sm" radius="md" value="in_progress" color="blue" variant="filled">In Progress</Chip>
+                  <Chip size="sm" radius="md" value="on_hold" color="orange" variant="filled">On Hold</Chip>
+                  <Chip size="sm" radius="md" value="completed" color="green" variant="filled">Completed</Chip>
+                </Group>
+              </Chip.Group>
+            ) : (
+              <Badge color={getStatusColor(milestone.status)} size="lg" variant="filled" radius="sm">
+                {milestone.status?.replace('_', ' ').toUpperCase()}
+              </Badge>
+            )}
           </Stack>
         </Group>
       </Card>
