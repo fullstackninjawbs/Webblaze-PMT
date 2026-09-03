@@ -339,14 +339,6 @@ export const ProjectDetails = () => {
     }
   };
 
-  const handleUpdateTaskStatus = async (taskId: string, status: string) => {
-    try {
-      await updateTask({ _id: taskId, status } as any).unwrap();
-    } catch (e) {
-      console.error('Failed to update task status', e);
-    }
-  };
-
   const handleCreateMilestone = async (values: typeof milestoneForm.values) => {
     try {
       const sDate = parseLocalDateString(values.startDate);
