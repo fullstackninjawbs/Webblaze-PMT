@@ -5,7 +5,7 @@ import { PaginatedTable, usePagination } from '../../components/common/Paginated
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation, useUpdateMilestoneMutation, useDeleteMilestoneMutation } from '../milestones/milestone.slice';
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Menu, Grid, Box, SegmentedControl, Chip } from '@mantine/core';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Menu, Grid, Box, Chip } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';

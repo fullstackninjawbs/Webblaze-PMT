@@ -182,7 +182,7 @@ export const MilestoneDetailPage: React.FC = () => {
                 onChange={async (val: string) => {
                   if (!val || val === milestone.status) return;
                   try {
-                    await updateMilestone({ id: milestone._id, data: { status: val } as any }).unwrap();
+                    await updateMilestone({ _id: milestone._id, status: val as any }).unwrap();
                   } catch (e) {
                     console.error('Failed to update milestone status', e);
                   }

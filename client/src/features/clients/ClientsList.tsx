@@ -101,7 +101,7 @@ export const UNIQUE_COUNTRY_CODES = Array.from(
 );
 
 export const ClientsList: React.FC = () => {
-  const { data, isLoading } = useGetClientsQuery({ limit: 1000 });
+  const { data, isLoading } = useGetClientsQuery();
   const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
   const navigate = useNavigate();
   const [createClient, { isLoading: isCreating }] = useCreateClientMutation();
