@@ -5,7 +5,7 @@ import { PaginatedTable, usePagination } from '../../components/common/Paginated
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation, useUpdateMilestoneMutation, useDeleteMilestoneMutation } from '../milestones/milestone.slice';
 import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
-import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Menu, Grid, Box, Chip } from '@mantine/core';
+import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Grid, Box, Chip } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
@@ -1612,7 +1612,6 @@ const ProjectTasks = ({
   onEditTask,
   onDeleteTask,
   onLogTimeTask,
-  onUpdateTaskStatus,
 }: {
   projectId: string;
   milestones: any[];
@@ -1622,7 +1621,6 @@ const ProjectTasks = ({
   onEditTask?: (task: any) => void;
   onDeleteTask?: (task: any) => void;
   onLogTimeTask?: (task: any) => void;
-  onUpdateTaskStatus?: (taskId: string, status: string) => void;
 }) => {
   const { data: tasksData, isLoading } = useGetAllTasksQuery({ limit: 1000 });
   const { data: activeTimerData } = useGetActiveTimerQuery();
@@ -1725,15 +1723,7 @@ const ProjectTasks = ({
     }
   }, [liveElapsed]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'assigned': return 'gray';
-      case 'in_progress': return 'blue';
-      case 'in_review': return 'orange';
-      case 'completed': return 'green';
-      default: return 'gray';
-    }
-  };
+
 
   const { user } = useSelector((state: RootState) => state.auth);
   const isCompleted = projectStatus === 'completed';
