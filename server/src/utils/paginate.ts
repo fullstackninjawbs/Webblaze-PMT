@@ -21,7 +21,8 @@ export async function paginate<T>(
   model: Model<T>,
   filter: FilterQuery<T>,
   params: PaginationParams,
-  populateOptions?: PopulateOptions | (PopulateOptions | string)[]
+  populateOptions?: PopulateOptions | (PopulateOptions | string)[],
+  select?: string | string[]
 ): Promise<PaginatedResult<T>> {
   const page = Math.max(1, Number(params.page) || 1);
   const limit = Math.min(1000, Math.max(1, Number(params.limit) || 20)); // Hard cap at 1000
@@ -29,6 +30,10 @@ export async function paginate<T>(
   const sort = params.sort || '-createdAt';
 
   let query = model.find(filter).sort(sort).skip(skip).limit(limit);
+
+  if (select) {
+    query = query.select(select);
+  }
 
   if (populateOptions) {
     if (Array.isArray(populateOptions)) {

@@ -369,6 +369,7 @@ export const getTeamHoursSummary = async (user?: any): Promise<TeamMemberHoursSu
       avatarUrl: u.avatarUrl,
       assignedHours,
       spentHours,
+      pendingHours,
     };
   });
 };

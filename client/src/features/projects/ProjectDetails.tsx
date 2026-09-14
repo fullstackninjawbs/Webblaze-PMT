@@ -506,11 +506,11 @@ export const ProjectDetails = () => {
               {project.name}
             </Title>
 
-            <Text 
-              size="sm" 
-              style={{ 
-                color: '#64748b', 
-                maxWidth: '650px', 
+            <Text
+              size="sm"
+              style={{
+                color: '#64748b',
+                maxWidth: '650px',
                 lineHeight: 1.6,
                 maxHeight: '180px',
                 overflowY: 'auto',
@@ -899,11 +899,11 @@ export const ProjectDetails = () => {
               )}
             </Group>
 
-          {milestones.length > 0 ? (
-            <PaginatedTable meta={milestoneMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isMilestonesLoading}>
-              <Table.ScrollContainer minWidth={950}>
-                <Table verticalSpacing="sm" striped>
-                  <Table.Thead>
+            {milestones.length > 0 ? (
+              <PaginatedTable meta={milestoneMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isMilestonesLoading}>
+                <Table.ScrollContainer minWidth={950}>
+                  <Table verticalSpacing="sm" striped>
+                    <Table.Thead>
                       <Table.Tr>
                         <Table.Th>Milestone</Table.Th>
                         <Table.Th>Start Date</Table.Th>
@@ -928,12 +928,12 @@ export const ProjectDetails = () => {
                     </Table.Tbody>
                   </Table>
                 </Table.ScrollContainer>
-            </PaginatedTable>
-          ) : (
-            <Box py="xl" ta="center">
-              <Text color="dimmed">No milestones created yet. Add one to get started!</Text>
-            </Box>
-          )}
+              </PaginatedTable>
+            ) : (
+              <Box py="xl" ta="center">
+                <Text color="dimmed">No milestones created yet. Add one to get started!</Text>
+              </Box>
+            )}
           </Card>
         </Tabs.Panel>
 
@@ -1786,116 +1786,116 @@ const ProjectTasks = ({
       <PaginatedTable meta={tasksMeta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
         <Table verticalSpacing="sm">
           <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Task</Table.Th>
-            <Table.Th>Milestone</Table.Th>
-            <Table.Th>Department</Table.Th>
-            <Table.Th>Assigned To</Table.Th>
-            <Table.Th>Est. Time</Table.Th>
-            <Table.Th>Active Hours</Table.Th>
-            <Table.Th>Progress</Table.Th>
-            <Table.Th w={150} style={{ textAlign: 'center' }}>Actions</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {paginatedTasks.map((task) => {
-            const milestone = typeof task.milestone === 'object' ? task.milestone : null;
-            const assignee = typeof task.assignedTo === 'object' ? task.assignedTo : null;
-            const isTimerActive = (activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id) && task.status !== 'completed';
-            const bonusHours = isTimerActive ? liveElapsed / 3600 : 0;
-            const rawSpent = (task.spentHours || 0) + bonusHours;
-            const liveSpent = Math.min(rawSpent, task.estimatedHours * 1.5); // allow slight overflow display
-            const liveProgress = Math.min((rawSpent / (task.estimatedHours || 1)) * 100, 100);
-            const isMaxed = (task.spentHours || 0) >= task.estimatedHours;
+            <Table.Tr>
+              <Table.Th>Task</Table.Th>
+              <Table.Th>Milestone</Table.Th>
+              <Table.Th>Department</Table.Th>
+              <Table.Th>Assigned To</Table.Th>
+              <Table.Th>Est. Time</Table.Th>
+              <Table.Th>Active Hours</Table.Th>
+              <Table.Th>Progress</Table.Th>
+              <Table.Th w={150} style={{ textAlign: 'center' }}>Actions</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {paginatedTasks.map((task) => {
+              const milestone = typeof task.milestone === 'object' ? task.milestone : null;
+              const assignee = typeof task.assignedTo === 'object' ? task.assignedTo : null;
+              const isTimerActive = (activeTimer?.task === task._id || (activeTimer?.task as any)?._id === task._id) && task.status !== 'completed';
+              const bonusHours = isTimerActive ? liveElapsed / 3600 : 0;
+              const rawSpent = (task.spentHours || 0) + bonusHours;
+              const liveSpent = Math.min(rawSpent, task.estimatedHours * 1.5); // allow slight overflow display
+              const liveProgress = Math.min((rawSpent / (task.estimatedHours || 1)) * 100, 100);
+              const isMaxed = (task.spentHours || 0) >= task.estimatedHours;
 
-            return (
-              <Table.Tr key={task._id}>
-                <Table.Td>
-                  <Text fw={600} size="sm" style={{ cursor: 'pointer', color: '#228be6' }} onClick={() => navigate(`/tasks/${task._id}`)}>
-                    {task.title}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm">{milestone?.title || 'Unknown Milestone'}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Badge variant="outline" color="gray">{task.department || 'N/A'}</Badge>
-                </Table.Td>
-                <Table.Td>
-                  {assignee ? (
-                    <Group gap="xs" wrap="nowrap">
-                      <UserAvatar name={assignee.name} email={assignee.email} avatarUrl={assignee.avatarUrl} size="sm" />
-                      <Text size="sm">{assignee.name}</Text>
-                    </Group>
-                  ) : (
-                    <Badge variant="light" color="orange">Unassigned</Badge>
-                  )}
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" fw={600}>{formatHours(task.estimatedHours)}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm" fw={600} style={{ color: rawSpent > task.estimatedHours ? '#dc2626' : '#2563eb' }}>
-                    {formatHours(rawSpent)}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <Tooltip label={`${liveSpent.toFixed(2)}h / ${formatHours(task.estimatedHours)} (${Math.round(liveProgress)}%)`}>
-                    <Progress value={liveProgress} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} animated={isTimerActive && task.status !== 'completed'} />
-                  </Tooltip>
-                </Table.Td>
-                <Table.Td ta="right">
-                  <Group gap={6} justify="flex-end" wrap="nowrap">
-                    {isTimerActive ? (
-                      <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
+              return (
+                <Table.Tr key={task._id}>
+                  <Table.Td>
+                    <Text fw={600} size="sm" style={{ cursor: 'pointer', color: '#228be6' }} onClick={() => navigate(`/tasks/${task._id}`)}>
+                      {task.title}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">{milestone?.title || 'Unknown Milestone'}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge variant="outline" color="gray">{task.department || 'N/A'}</Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    {assignee ? (
+                      <Group gap="xs" wrap="nowrap">
+                        <UserAvatar name={assignee.name} email={assignee.email} avatarUrl={assignee.avatarUrl} size="sm" />
+                        <Text size="sm">{assignee.name}</Text>
+                      </Group>
                     ) : (
-                      <Button
-                        size="xs"
-                        variant="light"
-                        leftSection={<Play size={14} />}
-                        onClick={() => handleStartTimer(task._id)}
-                        disabled={!!activeTimer || task.status === 'completed' || isMaxed || user?._id !== assignee?._id}
-                        title={isMaxed ? 'Estimated hours reached' : user?._id !== assignee?._id ? 'Only assigned person can start timer' : ''}
-                      >Start</Button>
+                      <Badge variant="light" color="orange">Unassigned</Badge>
                     )}
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" fw={600}>{formatHours(task.estimatedHours)}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm" fw={600} style={{ color: rawSpent > task.estimatedHours ? '#dc2626' : '#2563eb' }}>
+                      {formatHours(rawSpent)}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Tooltip label={`${liveSpent.toFixed(2)}h / ${formatHours(task.estimatedHours)} (${Math.round(liveProgress)}%)`}>
+                      <Progress value={liveProgress} size="sm" color={task.status === 'completed' ? 'green' : 'blue'} animated={isTimerActive && task.status !== 'completed'} />
+                    </Tooltip>
+                  </Table.Td>
+                  <Table.Td ta="right">
+                    <Group gap={6} justify="flex-end" wrap="nowrap">
+                      {isTimerActive ? (
+                        <Button size="xs" color="red" variant="light" leftSection={<Square size={14} />} onClick={handleStopTimer}>Stop</Button>
+                      ) : (
+                        <Button
+                          size="xs"
+                          variant="light"
+                          leftSection={<Play size={14} />}
+                          onClick={() => handleStartTimer(task._id)}
+                          disabled={!!activeTimer || task.status === 'completed' || isMaxed || user?._id !== assignee?._id}
+                          title={isMaxed ? 'Estimated hours reached' : user?._id !== assignee?._id ? 'Only assigned person can start timer' : ''}
+                        >Start</Button>
+                      )}
 
-                    {onLogTimeTask && task.status === 'in_review' && (
-                      <Tooltip label="Log Time Manually" withArrow>
-                        <ActionIcon variant="light" color="indigo" size="sm" onClick={() => onLogTimeTask(task)}>
-                          <Clock size={15} />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
+                      {onLogTimeTask && task.status === 'in_review' && (
+                        <Tooltip label="Log Time Manually" withArrow>
+                          <ActionIcon variant="light" color="indigo" size="sm" onClick={() => onLogTimeTask(task)}>
+                            <Clock size={15} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
 
-                    {onEditTask && (
-                      <Tooltip label="Edit Task" withArrow>
-                        <ActionIcon variant="light" color="blue" size="sm" onClick={() => onEditTask(task)}>
-                          <Edit size={15} />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
+                      {onEditTask && (
+                        <Tooltip label="Edit Task" withArrow>
+                          <ActionIcon variant="light" color="blue" size="sm" onClick={() => onEditTask(task)}>
+                            <Edit size={15} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
 
-                    {onDeleteTask && (
-                      <Tooltip label="Delete Task" withArrow>
-                        <ActionIcon variant="light" color="red" size="sm" onClick={() => onDeleteTask(task)}>
-                          <Trash size={15} />
-                        </ActionIcon>
-                      </Tooltip>
-                    )}
-                  </Group>
+                      {onDeleteTask && (
+                        <Tooltip label="Delete Task" withArrow>
+                          <ActionIcon variant="light" color="red" size="sm" onClick={() => onDeleteTask(task)}>
+                            <Trash size={15} />
+                          </ActionIcon>
+                        </Tooltip>
+                      )}
+                    </Group>
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })}
+            {filteredTasks.length === 0 && !isLoading && (
+              <Table.Tr>
+                <Table.Td colSpan={8} ta="center" py="xl">
+                  <Text color="dimmed">No tasks found matching filters.</Text>
                 </Table.Td>
               </Table.Tr>
-            );
-          })}
-          {filteredTasks.length === 0 && !isLoading && (
-            <Table.Tr>
-              <Table.Td colSpan={8} ta="center" py="xl">
-                <Text color="dimmed">No tasks found matching filters.</Text>
-              </Table.Td>
-            </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
+            )}
+          </Table.Tbody>
+        </Table>
       </PaginatedTable>
     </Card>
   );
@@ -1987,54 +1987,54 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
       </Group>
 
       <PaginatedTable meta={{ page, limit, total: team.length, totalPages: Math.ceil(team.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit}>
-      <Table verticalSpacing="sm" striped>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Email</Table.Th>
-            <Table.Th>Role</Table.Th>
-            <Table.Th>Department</Table.Th>
-            {isAdminOrPM && <Table.Th w={100}></Table.Th>}
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {team.slice((page - 1) * limit, page * limit).map((member: any) => (
-            <Table.Tr key={member._id}>
-              <Table.Td>
-                <Group gap="sm">
-                  <UserAvatar name={member.name} email={member.email} avatarUrl={member.avatarUrl} size="sm" />
-                  <Text size="sm" fw={600}>{member.name}</Text>
-                </Group>
-              </Table.Td>
-              <Table.Td><Text size="sm">{member.email}</Text></Table.Td>
-              <Table.Td>
-                <Badge variant="light" color="blue">
-                  {member.role?.replace('_', ' ')}
-                </Badge>
-              </Table.Td>
-              <Table.Td>
-                <Badge variant="outline" color="gray">
-                  {member.department ? member.department.toUpperCase() : 'N/A'}
-                </Badge>
-              </Table.Td>
-              {isAdminOrPM && (
-                <Table.Td>
-                  <Button size="xs" color="red" variant="subtle" onClick={() => handleRemoveMember(member._id, member.name)}>
-                    Remove
-                  </Button>
-                </Table.Td>
-              )}
-            </Table.Tr>
-          ))}
-          {team.length === 0 && (
+        <Table verticalSpacing="sm" striped>
+          <Table.Thead>
             <Table.Tr>
-              <Table.Td colSpan={5} ta="center" py="xl">
-                <Text color="dimmed">No team members assigned to this project.</Text>
-              </Table.Td>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Email</Table.Th>
+              <Table.Th>Role</Table.Th>
+              <Table.Th>Department</Table.Th>
+              {isAdminOrPM && <Table.Th w={100}></Table.Th>}
             </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {team.slice((page - 1) * limit, page * limit).map((member: any) => (
+              <Table.Tr key={member._id}>
+                <Table.Td>
+                  <Group gap="sm">
+                    <UserAvatar name={member.name} email={member.email} avatarUrl={member.avatarUrl} size="sm" />
+                    <Text size="sm" fw={600}>{member.name}</Text>
+                  </Group>
+                </Table.Td>
+                <Table.Td><Text size="sm">{member.email}</Text></Table.Td>
+                <Table.Td>
+                  <Badge variant="light" color="blue">
+                    {member.role?.replace('_', ' ')}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Badge variant="outline" color="gray">
+                    {member.department ? member.department.toUpperCase() : 'N/A'}
+                  </Badge>
+                </Table.Td>
+                {isAdminOrPM && (
+                  <Table.Td>
+                    <Button size="xs" color="red" variant="subtle" onClick={() => handleRemoveMember(member._id, member.name)}>
+                      Remove
+                    </Button>
+                  </Table.Td>
+                )}
+              </Table.Tr>
+            ))}
+            {team.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={5} ta="center" py="xl">
+                  <Text color="dimmed">No team members assigned to this project.</Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
       </PaginatedTable>
 
       {/* Manage Team Modal */}
@@ -2163,68 +2163,68 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
       </Group>
 
       <PaginatedTable meta={{ page, limit, total: releases.length, totalPages: Math.ceil(releases.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
-      <Table verticalSpacing="sm" striped>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Details</Table.Th>
-            <Table.Th>Department</Table.Th>
-            <Table.Th>Team Member</Table.Th>
-            <Table.Th>Release Date</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th w={100}></Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {releases.slice((page - 1) * limit, page * limit).map((release) => {
-            const member = typeof release.teamMember === 'object' ? release.teamMember : null;
-            return (
-              <Table.Tr key={release._id}>
-                <Table.Td>
-                  <Text size="sm" fw={500} lineClamp={2}>{release.details}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Badge variant="dot" color={release.department === 'design' ? 'pink' : release.department === 'seo' ? 'green' : 'blue'}>
-                    {release.department.toUpperCase()}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm">{member?.name || 'Unassigned'}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Text size="sm">{formatDateDisplay(release.releaseDate)}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <Badge
-                    color={release.status === 'released' ? 'green' : release.status === 'in_review' ? 'orange' : release.status === 'scheduled' ? 'blue' : 'gray'}
-                    variant="light"
-                  >
-                    {release.status === 'released' ? 'Released' : release.status === 'in_review' ? 'In Review' : 'Scheduled'}
-                  </Badge>
-                </Table.Td>
-                <Table.Td>
-                  {isGlobalManager && (
-                    <Group gap={4} justify="flex-end" wrap="nowrap">
-                      <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(release)} title="Edit">
-                        <Edit size={16} />
-                      </ActionIcon>
-                      <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id, release.details)} title="Delete">
-                        <Trash size={16} />
-                      </ActionIcon>
-                    </Group>
-                  )}
+        <Table verticalSpacing="sm" striped>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Details</Table.Th>
+              <Table.Th>Department</Table.Th>
+              <Table.Th>Team Member</Table.Th>
+              <Table.Th>Release Date</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th w={100}></Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {releases.slice((page - 1) * limit, page * limit).map((release) => {
+              const member = typeof release.teamMember === 'object' ? release.teamMember : null;
+              return (
+                <Table.Tr key={release._id}>
+                  <Table.Td>
+                    <Text size="sm" fw={500} lineClamp={2}>{release.details}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge variant="dot" color={release.department === 'design' ? 'pink' : release.department === 'seo' ? 'green' : 'blue'}>
+                      {release.department.toUpperCase()}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">{member?.name || 'Unassigned'}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="sm">{formatDateDisplay(release.releaseDate)}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Badge
+                      color={release.status === 'released' ? 'green' : release.status === 'in_review' ? 'orange' : release.status === 'scheduled' ? 'blue' : 'gray'}
+                      variant="light"
+                    >
+                      {release.status === 'released' ? 'Released' : release.status === 'in_review' ? 'In Review' : 'Scheduled'}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    {isGlobalManager && (
+                      <Group gap={4} justify="flex-end" wrap="nowrap">
+                        <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(release)} title="Edit">
+                          <Edit size={16} />
+                        </ActionIcon>
+                        <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteRelease(release._id, release.details)} title="Delete">
+                          <Trash size={16} />
+                        </ActionIcon>
+                      </Group>
+                    )}
+                  </Table.Td>
+                </Table.Tr>
+              );
+            })}
+            {releases.length === 0 && !isLoading && (
+              <Table.Tr>
+                <Table.Td colSpan={6} ta="center" py="xl">
+                  <Text color="dimmed">No releases found for this project.</Text>
                 </Table.Td>
               </Table.Tr>
-            );
-          })}
-          {releases.length === 0 && !isLoading && (
-            <Table.Tr>
-              <Table.Td colSpan={6} ta="center" py="xl">
-                <Text color="dimmed">No releases found for this project.</Text>
-              </Table.Td>
-            </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
+            )}
+          </Table.Tbody>
+        </Table>
       </PaginatedTable>
 
       {/* Save Release Modal */}
@@ -2439,70 +2439,70 @@ const ProjectInvoices = ({ projectId, projectData }: { projectId: string; projec
       </Group>
 
       <PaginatedTable meta={{ page, limit, total: invoices.length, totalPages: Math.ceil(invoices.length / limit) || 1 }} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
-      <Table verticalSpacing="sm" striped>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Invoice #</Table.Th>
-            <Table.Th>Issue Date</Table.Th>
-            <Table.Th>Due Date</Table.Th>
-            <Table.Th>Total</Table.Th>
-            <Table.Th>Received</Table.Th>
-            <Table.Th>Pending</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th w={150}></Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {invoices.slice((page - 1) * limit, page * limit).map((inv) => (
-            <Table.Tr key={inv._id}>
-              <Table.Td fw={600}>{inv.invoiceNumber}</Table.Td>
-              <Table.Td>{formatDateDisplay(inv.issueDate)}</Table.Td>
-              <Table.Td>{formatDateDisplay(inv.dueDate)}</Table.Td>
-              <Table.Td>${inv.totalAmount.toLocaleString()}</Table.Td>
-              <Table.Td>${inv.receivedAmount.toLocaleString()}</Table.Td>
-              <Table.Td fw={600} c={inv.pendingAmount > 0 ? 'orange' : 'dimmed'}>
-                ${inv.pendingAmount.toLocaleString()}
-              </Table.Td>
-              <Table.Td>
-                <Badge color={getStatusColor(inv.status)} variant="light">
-                  {inv.status.replace('_', ' ')}
-                </Badge>
-              </Table.Td>
-              <Table.Td>
-                <Group gap={4} justify="flex-end" wrap="nowrap">
-                  {inv.status !== 'paid' && (
-                    <Button
-                      size="xs"
-                      variant="light"
-                      color="green"
-                      onClick={() => {
-                        setActiveInvoiceForPayment(inv);
-                        setPaymentAmount(inv.pendingAmount);
-                        setPaymentModalOpened(true);
-                      }}
-                    >
-                      + Pay
-                    </Button>
-                  )}
-                  <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(inv)} title="Edit">
-                    <Edit size={16} />
-                  </ActionIcon>
-                  <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteInvoice(inv._id, inv.invoiceNumber)} title="Delete">
-                    <Trash size={16} />
-                  </ActionIcon>
-                </Group>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-          {invoices.length === 0 && !isLoading && (
+        <Table verticalSpacing="sm" striped>
+          <Table.Thead>
             <Table.Tr>
-              <Table.Td colSpan={8} ta="center" py="xl">
-                <Text color="dimmed">No invoices found for this project.</Text>
-              </Table.Td>
+              <Table.Th>Invoice #</Table.Th>
+              <Table.Th>Issue Date</Table.Th>
+              <Table.Th>Due Date</Table.Th>
+              <Table.Th>Total</Table.Th>
+              <Table.Th>Received</Table.Th>
+              <Table.Th>Pending</Table.Th>
+              <Table.Th>Status</Table.Th>
+              <Table.Th w={150}></Table.Th>
             </Table.Tr>
-          )}
-        </Table.Tbody>
-      </Table>
+          </Table.Thead>
+          <Table.Tbody>
+            {invoices.slice((page - 1) * limit, page * limit).map((inv) => (
+              <Table.Tr key={inv._id}>
+                <Table.Td fw={600}>{inv.invoiceNumber}</Table.Td>
+                <Table.Td>{formatDateDisplay(inv.issueDate)}</Table.Td>
+                <Table.Td>{formatDateDisplay(inv.dueDate)}</Table.Td>
+                <Table.Td>${inv.totalAmount.toLocaleString()}</Table.Td>
+                <Table.Td>${inv.receivedAmount.toLocaleString()}</Table.Td>
+                <Table.Td fw={600} c={inv.pendingAmount > 0 ? 'orange' : 'dimmed'}>
+                  ${inv.pendingAmount.toLocaleString()}
+                </Table.Td>
+                <Table.Td>
+                  <Badge color={getStatusColor(inv.status)} variant="light">
+                    {inv.status.replace('_', ' ')}
+                  </Badge>
+                </Table.Td>
+                <Table.Td>
+                  <Group gap={4} justify="flex-end" wrap="nowrap">
+                    {inv.status !== 'paid' && (
+                      <Button
+                        size="xs"
+                        variant="light"
+                        color="green"
+                        onClick={() => {
+                          setActiveInvoiceForPayment(inv);
+                          setPaymentAmount(inv.pendingAmount);
+                          setPaymentModalOpened(true);
+                        }}
+                      >
+                        + Pay
+                      </Button>
+                    )}
+                    <ActionIcon variant="subtle" color="blue" onClick={() => openEditModal(inv)} title="Edit">
+                      <Edit size={16} />
+                    </ActionIcon>
+                    <ActionIcon variant="subtle" color="red" onClick={() => handleDeleteInvoice(inv._id, inv.invoiceNumber)} title="Delete">
+                      <Trash size={16} />
+                    </ActionIcon>
+                  </Group>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+            {invoices.length === 0 && !isLoading && (
+              <Table.Tr>
+                <Table.Td colSpan={8} ta="center" py="xl">
+                  <Text color="dimmed">No invoices found for this project.</Text>
+                </Table.Td>
+              </Table.Tr>
+            )}
+          </Table.Tbody>
+        </Table>
       </PaginatedTable>
 
       {/* Save Invoice Modal */}
