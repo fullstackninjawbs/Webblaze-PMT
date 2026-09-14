@@ -113,10 +113,18 @@ export const DailyStatus: React.FC = () => {
   };
 
   React.useEffect(() => {
-    if (submitModalOpened && !form.values.project && projectOptions.length > 0) {
-      form.setFieldValue('project', projectOptions[0].value);
+    if (submitModalOpened) {
+      if (!form.values.project && projectOptions.length > 0) {
+        form.setFieldValue('project', projectOptions[0].value);
+      }
+      if (flattenedEodTasks.length > 0 && !form.values.workDone) {
+        const generatedText = flattenedEodTasks.map((t: any) => {
+          return `- [${t.projectName}] ${t.title} (${t.spentHours}h / ${t.estimatedHours}h)`;
+        }).join('\n');
+        form.setFieldValue('workDone', generatedText);
+      }
     }
-  }, [submitModalOpened, projectOptions, form]);
+  }, [submitModalOpened, projectOptions, flattenedEodTasks, form.values.project, form.values.workDone]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -372,32 +380,7 @@ export const DailyStatus: React.FC = () => {
           <Stack gap="md">
             {isEodLoading ? (
               <Center p="md"><Loader size="sm" /></Center>
-            ) : eodProjects.length > 0 ? (
-              <Stack gap="sm">
-                <Text size="sm" fw={600} style={{ color: '#334155' }}>Projects Worked On Today</Text>
-                {flattenedEodTasks.map((t: any, i: number) => (
-                  <Group key={i} gap="sm" wrap="nowrap" align="center" style={{ 
-                    padding: '8px 12px', 
-                    borderRadius: '8px', 
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    <Text size="sm" fw={700} style={{ color: '#0f172a' }}>{t.projectName}</Text>
-                    <Text size="sm" c="dimmed">—</Text>
-                    <Text fw={600} size="sm" style={{ color: '#2563eb' }}>{t.title}</Text>
-                    <Text size="sm" c="dimmed">—</Text>
-                    <Group gap={4} wrap="nowrap">
-                      <Text size="sm" fw={600} style={{ color: t.spentHours > t.estimatedHours ? '#dc2626' : '#0f172a' }}>
-                        {formatHours(t.spentHours)}
-                      </Text>
-                      <Text size="xs" c="dimmed" fw={500}>
-                        / {formatHours(t.estimatedHours)}
-                      </Text>
-                    </Group>
-                  </Group>
-                ))}
-              </Stack>
-            ) : (
+            ) : flattenedEodTasks.length === 0 && (
               <Text size="sm" c="dimmed">No time logged or tasks in review today.</Text>
             )}
 
