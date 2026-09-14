@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { formatDateDisplay } from '../../utils/dateUtils';
-import { formatHours } from '../../utils/formatHours';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
@@ -354,68 +353,68 @@ export const DailyStatus: React.FC = () => {
           )}
         </Tabs.Panel>
 
-      {/* Modal: Submit Daily Status */}
-      <Modal
-        opened={submitModalOpened}
-        onClose={() => setSubmitModalOpened(false)}
-        title={
-          <Group gap="xs">
-            <Paper p={6} radius="md" bg="#eff6ff">
-              <Sparkles size={18} color="#2563eb" />
-            </Paper>
-            <Title order={4} style={{ color: '#0f172a', fontWeight: 800 }}>
-              Submit End-of-Day (EOD) Report
-            </Title>
-          </Group>
-        }
-        size="lg"
-        radius="xl"
-        centered
-      >
-        <Text size="sm" style={{ color: '#64748b' }} mb="lg">
-          Provide your end-of-day summary of accomplishments and tasks finished today.
-        </Text>
-
-        <form onSubmit={form.onSubmit(handleSubmit)}>
-          <Stack gap="md">
-            {isEodLoading ? (
-              <Center p="md"><Loader size="sm" /></Center>
-            ) : flattenedEodTasks.length === 0 && (
-              <Text size="sm" c="dimmed">No time logged or tasks in review today.</Text>
-            )}
-
-            <Textarea
-              required
-              label="Work Completed Today (EOD Summary)"
-              placeholder="Describe key accomplishments, tasks finished, PRs merged, or bugs resolved today..."
-              minRows={4}
-              radius="md"
-              {...form.getInputProps('workDone')}
-              withAsterisk
-            />
-
-            <Group justify="flex-end" mt="md">
-              <Button variant="light" color="gray" onClick={() => setSubmitModalOpened(false)} radius="md">
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                leftSection={<Send size={16} />}
-                loading={isSubmitting}
-                size="md"
-                radius="md"
-                style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                  fontWeight: 600,
-                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-                }}
-              >
-                Submit EOD Report
-              </Button>
+        {/* Modal: Submit Daily Status */}
+        <Modal
+          opened={submitModalOpened}
+          onClose={() => setSubmitModalOpened(false)}
+          title={
+            <Group gap="xs">
+              <Paper p={6} radius="md" bg="#eff6ff">
+                <Sparkles size={18} color="#2563eb" />
+              </Paper>
+              <Title order={4} style={{ color: '#0f172a', fontWeight: 800 }}>
+                Submit End-of-Day (EOD) Report
+              </Title>
             </Group>
-          </Stack>
-        </form>
-      </Modal>
+          }
+          size="lg"
+          radius="xl"
+          centered
+        >
+          <Text size="sm" style={{ color: '#64748b' }} mb="lg">
+            Provide your end-of-day summary of accomplishments and tasks finished today.
+          </Text>
+
+          <form onSubmit={form.onSubmit(handleSubmit)}>
+            <Stack gap="md">
+              {isEodLoading ? (
+                <Center p="md"><Loader size="sm" /></Center>
+              ) : flattenedEodTasks.length === 0 && (
+                <Text size="sm" c="dimmed">No time logged or tasks in review today.</Text>
+              )}
+
+              <Textarea
+                required
+                label="Work Completed Today (EOD Summary)"
+                placeholder="Describe key accomplishments, tasks finished, PRs merged, or bugs resolved today..."
+                minRows={4}
+                radius="md"
+                {...form.getInputProps('workDone')}
+                withAsterisk
+              />
+
+              <Group justify="flex-end" mt="md">
+                <Button variant="light" color="gray" onClick={() => setSubmitModalOpened(false)} radius="md">
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  leftSection={<Send size={16} />}
+                  loading={isSubmitting}
+                  size="md"
+                  radius="md"
+                  style={{
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                    fontWeight: 600,
+                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                  }}
+                >
+                  Submit EOD Report
+                </Button>
+              </Group>
+            </Stack>
+          </form>
+        </Modal>
 
         {/* Tab 3: Team Updates Feed */}
         {isManagement && (
