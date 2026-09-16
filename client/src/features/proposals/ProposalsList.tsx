@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Filter, Target, Send, Eye, MessageCircle, Phone, CheckCircle, Trophy, XCircle, Search, ArrowRight, Clock } from 'lucide-react';
-import { useGetProposalsQuery, useCreateProposalMutation } from './proposalApi';
+import { Plus, Filter, Target, Send, Eye, MessageCircle, Phone, CheckCircle, Trophy, XCircle, Search, ArrowRight, Clock, LayoutList, LayoutDashboard } from 'lucide-react';
+import { useGetProposalsQuery, useCreateProposalMutation, useUpdateProposalMutation } from './proposalApi';
 import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 import { Proposal } from './types';
-import { Group, Title, Button, Card, Select, Badge, Table, Text, TextInput, Box, Stack, ActionIcon, Progress, ThemeIcon, Avatar } from '@mantine/core';
+import { Group, Title, Button, Card, Select, Badge, Table, Text, TextInput, Box, Stack, ActionIcon, Progress, ThemeIcon, Avatar, SegmentedControl } from '@mantine/core';
+import { ProposalsBoard } from './ProposalsBoard';
 
 // Badges for Proposal Stages with Icons and Premium Colors
 const StageBadge: React.FC<{ stage?: Proposal['currentStage'] }> = ({ stage }) => {
@@ -43,9 +44,11 @@ export const ProposalsList: React.FC = () => {
   const { page, limit, setPage, setLimit } = usePagination();
   const [filters, setFilters] = useState<{ currentStage?: string; qualified?: boolean }>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   
-  const { data, isLoading } = useGetProposalsQuery({ page, limit, ...filters });
+  const { data, isLoading } = useGetProposalsQuery(viewMode === 'list' ? { page, limit, ...filters } : { page: 1, limit: 500, ...filters });
   const [createProposal, { isLoading: isCreating }] = useCreateProposalMutation();
+  const [updateProposal] = useUpdateProposalMutation();
 
   const handleCreate = async () => {
     try {
@@ -65,6 +68,70 @@ export const ProposalsList: React.FC = () => {
     p.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
+
+  const handleStageChange = async (proposalId: string, newStage: string) => {
+    // Map stage to boolean flags
+    const payload: Partial<Proposal> = {};
+    if (newStage === 'applied') {
+      payload.proposalSent = false;
+      payload.proposalViewed = false;
+      payload.clientReplied = false;
+      payload.interviewScheduled = false;
+      payload.offerReceived = false;
+      payload.hired = false;
+      payload.lost = false;
+    } else if (newStage === 'sent') {
+      payload.proposalSent = true;
+      payload.proposalViewed = false;
+      payload.clientReplied = false;
+      payload.interviewScheduled = false;
+      payload.offerReceived = false;
+      payload.hired = false;
+      payload.lost = false;
+    } else if (newStage === 'viewed') {
+      payload.proposalSent = true;
+      payload.proposalViewed = true;
+      payload.clientReplied = false;
+      payload.interviewScheduled = false;
+      payload.offerReceived = false;
+      payload.hired = false;
+      payload.lost = false;
+    } else if (newStage === 'replied') {
+      payload.proposalSent = true;
+      payload.clientReplied = true;
+      payload.interviewScheduled = false;
+      payload.offerReceived = false;
+      payload.hired = false;
+      payload.lost = false;
+    } else if (newStage === 'interview') {
+      payload.proposalSent = true;
+      payload.clientReplied = true;
+      payload.interviewScheduled = true;
+      payload.offerReceived = false;
+      payload.hired = false;
+      payload.lost = false;
+    } else if (newStage === 'offer') {
+      payload.proposalSent = true;
+      payload.clientReplied = true;
+      payload.offerReceived = true;
+      payload.hired = false;
+      payload.lost = false;
+    } else if (newStage === 'won') {
+      payload.proposalSent = true;
+      payload.clientReplied = true;
+      payload.hired = true;
+      payload.lost = false;
+    } else if (newStage === 'lost') {
+      payload.lost = true;
+      payload.hired = false;
+    }
+    
+    try {
+      await updateProposal({ id: proposalId, data: payload }).unwrap();
+    } catch (err) {
+      console.error('Failed to update stage', err);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '48px', animation: 'fade-in 0.4s ease-out' }}>
@@ -148,22 +215,35 @@ export const ProposalsList: React.FC = () => {
               placeholder="Qualification"
               data={[
                 { value: 'true', label: 'Qualified (JQS >= 7)' },
-                { value: 'false', label: 'Unqualified' },
+                { value: 'false', label: 'Unqualified (JQS < 7)' }
               ]}
               value={filters.qualified !== undefined ? String(filters.qualified) : null}
-              onChange={(val) => {
-                setFilters(prev => ({ ...prev, qualified: val === null ? undefined : val === 'true' }));
-              }}
+              onChange={(val) => setFilters(prev => ({ ...prev, qualified: val === null ? undefined : val === 'true' }))}
               clearable
               radius="md"
               w={200}
               styles={{ input: { backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' } }}
             />
           </Group>
+          
+          <SegmentedControl
+            value={viewMode}
+            onChange={(val) => setViewMode(val as 'list' | 'board')}
+            data={[
+              { label: <Group gap="xs"><LayoutList size={16} /><Text size="sm">List</Text></Group>, value: 'list' },
+              { label: <Group gap="xs"><LayoutDashboard size={16} /><Text size="sm">Board</Text></Group>, value: 'board' },
+            ]}
+            radius="md"
+            size="sm"
+            color="indigo"
+          />
         </Group>
       </Card>
 
-      {/* Premium Table Card */}
+      {/* Main Content Area */}
+      {viewMode === 'board' ? (
+        <ProposalsBoard proposals={filteredData} onStageChange={handleStageChange} />
+      ) : (
       <Card shadow="sm" radius="lg" p={0} withBorder style={{ borderColor: '#f1f5f9', overflow: 'hidden' }}>
         <PaginatedTable
           meta={data?.meta || { page, limit, total: 0, totalPages: 0 }}
@@ -288,7 +368,8 @@ export const ProposalsList: React.FC = () => {
           </Table>
         </PaginatedTable>
       </Card>
-      
+      )}
+
       {/* Dynamic CSS for Hover Effects */}
       <style>{`
         .hover-row:hover {
