@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { SimpleGrid, Card, Text, Group, Badge, Stack, Button, Select, Table, Paper } from '@mantine/core';
+import { SimpleGrid, Text, Group, Badge, Button, Select, Table, Paper } from '@mantine/core';
 import { useGetKpiSummaryQuery, useGetFollowUpQueueQuery } from '../proposals/proposalApi';
-import { Target, TrendingUp, DollarSign, Clock, UserCheck, AlertTriangle } from 'lucide-react';
+import { Target, DollarSign, Clock, UserCheck, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const SalesDashboard: React.FC = () => {

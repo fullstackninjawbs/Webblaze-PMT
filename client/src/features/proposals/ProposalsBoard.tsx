@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
 import { Proposal } from './types';
 import { Card, Text, Group, Badge, Paper, ActionIcon, Tooltip, ThemeIcon } from '@mantine/core';
-import { Target, Send, Eye, MessageCircle, Phone, CheckCircle, Trophy, XCircle, Filter, Clock, MoreVertical } from 'lucide-react';
+import { Target, Send, Eye, MessageCircle, Phone, CheckCircle, Trophy, XCircle, Clock, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ProposalsBoardProps {
@@ -75,7 +75,7 @@ export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onSta
             </Group>
 
             <Droppable droppableId={stage.id}>
-              {(provided, snapshot) => (
+              {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
@@ -92,7 +92,7 @@ export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onSta
                 >
                   {columns[stage.id]?.map((proposal, index) => (
                     <Draggable key={proposal._id} draggableId={proposal._id} index={index}>
-                      {(provided, snapshot) => (
+                      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
                         <Card
                           ref={provided.innerRef}
                           {...provided.draggableProps}

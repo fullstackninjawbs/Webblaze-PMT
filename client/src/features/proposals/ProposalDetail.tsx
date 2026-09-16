@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Title, Card, Text, Tabs, Button, Group, Badge, SimpleGrid, TextInput, NumberInput, Select, Checkbox, Loader, Center, Paper, Stack, Grid, RingProgress, ActionIcon, Box } from '@mantine/core';
+import { Container, Title, Text, Tabs, Button, Group, Badge, SimpleGrid, TextInput, NumberInput, Select, Checkbox, Loader, Center, Paper, Grid, ActionIcon, Box } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useGetProposalByIdQuery, useUpdateProposalMutation, useConvertToProjectMutation } from './proposalApi';
-import { ArrowLeft, Target, Briefcase, FileText, Activity, CheckCircle, TrendingUp, Save, Clock, Trophy } from 'lucide-react';
+import { ArrowLeft, Target, Briefcase, FileText, Activity, CheckCircle, TrendingUp, Save, Clock } from 'lucide-react';
 import { Proposal } from './types';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
