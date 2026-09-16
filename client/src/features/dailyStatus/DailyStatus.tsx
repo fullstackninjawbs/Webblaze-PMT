@@ -10,7 +10,7 @@ import {
   Text,
   Group,
   Tabs,
-  Textarea,
+  ActionIcon,
   Button,
   Select,
   Stack,
@@ -34,6 +34,8 @@ import {
   Clock,
   Sparkles,
   Filter,
+  Trash2,
+  PlusCircle,
 } from 'lucide-react';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import {
@@ -89,19 +91,27 @@ export const DailyStatus: React.FC = () => {
   const form = useForm({
     initialValues: {
       project: '',
-      workDone: '',
+      points: [] as string[],
     },
     validate: {
-      workDone: (value) =>
-        value.trim().length === 0 ? 'Please describe the work done today' : null,
+      points: (value) =>
+        value.length === 0 || value.every((v) => v.trim().length === 0)
+          ? 'Please add at least one point describing your work'
+          : null,
     },
   });
 
   const handleSubmit = async (values: typeof form.values) => {
     try {
+      const workDoneStr = values.points
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((p) => `- ${p}`)
+        .join('\n');
+
       await submitDailyStatus({
         project: values.project || undefined,
-        workDone: values.workDone,
+        workDone: workDoneStr,
       }).unwrap();
 
       form.reset();
@@ -116,14 +126,17 @@ export const DailyStatus: React.FC = () => {
       if (!form.values.project && projectOptions.length > 0) {
         form.setFieldValue('project', projectOptions[0].value);
       }
-      if (flattenedEodTasks.length > 0 && !form.values.workDone) {
-        const generatedText = flattenedEodTasks.map((t: any) => {
-          return `- [${t.projectName}] ${t.title} (${t.spentHours}h / ${t.estimatedHours}h)`;
-        }).join('\n');
-        form.setFieldValue('workDone', generatedText);
+      if (flattenedEodTasks.length > 0 && form.values.points.length === 0) {
+        const generatedPoints = flattenedEodTasks.map((t: any) => {
+          return `[${t.projectName}] ${t.title} (${t.spentHours}h / ${t.estimatedHours}h)`;
+        });
+        form.setFieldValue('points', generatedPoints);
+      } else if (form.values.points.length === 0) {
+        // Give them at least one empty row to type in if no tasks were auto-populated
+        form.setFieldValue('points', ['']);
       }
     }
-  }, [submitModalOpened, projectOptions, flattenedEodTasks, form.values.project, form.values.workDone]);
+  }, [submitModalOpened, projectOptions, flattenedEodTasks, form.values.project, form.values.points.length]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -383,15 +396,44 @@ export const DailyStatus: React.FC = () => {
                 <Text size="sm" c="dimmed">No time logged or tasks in review today.</Text>
               )}
 
-              <Textarea
-                required
-                label="Work Completed Today (EOD Summary)"
-                placeholder="Describe key accomplishments, tasks finished, PRs merged, or bugs resolved today..."
-                minRows={4}
-                radius="md"
-                {...form.getInputProps('workDone')}
-                withAsterisk
-              />
+              <Stack gap="xs" mt="sm">
+                <Text size="sm" fw={500}>Work Completed Today (EOD Summary) <Text component="span" c="red">*</Text></Text>
+                
+                {form.values.points.map((_, index) => (
+                  <Group key={index} gap="sm" align="center" wrap="nowrap">
+                    <TextInput
+                      style={{ flexGrow: 1 }}
+                      placeholder="e.g. Designed login screen UI"
+                      radius="md"
+                      {...form.getInputProps(`points.${index}`)}
+                    />
+                    <ActionIcon 
+                      color="red" 
+                      variant="subtle" 
+                      onClick={() => form.removeListItem('points', index)}
+                      disabled={form.values.points.length === 1}
+                    >
+                      <Trash2 size={16} />
+                    </ActionIcon>
+                  </Group>
+                ))}
+                
+                <Button 
+                  variant="subtle" 
+                  color="blue" 
+                  size="sm" 
+                  leftSection={<PlusCircle size={16} />} 
+                  onClick={() => form.insertListItem('points', '')}
+                  style={{ alignSelf: 'flex-start' }}
+                  mt="xs"
+                >
+                  Add another point
+                </Button>
+                
+                {form.errors.points && (
+                  <Text c="red" size="xs">{form.errors.points}</Text>
+                )}
+              </Stack>
 
               <Group justify="flex-end" mt="md">
                 <Button variant="light" color="gray" onClick={() => setSubmitModalOpened(false)} radius="md">

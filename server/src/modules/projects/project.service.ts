@@ -59,15 +59,12 @@ export class ProjectService {
 
     let allowedDeptRegexes: RegExp[] = [];
     if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
+      // Strict isolation: TL/TM only see projects where they are explicitly assigned in the team array
+      query.team = user.id || user._id;
+
       if (user.department) {
         const deptVariants = normalizeDept(user.department);
         allowedDeptRegexes = deptVariants.map((d) => new RegExp(d, 'i'));
-
-        // Strict isolation: TL/TM only see projects that match their department
-        query.type = { $in: allowedDeptRegexes };
-      } else {
-        // Fallback for TL/TM with no department: they see nothing
-        query._id = null;
       }
     }
 
@@ -146,41 +143,18 @@ export class ProjectService {
 
     let allowedDeptRegexes: RegExp[] = [];
     if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
-      if (!user.department) {
-        throw new ApiError(403, 'You do not have access to this project (no department assigned)');
-      }
+      // Verify user is explicitly in the team array
+      const isInTeam = project.team.some((member: any) => 
+        member._id.toString() === (user.id || user._id).toString()
+      );
 
-      const deptVariants = normalizeDept(user.department);
-      allowedDeptRegexes = deptVariants.map((d) => new RegExp(d, 'i'));
-
-      const milestones = await Milestone.find({ project: id }).select('_id');
-      const milestoneIds = milestones.map((m) => m._id);
-
-      const hasDeptTask = await Task.exists({
-        milestone: { $in: milestoneIds },
-        $or: [
-          { department: { $in: allowedDeptRegexes } },
-          { department: user.department }
-        ]
-      });
-
-      if (!hasDeptTask) {
-        throw new ApiError(403, 'You do not have access to this project (no tasks in your department)');
+      if (!isInTeam) {
+        throw new ApiError(403, 'You do not have access to this project (not assigned to team)');
       }
     }
 
     const projectWithProgress = await this.attachProgress(project);
     let result = this.stripFinancials(projectWithProgress, userRole);
-
-    // Filter team array to only show matching department for TL/TM
-    if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
-      if (result.team && allowedDeptRegexes.length > 0) {
-        result.team = result.team.filter((t: any) => {
-          if (!t.department) return false;
-          return allowedDeptRegexes.some(r => r.test(t.department)) || t.department === user.department;
-        });
-      }
-    }
 
     return result;
   }

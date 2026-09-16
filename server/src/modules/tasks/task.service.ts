@@ -78,15 +78,14 @@ export const getTasksByMilestone = async (milestoneId: string, user?: any, param
   let query: any = { milestone: milestoneId };
 
   if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
-    if (user.department) {
-      const deptVariants = normalizeDept(user.department);
-      const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
-      query.$or = [
-        { department: { $in: regexes } },
-        { department: user.department }
-      ];
-    } else {
-      query.assignedTo = user.id || user._id;
+    const projects = await Project.find({ team: user.id || user._id });
+    const projectIds = projects.map(p => p._id);
+    const milestones = await Milestone.find({ project: { $in: projectIds } });
+    const milestoneIds = milestones.map(m => m._id.toString());
+    
+    if (!milestoneIds.includes(milestoneId.toString())) {
+      // If the milestone doesn't belong to a project the user is assigned to, return empty
+      query.milestone = null;
     }
   }
 
@@ -128,36 +127,13 @@ export const getTasksByUser = async (userId: string, params: PaginationParams = 
 export const getAllTasks = async (user?: any, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
   let query: any = {};
 
-  if (user && user.role === Role.TEAM_LEAD && user.department) {
-    const deptVariants = normalizeDept(user.department);
-    const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
-    
-    const projects = await Project.find({ type: { $in: regexes } });
+  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
+    const projects = await Project.find({ team: user.id || user._id });
     const projectIds = projects.map(p => p._id);
     const milestones = await Milestone.find({ project: { $in: projectIds } });
     const milestoneIds = milestones.map(m => m._id);
     
-    const users = await User.find({ department: { $in: regexes } });
-    const userIds = users.map(u => u._id);
-    
-    query.$or = [
-      { department: { $in: regexes } },
-      { department: user.department },
-      { assignedTo: { $in: userIds } },
-      { milestone: { $in: milestoneIds } },
-      { assignedTo: user.id || user._id }
-    ];
-  } else if (user && user.role === Role.TEAM_MEMBER) {
-    if (user.department) {
-      const deptVariants = normalizeDept(user.department);
-      const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
-      query.$or = [
-        { department: { $in: regexes } },
-        { department: user.department }
-      ];
-    } else {
-      query.assignedTo = user.id || user._id;
-    }
+    query.milestone = { $in: milestoneIds };
   }
 
   if (params.status && params.status !== 'all') {
@@ -196,22 +172,13 @@ export const getTaskById = async (id: string, user?: any): Promise<ITask> => {
   }
 
   if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
-    if (user.department) {
-      const deptVariants = normalizeDept(user.department);
-      const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
-      
-      const isDeptMatch = regexes.some(r => r.test(task.department || '')) || task.department === user.department;
-      
-      if (!isDeptMatch) {
-        throw new ApiError(403, 'Forbidden: Task does not belong to your department');
-      }
-    } else {
-      // User with no department can only access their own tasks
-      const assignedId = task.assignedTo ? (typeof task.assignedTo === 'object' ? (task.assignedTo as any)._id?.toString() : String(task.assignedTo)) : null;
-      const currentUserId = (user.id || user._id)?.toString();
-      if (assignedId !== currentUserId) {
-        throw new ApiError(403, 'Forbidden: You can only access your assigned tasks');
-      }
+    const projects = await Project.find({ team: user.id || user._id });
+    const projectIds = projects.map(p => p._id);
+    const milestones = await Milestone.find({ project: { $in: projectIds } });
+    const milestoneIds = milestones.map(m => m._id.toString());
+    
+    if (task.milestone && !milestoneIds.includes(task.milestone.toString())) {
+      throw new ApiError(403, 'Forbidden: You do not have access to this project/task');
     }
   }
 
