@@ -4,7 +4,7 @@ import { Plus, Filter, Target, Send, Eye, MessageCircle, Phone, CheckCircle, Tro
 import { useGetProposalsQuery, useCreateProposalMutation, useUpdateProposalMutation } from './proposalApi';
 import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 import { Proposal } from './types';
-import { Group, Title, Button, Card, Select, Badge, Table, Text, TextInput, Box, Stack, ActionIcon, Progress, ThemeIcon, Avatar, SegmentedControl } from '@mantine/core';
+import { Group, Title, Button, Card, Select, Badge, Table, Text, TextInput, Box, Stack, ActionIcon, Progress, ThemeIcon, Avatar, SegmentedControl, Center } from '@mantine/core';
 import { ProposalsBoard } from './ProposalsBoard';
 
 // Badges for Proposal Stages with Icons and Premium Colors
@@ -230,8 +230,8 @@ export const ProposalsList: React.FC = () => {
             value={viewMode}
             onChange={(val) => setViewMode(val as 'list' | 'board')}
             data={[
-              { label: <Group gap="xs"><LayoutList size={16} /><Text size="sm">List</Text></Group>, value: 'list' },
-              { label: <Group gap="xs"><LayoutDashboard size={16} /><Text size="sm">Board</Text></Group>, value: 'board' },
+              { label: <Center style={{ gap: '8px' }}><LayoutList size={16} /><Text size="sm">List</Text></Center>, value: 'list' },
+              { label: <Center style={{ gap: '8px' }}><LayoutDashboard size={16} /><Text size="sm">Board</Text></Center>, value: 'board' },
             ]}
             radius="md"
             size="sm"
