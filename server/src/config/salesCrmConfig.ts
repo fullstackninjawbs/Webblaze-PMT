@@ -1,0 +1,7 @@
+export const salesCrmConfig = {
+  JQS_QUALIFIED_THRESHOLD: 7,
+  NO_RESPONSE_DAYS: 14,
+  FOLLOW_UP_1_DAYS: 3,
+  FOLLOW_UP_2_DAYS: 7,
+  FOLLOW_UP_3_DAYS: 14,
+};

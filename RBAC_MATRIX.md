@@ -19,6 +19,16 @@ Legend: **F** = Full access · **A** = Assigned/own scope only · **R** = Read-o
 | Daily / Project Status | F (view all) | F (view all) | A (own + submit) | A (own + submit) |
 | File Attachments | F | F | A (assigned scope) | A (assigned scope) |
 
+## Sales CRM Extensions
+
+| Resource | Admin | Sales Manager | Sales Exec | PM/TL/Team Member |
+|---|---|---|---|---|
+| All proposals | F | F | ✗ | ✗ |
+| Own proposals | F | F | F (create/edit own) | ✗ |
+| KPI Dashboard | F | F | R (own stats only) | ✗ |
+| Convert to Client/Project | F | F | ✗ (needs Admin/PM approval step) | — |
+| Connect cost / revenue figures | F | F | R (own only) | ✗ |
+
 ## Enforcement points (defense in depth)
 
 1. **Route middleware** — `rbac.middleware(resource, action)` on every route.
@@ -34,8 +44,8 @@ Legend: **F** = Full access · **A** = Assigned/own scope only · **R** = Read-o
 ## Suggested permission constants (backend)
 
 ```js
-// src/config/permissions.js
-export const ROLES = ['admin', 'pm', 'team_lead', 'team_member'];
+// src/config/permissions.ts
+export const ROLES = ['admin', 'pm', 'team_lead', 'team_member', 'sales_exec', 'sales_manager'];
 
 export const PERMISSIONS = {
   'clients:manage':        ['admin', 'pm'],
@@ -48,5 +58,9 @@ export const PERMISSIONS = {
   'financials:view':       ['admin', 'pm'],
   'users:manage':          ['admin'],
   'reports:view':          ['admin', 'pm'],
+  'proposals:manage-own':  ['admin', 'sales_manager', 'sales_exec'],
+  'proposals:manage-all':  ['admin', 'sales_manager'],
+  'sales-kpi:view':        ['admin', 'sales_manager', 'sales_exec'],
+  'proposals:convert':     ['admin', 'sales_manager'],
 };
 ```

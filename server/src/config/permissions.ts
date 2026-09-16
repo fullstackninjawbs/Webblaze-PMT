@@ -11,4 +11,8 @@ export const PERMISSIONS = {
   'financials:view':       [Role.ADMIN, Role.PM],
   'users:manage':          [Role.ADMIN],
   'reports:view':          [Role.ADMIN, Role.PM],
+  'proposals:manage-own':  [Role.ADMIN, Role.SALES_MANAGER, Role.SALES_EXEC],
+  'proposals:manage-all':  [Role.ADMIN, Role.SALES_MANAGER],
+  'sales-kpi:view':        [Role.ADMIN, Role.SALES_MANAGER, Role.SALES_EXEC],
+  'proposals:convert':     [Role.ADMIN, Role.SALES_MANAGER],
 };

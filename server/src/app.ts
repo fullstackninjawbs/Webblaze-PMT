@@ -17,6 +17,7 @@ import releaseRoutes from './modules/releases/release.routes';
 import invoiceRoutes from './modules/invoices/invoice.routes';
 import dailyStatusRoutes from './modules/daily-status/dailyStatus.routes';
 import uploadRoutes from './modules/uploads/upload.routes';
+import { proposalRoutes } from './modules/proposals/proposal.routes';
 import cookieParser from 'cookie-parser';
 
 dotenv.config();
@@ -64,6 +65,7 @@ app.use('/api/v1/timelogs', timeLogRoutes);
 app.use('/api/v1/releases', releaseRoutes);
 app.use('/api/v1/invoices', invoiceRoutes);
 app.use('/api/v1/daily-status', dailyStatusRoutes);
+app.use('/api/v1/proposals', proposalRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 
 // Health Check
