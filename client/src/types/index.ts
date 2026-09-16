@@ -4,6 +4,8 @@ export enum Role {
   PM = 'pm',
   TEAM_LEAD = 'team_lead',
   TEAM_MEMBER = 'team_member',
+  SALES_MANAGER = 'sales_manager',
+  SALES_EXEC = 'sales_exec',
 }
 
 export enum ProjectStatus {

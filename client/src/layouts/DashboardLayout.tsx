@@ -4,7 +4,7 @@ import { ActiveTimerBadge } from '../components/common/ActiveTimerBadge';
 import { useSelector } from 'react-redux';
 import { RootState } from '../app/store';
 import { useLogoutMutation, useGetMeQuery } from '../features/auth/auth.slice';
-import { LayoutDashboard, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Rocket, Users, BarChart3, Clock, Settings, LogOut, ChevronDown, DollarSign, ListTodo, Activity, Target } from 'lucide-react';
 import { Role } from '../types';
 import { AppShell, Stack, Text, UnstyledButton, Group, Box, Menu, Badge, Burger } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
@@ -53,6 +53,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'FINANCE & REPORTS',
       items: [
+        { name: 'Proposals (CRM)', href: '/proposals', icon: Target },
         { name: 'Invoices', href: '/invoices', icon: DollarSign },
         { name: 'Reports & Analytics', href: '/reports', icon: BarChart3 },
       ],
@@ -118,6 +119,24 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
         { name: 'Daily Status', href: '/daily-status', icon: Activity },
       ],
     },
+  ],
+  [Role.SALES_MANAGER]: [
+    {
+      title: 'SALES CRM',
+      items: [
+        { name: 'Proposals', href: '/proposals', icon: Target },
+        { name: 'KPI Dashboard', href: '/dashboard', icon: LayoutDashboard }, // Sales dashboard view
+      ]
+    }
+  ],
+  [Role.SALES_EXEC]: [
+    {
+      title: 'SALES CRM',
+      items: [
+        { name: 'My Proposals', href: '/proposals', icon: Target },
+        { name: 'My KPI Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      ]
+    }
   ],
 };
 

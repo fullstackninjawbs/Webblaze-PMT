@@ -13,6 +13,7 @@ import { useGetReleasesQuery } from '../releases/release.slice';
 import { ProjectSummaryCards } from './ProjectSummaryCards';
 import { ReleaseSheet } from './ReleaseSheet';
 import { TeamTimeTrackingPanel } from './TeamTimeTrackingPanel';
+import { SalesDashboard } from './SalesDashboard';
 import { formatHours } from '../../utils/formatHours';
 
 export const DashboardShell: React.FC = () => {
@@ -24,6 +25,9 @@ export const DashboardShell: React.FC = () => {
       navigate('/projects', { replace: true });
     }
   }, [user, navigate]);
+
+  const isSalesRole = user?.role === Role.SALES_MANAGER || user?.role === Role.SALES_EXEC;
+
   const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
   const { data: tasksData } = useGetTasksByUserQuery({ userId: user?._id || '', limit: 1000 }, { skip: !user?._id });
   const { data: allTasksData } = useGetAllTasksQuery({ limit: 1000 }, { skip: user?.role === Role.TEAM_MEMBER });
@@ -173,6 +177,14 @@ export const DashboardShell: React.FC = () => {
       </SimpleGrid>
     );
   };
+
+  if (isSalesRole) {
+    return (
+      <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)', paddingBottom: '48px' }}>
+        <SalesDashboard />
+      </div>
+    );
+  }
 
   return (
     <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)', paddingBottom: '48px' }}>

@@ -23,6 +23,8 @@ import { ClientDetail } from '../features/clients/ClientDetail';
 import { UserProfile } from '../features/users/UserProfile';
 import { RoleGuard } from '../components/common/RoleGuard';
 import { Role } from '../types';
+import { ProposalsList } from '../features/proposals/ProposalsList';
+import { ProposalDetail } from '../features/proposals/ProposalDetail';
 
 import { MilestoneCreatePage } from '../features/milestones/MilestoneCreatePage';
 import { MilestoneEditPage } from '../features/milestones/MilestoneEditPage';
@@ -49,6 +51,24 @@ const AppRoutes = () => {
         <Route path="/clients/:id" element={<ClientDetail />} />
         <Route path="/projects" element={<ProjectsList />} />
         <Route path="/projects/:id" element={<ProjectDetails />} />
+
+        {/* Proposals Route */}
+        <Route 
+          path="/proposals" 
+          element={
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.SALES_MANAGER, Role.SALES_EXEC]} fallback={<Navigate to="/dashboard" replace />}>
+              <ProposalsList />
+            </RoleGuard>
+          } 
+        />
+        <Route 
+          path="/proposals/:id" 
+          element={
+            <RoleGuard allowedRoles={[Role.ADMIN, Role.SALES_MANAGER, Role.SALES_EXEC]} fallback={<Navigate to="/dashboard" replace />}>
+              <ProposalDetail />
+            </RoleGuard>
+          } 
+        />
 
         {/* Milestone Routes */}
         <Route 

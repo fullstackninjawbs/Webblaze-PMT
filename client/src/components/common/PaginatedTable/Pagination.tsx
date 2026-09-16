@@ -23,7 +23,7 @@ export const Pagination: React.FC<PaginationProps> = ({ meta, onPageChange, onLi
   const endItem = Math.min(page * limit, total);
 
   return (
-    <Group justify="space-between" align="center" mt="md">
+    <Group justify="space-between" align="center" px="md" py="sm" mt={0}>
       <Box>
         <Text size="sm" c="dimmed">
           Showing <Text component="span" fw={500} c="dark">{startItem}</Text> to <Text component="span" fw={500} c="dark">{endItem}</Text> of <Text component="span" fw={500} c="dark">{total}</Text> entries
