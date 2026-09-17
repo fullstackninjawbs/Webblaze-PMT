@@ -1,5 +1,17 @@
-import React, { useMemo } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DroppableStateSnapshot, DraggableProvided, DraggableStateSnapshot } from '@hello-pangea/dnd';
+import React, { useMemo, useState } from 'react';
+import { 
+  DndContext, 
+  useDroppable, 
+  useDraggable, 
+  DragOverlay, 
+  closestCorners, 
+  KeyboardSensor, 
+  PointerSensor, 
+  useSensor, 
+  useSensors, 
+  DragStartEvent, 
+  DragEndEvent 
+} from '@dnd-kit/core';
 import { Proposal } from './types';
 import { Card, Text, Group, Badge, Paper, ActionIcon, Tooltip, ThemeIcon } from '@mantine/core';
 import { Target, Send, Eye, MessageCircle, Phone, CheckCircle, Trophy, XCircle, Clock, MoreVertical } from 'lucide-react';
@@ -21,13 +33,142 @@ const STAGES = [
   { id: 'lost', label: 'Lost', color: 'red', icon: <XCircle size={14} /> },
 ];
 
-export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onStageChange }) => {
+const ProposalCard = ({ proposal, isDragging, isOverlay }: { proposal: Proposal, isDragging?: boolean, isOverlay?: boolean }) => {
   const navigate = useNavigate();
+  return (
+    <Card
+      radius="md"
+      p="md"
+      mb="sm"
+      withBorder
+      shadow={isOverlay ? 'xl' : 'sm'}
+      style={{
+        backgroundColor: '#ffffff',
+        borderColor: isDragging ? '#3b82f6' : (isOverlay ? '#3b82f6' : '#e2e8f0'),
+        opacity: isDragging ? 0.4 : 1,
+        cursor: 'grab',
+        transform: isOverlay ? 'scale(1.02)' : 'none',
+        transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+      }}
+      onClick={() => navigate(`/proposals/${proposal._id}`)}
+    >
+      <Group justify="space-between" align="flex-start" mb="xs" wrap="nowrap">
+        <Text fw={600} size="sm" style={{ lineHeight: 1.2, wordBreak: 'break-word' }}>
+          {proposal.jobTitle || 'Untitled Job'}
+        </Text>
+        <ActionIcon size="sm" variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); }}>
+          <MoreVertical size={14} />
+        </ActionIcon>
+      </Group>
+      
+      <Text size="xs" c="dimmed" mb="md" lineClamp={1}>
+        {proposal.clientName || 'Unknown Client'}
+      </Text>
+      
+      <Group gap="xs" mb="sm">
+        <Tooltip label="Job Quality Score">
+          <Badge size="xs" variant="light" color={proposal.qualified ? 'green' : 'red'}>
+            JQS: {proposal.jobQualityScore || '-'}
+          </Badge>
+        </Tooltip>
+        {proposal.proposalQualityScore && (
+          <Tooltip label="Proposal Quality Score">
+            <Badge size="xs" variant="light" color="blue">
+              PQS: {proposal.proposalQualityScore}
+            </Badge>
+          </Tooltip>
+        )}
+      </Group>
+
+      <Group justify="space-between" align="flex-end" mt="auto">
+        <div>
+          <Text size="xs" c="dimmed">Est. Value</Text>
+          <Text size="sm" fw={700} c="dark.4">
+            {proposal.estimatedProjectValue ? `$${proposal.estimatedProjectValue}` : '-'}
+          </Text>
+        </div>
+        {proposal.daysToFirstResponse !== undefined && proposal.daysToFirstResponse !== null && (
+          <Tooltip label="Days to first response">
+            <Group gap={4}>
+              <Clock size={12} color="#94a3b8" />
+              <Text size="xs" c="dimmed" fw={500}>{proposal.daysToFirstResponse}d</Text>
+            </Group>
+          </Tooltip>
+        )}
+      </Group>
+    </Card>
+  );
+};
+
+const DraggableItem = ({ proposal }: { proposal: Proposal }) => {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: proposal._id,
+    data: proposal
+  });
+  
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      <ProposalCard proposal={proposal} isDragging={isDragging} />
+    </div>
+  );
+};
+
+const DroppableColumn = ({ stage, count, children }: { stage: typeof STAGES[0], count: number, children: React.ReactNode }) => {
+  const { isOver, setNodeRef } = useDroppable({
+    id: stage.id,
+  });
+
+  return (
+    <Paper
+      bg="#f8fafc"
+      p="sm"
+      radius="md"
+      style={{ minWidth: '300px', width: '300px', flexShrink: 0, display: 'flex', flexDirection: 'column', maxHeight: '75vh' }}
+    >
+      <Group justify="space-between" mb="md" px="xs">
+        <Group gap="xs">
+          <ThemeIcon color={stage.color} variant="light" size="sm" radius="xl">
+            {stage.icon}
+          </ThemeIcon>
+          <Text fw={700} size="sm" tt="uppercase" c="dark.4" style={{ letterSpacing: '0.05em' }}>
+            {stage.label}
+          </Text>
+        </Group>
+        <Badge color="gray" variant="light" radius="xl" size="sm">
+          {count}
+        </Badge>
+      </Group>
+
+      <div
+        ref={setNodeRef}
+        style={{
+          flexGrow: 1,
+          minHeight: '100px',
+          padding: '4px',
+          transition: 'background-color 0.2s ease',
+          backgroundColor: isOver ? '#f1f5f9' : 'transparent',
+          borderRadius: '8px',
+          overflowY: 'auto',
+          scrollbarWidth: 'thin'
+        }}
+      >
+        {children}
+      </div>
+    </Paper>
+  );
+};
+
+export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onStageChange }) => {
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   const columns = useMemo(() => {
     const cols: Record<string, Proposal[]> = {};
     STAGES.forEach(s => cols[s.id] = []);
-    cols['no_response'] = []; // Catch-all for no_response if we don't display it explicitly as a column
+    cols['no_response'] = []; 
 
     proposals.forEach(p => {
       const stage = p.currentStage || 'applied';
@@ -40,131 +181,52 @@ export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onSta
     return cols;
   }, [proposals]);
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    const { source, destination, draggableId } = result;
+  const activeProposal = useMemo(() => proposals.find(p => p._id === activeId), [activeId, proposals]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = event;
     
-    if (source.droppableId !== destination.droppableId) {
-      onStageChange(draggableId, destination.droppableId);
+    if (over && active.id !== over.id) {
+      const draggedProposalId = active.id as string;
+      const targetStageId = over.id as string;
+      
+      const draggedProposal = proposals.find(p => p._id === draggedProposalId);
+      if (draggedProposal && draggedProposal.currentStage !== targetStageId) {
+        onStageChange(draggedProposalId, targetStageId);
+      }
     }
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
+    <DndContext 
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
       <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '16px', alignItems: 'flex-start', width: '100%', maxWidth: '100%', minHeight: '600px' }}>
         {STAGES.map((stage) => (
-          <Paper
-            key={stage.id}
-            bg="#f8fafc"
-            p="sm"
-            radius="md"
-            style={{ minWidth: '300px', width: '300px', flexShrink: 0, display: 'flex', flexDirection: 'column', maxHeight: '75vh' }}
-          >
-            <Group justify="space-between" mb="md" px="xs">
-              <Group gap="xs">
-                <ThemeIcon color={stage.color} variant="light" size="sm" radius="xl">
-                  {stage.icon}
-                </ThemeIcon>
-                <Text fw={700} size="sm" tt="uppercase" c="dark.4" style={{ letterSpacing: '0.05em' }}>
-                  {stage.label}
-                </Text>
-              </Group>
-              <Badge color="gray" variant="light" radius="xl" size="sm">
-                {columns[stage.id]?.length || 0}
-              </Badge>
-            </Group>
-
-            <Droppable droppableId={stage.id}>
-              {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  style={{
-                    flexGrow: 1,
-                    minHeight: '100px',
-                    padding: '4px',
-                    transition: 'background-color 0.2s ease',
-                    backgroundColor: snapshot.isDraggingOver ? '#f1f5f9' : 'transparent',
-                    borderRadius: '8px',
-                    overflowY: 'auto',
-                    scrollbarWidth: 'thin'
-                  }}
-                >
-                  {columns[stage.id]?.map((proposal, index) => (
-                    <Draggable key={proposal._id} draggableId={proposal._id} index={index}>
-                      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
-                        <Card
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          shadow={snapshot.isDragging ? 'md' : 'xs'}
-                          radius="md"
-                          p="md"
-                          mb="sm"
-                          withBorder
-                          style={{
-                            ...provided.draggableProps.style,
-                            backgroundColor: '#ffffff',
-                            borderColor: snapshot.isDragging ? '#3b82f6' : '#e2e8f0',
-                            transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
-                          }}
-                          onClick={() => navigate(`/proposals/${proposal._id}`)}
-                        >
-                          <Group justify="space-between" align="flex-start" mb="xs" wrap="nowrap">
-                            <Text fw={600} size="sm" style={{ lineHeight: 1.2, wordBreak: 'break-word' }}>
-                              {proposal.jobTitle || 'Untitled Job'}
-                            </Text>
-                            <ActionIcon size="sm" variant="subtle" color="gray" onClick={(e) => { e.stopPropagation(); }}>
-                              <MoreVertical size={14} />
-                            </ActionIcon>
-                          </Group>
-                          
-                          <Text size="xs" c="dimmed" mb="md" lineClamp={1}>
-                            {proposal.clientName || 'Unknown Client'}
-                          </Text>
-                          
-                          <Group gap="xs" mb="sm">
-                            <Tooltip label="Job Quality Score">
-                              <Badge size="xs" variant="light" color={proposal.qualified ? 'green' : 'red'}>
-                                JQS: {proposal.jobQualityScore || '-'}
-                              </Badge>
-                            </Tooltip>
-                            {proposal.proposalQualityScore && (
-                              <Tooltip label="Proposal Quality Score">
-                                <Badge size="xs" variant="light" color="blue">
-                                  PQS: {proposal.proposalQualityScore}
-                                </Badge>
-                              </Tooltip>
-                            )}
-                          </Group>
-
-                          <Group justify="space-between" align="flex-end" mt="auto">
-                            <div>
-                              <Text size="xs" c="dimmed">Est. Value</Text>
-                              <Text size="sm" fw={700} c="dark.4">
-                                {proposal.estimatedProjectValue ? `$${proposal.estimatedProjectValue}` : '-'}
-                              </Text>
-                            </div>
-                            {proposal.daysToFirstResponse !== undefined && proposal.daysToFirstResponse !== null && (
-                              <Tooltip label="Days to first response">
-                                <Group gap={4}>
-                                  <Clock size={12} color="#94a3b8" />
-                                  <Text size="xs" c="dimmed" fw={500}>{proposal.daysToFirstResponse}d</Text>
-                                </Group>
-                              </Tooltip>
-                            )}
-                          </Group>
-                        </Card>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </Paper>
+          <DroppableColumn key={stage.id} stage={stage} count={columns[stage.id]?.length || 0}>
+            {columns[stage.id]?.map((proposal) => (
+              <DraggableItem key={proposal._id} proposal={proposal} />
+            ))}
+          </DroppableColumn>
         ))}
       </div>
-    </DragDropContext>
+      
+      <DragOverlay>
+        {activeProposal ? <ProposalCard proposal={activeProposal} isOverlay /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 };
