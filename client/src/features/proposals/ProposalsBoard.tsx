@@ -51,7 +51,7 @@ export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onSta
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '16px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '16px', alignItems: 'flex-start', width: '100%', maxWidth: '100%', minHeight: '600px' }}>
         {STAGES.map((stage) => (
           <Paper
             key={stage.id}
@@ -106,7 +106,7 @@ export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onSta
                             ...provided.draggableProps.style,
                             backgroundColor: '#ffffff',
                             borderColor: snapshot.isDragging ? '#3b82f6' : '#e2e8f0',
-                            transition: 'all 0.2s ease',
+                            transition: 'background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
                           }}
                           onClick={() => navigate(`/proposals/${proposal._id}`)}
                         >
