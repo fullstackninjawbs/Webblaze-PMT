@@ -62,14 +62,25 @@ export const ProposalsList: React.FC = () => {
     }
   };
 
+  const [localProposals, setLocalProposals] = React.useState<Proposal[]>([]);
+
+  React.useEffect(() => {
+    if (data?.data) {
+      setLocalProposals(data.data);
+    }
+  }, [data]);
+
   // Filter local search for now if backend doesn't support search param yet
-  const filteredData = data?.data?.filter(p => 
+  const filteredData = localProposals.filter(p => 
     !searchQuery || 
     p.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
     p.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  );
 
   const handleStageChange = async (proposalId: string, newStage: string) => {
+    // Optimistic Update
+    setLocalProposals(prev => prev.map(p => p._id === proposalId ? { ...p, currentStage: newStage as Proposal['currentStage'] } : p));
+
     // Map stage to boolean flags
     const payload: Partial<Proposal> = {};
     if (newStage === 'applied') {
@@ -130,6 +141,10 @@ export const ProposalsList: React.FC = () => {
       await updateProposal({ id: proposalId, data: payload }).unwrap();
     } catch (err) {
       console.error('Failed to update stage', err);
+      // Revert optimistic update
+      if (data?.data) {
+        setLocalProposals(data.data);
+      }
     }
   };
 
