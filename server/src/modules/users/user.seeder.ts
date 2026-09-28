@@ -24,6 +24,12 @@ export const seedAdmin = async () => {
       await admin.save();
       logger.info('Default admin reset/updated successfully: admin@webblaze.com / password123');
     }
+
+    // Ensure Admin and PM do not have department assigned
+    await User.updateMany(
+      { role: { $in: [Role.ADMIN, Role.PM] }, department: { $ne: null } },
+      { $unset: { department: 1 } }
+    );
   } catch (error) {
     logger.error('Failed to seed admin user:', error);
   }

@@ -1,90 +1,126 @@
 import { z } from 'zod';
 
-// We do NOT include AUTO fields here (e.g. currentStage, jobQualityScore, totalConnects).
-// By not including them in the Zod schema, they will be stripped automatically
-// when using the schema to parse the request body.
+// Preprocessing helpers: converts empty string "" or null to undefined
+const optionalDate = z.preprocess((val) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  const d = new Date(val as any);
+  return isNaN(d.getTime()) ? undefined : d;
+}, z.date().optional());
+
+const optionalNumber = z.preprocess((val) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  const num = Number(val);
+  return isNaN(num) ? undefined : num;
+}, z.number().optional());
+
+const optionalScore = z.preprocess((val) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  const num = Number(val);
+  return isNaN(num) ? undefined : num;
+}, z.number().min(1).max(10).optional());
+
+const optionalString = z.preprocess((val) => {
+  if (val === null || val === undefined) return undefined;
+  return String(val);
+}, z.string().optional());
+
+const optionalObjectId = z.preprocess((val: any) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  if (typeof val === 'object' && val._id) return String(val._id);
+  if (typeof val === 'string' && val.trim() !== '' && val !== '[object Object]') return val.trim();
+  return undefined;
+}, z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectId').optional());
+
+const optionalEnum = <T extends [string, ...string[]]>(values: T) => z.preprocess((val) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  return val;
+}, z.enum(values).optional());
 
 export const createProposalSchema = z.object({
   // Identity & Discovery
-  dateFound: z.coerce.date().optional(),
-  dateApplied: z.coerce.date().optional(),
-  salesExec: z.string().optional(),
-  upworkProfile: z.string().optional(),
-  jobTitle: z.string().optional(),
-  jobUrl: z.string().optional(),
-  clientName: z.string().optional(),
-  clientCountry: z.string().optional(),
-  clientIndustry: z.string().optional(),
-  serviceCategory: z.string().optional(),
-  jobType: z.enum(['fixed_price', 'hourly']).optional(),
-  jobBudget: z.number().optional(),
-  estimatedProjectValue: z.number().optional(),
-  jobPostedAgeHrs: z.number().optional(),
-  clientHiringHistory: z.number().optional(),
-  clientSpendOnUpwork: z.number().optional(),
+  proposalCode: optionalString,
+  dateFound: optionalDate,
+  dateApplied: optionalDate,
+  salesExec: optionalObjectId,
+  upworkProfile: optionalString,
+  jobTitle: optionalString,
+  jobUrl: optionalString,
+  clientName: optionalString,
+  clientCountry: optionalString,
+  clientIndustry: optionalString,
+  serviceCategory: optionalString,
+  jobType: optionalEnum(['fixed_price', 'hourly']),
+  jobBudget: optionalNumber,
+  estimatedProjectValue: optionalNumber,
+  jobPostedAgeHrs: optionalNumber,
+  clientHiringHistory: optionalNumber,
+  clientSpendOnUpwork: optionalNumber,
   paymentVerified: z.boolean().optional(),
-  proposalCompetitionCount: z.number().optional(),
-  clientActivityLevel: z.enum(['very_active', 'moderate', 'low']).optional(),
+  proposalCompetitionCount: optionalNumber,
+  clientActivityLevel: optionalEnum(['very_active', 'moderate', 'low']),
 
   // Job Quality Score (JQS) - Subfields
   jqs: z.object({
-    skillFit: z.number().min(1).max(10).optional(),
-    budgetFit: z.number().min(1).max(10).optional(),
-    clientQuality: z.number().min(1).max(10).optional(),
-    jobClarity: z.number().min(1).max(10).optional(),
-    portfolioFit: z.number().min(1).max(10).optional(),
-    hiringProbability: z.number().min(1).max(10).optional(),
-    competitionScore: z.number().min(1).max(10).optional(),
-    timingScore: z.number().min(1).max(10).optional(),
-    historicalActivity: z.number().min(1).max(10).optional(),
+    skillFit: optionalScore,
+    budgetFit: optionalScore,
+    clientQuality: optionalScore,
+    jobClarity: optionalScore,
+    portfolioFit: optionalScore,
+    hiringProbability: optionalScore,
+    competitionScore: optionalScore,
+    timingScore: optionalScore,
+    historicalActivity: optionalScore,
   }).optional(),
-  qualifiedOverride: z.boolean().nullable().optional(), // manual override for MS 2
+  qualifiedOverride: z.boolean().nullable().optional(),
 
   // Proposal Authoring & PQS
-  proposalWriter: z.string().optional(),
-  proposalTemplate: z.string().optional(),
+  proposalWriter: optionalObjectId,
+  proposalTemplate: optionalString,
   openingHookUsed: z.boolean().optional(),
-  personalizationLevel: z.enum(['low', 'medium', 'high']).optional(),
+  personalizationLevel: optionalEnum(['low', 'medium', 'high']),
   relevantCaseStudyUsed: z.boolean().optional(),
   portfolioLinkUsed: z.boolean().optional(),
-  proposalLengthWords: z.number().optional(),
+  proposalLengthWords: optionalNumber,
   ctaUsed: z.boolean().optional(),
   pqs: z.object({
-    jobFit: z.number().min(1).max(10).optional(),
-    personalization: z.number().min(1).max(10).optional(),
-    relevantProof: z.number().min(1).max(10).optional(),
-    solutionClarity: z.number().min(1).max(10).optional(),
-    ctaStrength: z.number().min(1).max(10).optional(),
-    painPointAlignment: z.number().min(1).max(10).optional(),
+    jobFit: optionalScore,
+    personalization: optionalScore,
+    relevantProof: optionalScore,
+    solutionClarity: optionalScore,
+    ctaStrength: optionalScore,
+    painPointAlignment: optionalScore,
   }).optional(),
 
   // Connects / Spend
-  connectsUsed: z.number().optional(),
-  boostConnects: z.number().optional(),
-  connectCost: z.number().optional(),
-  boostedVsOrganic: z.enum(['boosted', 'organic']).optional(),
+  connectsUsed: optionalNumber,
+  boostConnects: optionalNumber,
+  connectCost: optionalNumber,
+  boostedVsOrganic: optionalEnum(['boosted', 'organic']),
 
   // Pipeline Checkpoints
   proposalSent: z.boolean().optional(),
   proposalViewed: z.boolean().optional(),
-  viewDate: z.coerce.date().optional(),
+  viewDate: optionalDate,
   clientReplied: z.boolean().optional(),
-  replyDate: z.coerce.date().optional(),
+  replyDate: optionalDate,
   interviewScheduled: z.boolean().optional(),
-  interviewDate: z.coerce.date().optional(),
+  interviewDate: optionalDate,
   followUp1Done: z.boolean().optional(),
   followUp2Done: z.boolean().optional(),
   followUp3Done: z.boolean().optional(),
   offerReceived: z.boolean().optional(),
   hired: z.boolean().optional(),
   lost: z.boolean().optional(),
-  lostReason: z.string().optional(),
+  lostReason: optionalString,
 
   // Manual tracking fields
-  nextFollowUpDate: z.coerce.date().optional(),
-  nextAction: z.string().optional(),
-  notes: z.string().optional(),
-  wonRevenue: z.number().optional(),
+  nextFollowUpDate: optionalDate,
+  nextAction: optionalString,
+  notes: optionalString,
+  wonRevenue: optionalNumber,
+  isDraft: z.boolean().optional(),
+  currentStage: optionalEnum(['draft', 'applied', 'sent', 'viewed', 'replied', 'interview', 'offer', 'won', 'lost', 'no_response']),
 });
 
 export const updateProposalSchema = createProposalSchema.partial();
+

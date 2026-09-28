@@ -83,7 +83,8 @@ export interface IProposal extends Document {
   lostReason?: string;
 
   // Auto-Computed Rollups & Manual tracking
-  currentStage?: 'applied' | 'sent' | 'viewed' | 'replied' | 'interview' | 'offer' | 'won' | 'lost' | 'no_response'; // AUTO
+  isDraft?: boolean;
+  currentStage?: 'draft' | 'applied' | 'sent' | 'viewed' | 'replied' | 'interview' | 'offer' | 'won' | 'lost' | 'no_response'; // AUTO
   nextFollowUpDate?: Date;
   nextAction?: string;
   notes?: string;
@@ -104,7 +105,7 @@ export interface IProposal extends Document {
 
 const ProposalSchema: Schema = new Schema(
   {
-    proposalCode: { type: String, unique: true },
+    proposalCode: { type: String, unique: true, sparse: true },
     dateFound: { type: Date },
     dateApplied: { type: Date },
     salesExec: { type: Schema.Types.ObjectId, ref: 'User', index: true },
@@ -140,7 +141,7 @@ const ProposalSchema: Schema = new Schema(
     qualified: { type: Boolean },
     qualifiedOverride: { type: Boolean, default: null },
 
-    proposalWriter: { type: Schema.Types.ObjectId, ref: 'User' },
+    proposalWriter: { type: Schema.Types.Mixed },
     proposalTemplate: { type: String },
     openingHookUsed: { type: Boolean },
     personalizationLevel: { type: String, enum: ['low', 'medium', 'high'] },
@@ -180,9 +181,10 @@ const ProposalSchema: Schema = new Schema(
     noResponse: { type: Boolean, default: false },
     lostReason: { type: String },
 
+    isDraft: { type: Boolean, default: false },
     currentStage: { 
       type: String, 
-      enum: ['applied', 'sent', 'viewed', 'replied', 'interview', 'offer', 'won', 'lost', 'no_response'],
+      enum: ['draft', 'applied', 'sent', 'viewed', 'replied', 'interview', 'offer', 'won', 'lost', 'no_response'],
       index: true
     },
     nextFollowUpDate: { type: Date },
@@ -208,10 +210,13 @@ const ProposalSchema: Schema = new Schema(
 // Adding dateApplied index here because it doesn't have it inline
 ProposalSchema.index({ dateApplied: 1 });
 
-import { computeDerivedFields } from './proposal.service';
+import { computeDerivedFields, generateNextProposalCode } from './proposal.service';
 
 ProposalSchema.pre('save', async function(next) {
   // `this` refers to the document being saved
+  if (!this.proposalCode) {
+    this.proposalCode = await generateNextProposalCode();
+  }
   await computeDerivedFields(this);
   next();
 });

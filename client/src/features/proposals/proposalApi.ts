@@ -48,6 +48,13 @@ export const proposalApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Proposal', 'Project'],
     }),
+    deleteProposal: builder.mutation<{ success: boolean; message: string }, string>({
+      query: (id) => ({
+        url: `/proposals/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Proposal'],
+    }),
   }),
 });
 
@@ -59,4 +66,5 @@ export const {
   useGetKpiSummaryQuery,
   useGetFollowUpQueueQuery,
   useConvertToProjectMutation,
+  useDeleteProposalMutation,
 } = proposalApi;

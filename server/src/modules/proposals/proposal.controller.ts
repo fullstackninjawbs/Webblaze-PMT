@@ -36,7 +36,7 @@ export class ProposalController {
   static async createProposal(req: Request, res: Response, next: NextFunction) {
     try {
       const parsedData = createProposalSchema.parse(req.body);
-      const proposal = await ProposalService.createProposal(parsedData, (req as any).user._id, (req as any).user.role);
+      const proposal = await ProposalService.createProposal(parsedData, (req as any).user);
       res.status(201).json(proposal);
     } catch (error) {
       next(error);
@@ -48,6 +48,15 @@ export class ProposalController {
       const parsedData = updateProposalSchema.parse(req.body);
       const proposal = await ProposalService.updateProposal(req.params.id, parsedData, (req as any).user);
       res.json(proposal);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteProposal(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await ProposalService.deleteProposal(req.params.id, (req as any).user);
+      res.json({ success: true, ...result });
     } catch (error) {
       next(error);
     }

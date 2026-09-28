@@ -13,11 +13,13 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
-  const user = await UserService.updateUser(req.params.id, req.body);
+  const currentUserId = (req as any).user?._id?.toString() || (req as any).user?.id?.toString();
+  const user = await UserService.updateUser(req.params.id, req.body, currentUserId);
   res.status(200).json({ success: true, data: user });
 });
 
 export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-  await UserService.deleteUser(req.params.id);
+  const currentUserId = (req as any).user?._id?.toString() || (req as any).user?.id?.toString();
+  await UserService.deleteUser(req.params.id, currentUserId);
   res.status(200).json({ success: true, data: {} });
 });

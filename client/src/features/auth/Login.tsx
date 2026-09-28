@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { useLoginMutation, useAcceptInviteMutation, setCredentials } from './auth.slice';
+import { baseApi } from '../../app/api';
 import { Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Clock, FileText } from 'lucide-react';
 import { Container, Title, Text, TextInput, PasswordInput, Button, Alert, Box, Checkbox, Group, Anchor, Paper, Flex, Loader } from '@mantine/core';
 import { BlazeLogo } from '../../components/common/BlazeLogo';
@@ -58,6 +59,7 @@ export const Login: React.FC = () => {
   const onSubmit = async (values: typeof form.values) => {
     try {
       const result = await login(values).unwrap();
+      dispatch(baseApi.util.resetApiState());
       dispatch(setCredentials({ user: result.data.user, accessToken: result.data.accessToken }));
 
       if (rememberMe) {

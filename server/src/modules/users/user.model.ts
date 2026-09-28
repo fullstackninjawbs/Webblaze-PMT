@@ -32,8 +32,11 @@ const UserSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// Hash password before save
+// Hash password before save & ensure admin/pm have no department
 UserSchema.pre<IUser>('save', async function (next) {
+  if (this.role === Role.ADMIN || this.role === Role.PM) {
+    this.department = undefined;
+  }
   if (!this.isModified('password')) return next();
   try {
     const salt = await bcrypt.genSalt(10);
