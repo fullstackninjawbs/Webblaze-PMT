@@ -87,11 +87,11 @@ export const MyTasks = () => {
   }, [filteredTasks]);
 
   const handleStartTimer = async (taskId: string) => {
-    if (activeTimer) {
-      alert('You already have an active timer. Please stop it first.');
-      return;
+    if (activeTimer && activeTimerTaskId !== taskId) {
+      const otherTitle = typeof activeTimer.task === 'object' ? (activeTimer.task as any).title : 'another task';
+      if (!window.confirm(`You are already tracking "${otherTitle}". Stop it and start this task instead?`)) return;
     }
-    
+
     try {
       await startTimer({ taskId }).unwrap();
       navigate(`/tasks/${taskId}`);

@@ -27,7 +27,7 @@ export const updateMilestoneSchema = z.object({
     estimatedHours: z.number().min(0).optional(),
     startDate: z.string().optional().nullable(),
     endDate: z.string().optional().nullable(),
-    status: z.enum(['not_started', 'in_progress', 'on_hold', 'completed']).optional(),
+    status: z.enum(['not_started', 'in_progress', 'on_hold', 'completed', 'cancelled']).optional(),
   })
 }).refine(data => {
   if (data.body.startDate && data.body.endDate) {

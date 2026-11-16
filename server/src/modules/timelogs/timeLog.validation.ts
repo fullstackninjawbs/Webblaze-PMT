@@ -12,3 +12,11 @@ export const stopTimerSchema = z.object({
     description: z.string().optional(),
   }),
 });
+
+export const manualLogSchema = z.object({
+  body: z.object({
+    taskId: z.string().min(1, 'Task ID is required'),
+    hours: z.coerce.number().positive('Hours must be greater than 0'),
+    description: z.string().optional(),
+  }),
+});

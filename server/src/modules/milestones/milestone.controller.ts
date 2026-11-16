@@ -14,9 +14,9 @@ export const createMilestone = asyncHandler(async (req: Request, res: Response) 
 export const getMilestones = asyncHandler(async (req: Request, res: Response) => {
   const { projectId, page, limit, sort, status, search } = req.query;
   const params: any = { page, limit, sort, status, search };
-  
+
   if (projectId) {
-    const result = await milestoneService.getMilestonesByProject(projectId as string, params);
+    const result = await milestoneService.getMilestonesByProject(projectId as string, params, (req as any).user);
     res.status(200).json({
       success: true,
       data: result.data,
@@ -32,7 +32,7 @@ export const getMilestones = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const getMilestoneById = asyncHandler(async (req: Request, res: Response) => {
-  const milestone = await milestoneService.getMilestoneById(req.params.id);
+  const milestone = await milestoneService.getMilestoneById(req.params.id, (req as any).user);
   res.status(200).json({
     success: true,
     data: milestone,

@@ -1,6 +1,7 @@
 import { Release, IRelease } from './release.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
+import { getAccessibleProjectIds, isProjectScopedRole } from '../../utils/access';
 
 export const createRelease = async (data: Partial<IRelease>): Promise<IRelease> => {
   const release = await Release.create(data);
@@ -10,11 +11,8 @@ export const createRelease = async (data: Partial<IRelease>): Promise<IRelease> 
 export const getAllReleases = async (userRole: Role, userId: string, filters: any = {}): Promise<IRelease[]> => {
   let query = { ...filters };
   
-  if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
-    const mongoose = require('mongoose');
-    const Project = mongoose.model('Project');
-    const assignedProjects = await Project.find({ team: userId }).select('_id');
-    const projectIds = assignedProjects.map((p: any) => p._id);
+  if (isProjectScopedRole(userRole)) {
+    const projectIds = await getAccessibleProjectIds({ _id: userId, role: userRole });
     query = { ...query, project: { $in: projectIds } };
   }
 

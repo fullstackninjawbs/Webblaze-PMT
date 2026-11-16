@@ -31,7 +31,7 @@ export const getMyDailyStatuses = asyncHandler(async (req: Request, res: Respons
 
 export const getTeamDailyStatuses = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as any).user;
-  const statuses = await dailyStatusService.getTeamDailyStatuses(user.role, user._id || user.id);
+  const statuses = await dailyStatusService.getTeamDailyStatuses(user);
 
   res.status(200).json({
     success: true,

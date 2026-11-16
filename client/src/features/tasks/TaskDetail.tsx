@@ -65,10 +65,10 @@ export const TaskDetail = () => {
 
   const handleStartTimer = async () => {
     if (activeTimer && !isTimerActiveForThisTask) {
-      alert('You already have an active timer. Please stop it first.');
-      return;
+      const otherTitle = typeof activeTimer.task === 'object' ? (activeTimer.task as any).title : 'another task';
+      if (!window.confirm(`You are already tracking "${otherTitle}". Stop it and start this task instead?`)) return;
     }
-    
+
     try {
       await startTimer({ taskId: task._id }).unwrap();
     } catch (err: any) {
@@ -84,14 +84,25 @@ export const TaskDetail = () => {
     }
   };
 
-  const handleStatusChange = (val: string | null) => {
-    if (!val) return;
-    
+  const handleStatusChange = async (val: string | null) => {
+    if (!val || val === task.status) return;
+
     if (val === 'in_review' || val === 'completed') {
       setSelectedStatus(val);
       setStatusModalOpened(true);
-    } else {
-      updateTask({ _id: task._id, status: val as any });
+      return;
+    }
+
+    // "In Progress" starts the assignee's timer server-side; any other status stops running timers.
+    if (val === 'in_progress' && activeTimer && !isTimerActiveForThisTask) {
+      const otherTitle = typeof activeTimer.task === 'object' ? (activeTimer.task as any).title : 'another task';
+      if (!window.confirm(`You are already tracking "${otherTitle}". Stop it and start working on this task?`)) return;
+    }
+
+    try {
+      await updateTask({ _id: task._id, status: val as any }).unwrap();
+    } catch (err: any) {
+      alert(err?.data?.error?.message || err?.data?.message || 'Failed to update status');
     }
   };
 

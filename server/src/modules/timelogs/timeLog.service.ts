@@ -1,12 +1,12 @@
 import { TimeLog, ITimeLog } from './timeLog.model';
-import { Task, ITask } from '../tasks/task.model';
-import { Milestone } from '../milestones/milestone.model';
+import { Task } from '../tasks/task.model';
 import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
 import { ApiError } from '../../utils/ApiError';
 import { User } from '../users/user.model';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
 import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
+import { canAccessMilestone, getUserId, isProjectScopedRole, RequestUser } from '../../utils/access';
 
 export interface TeamMemberHoursSummary {
   userId: string;
@@ -20,32 +20,165 @@ export interface TeamMemberHoursSummary {
   pendingHours: number;
 }
 
-export const startTimer = async (userId: string, taskId: string, description?: string): Promise<ITimeLog> => {
-  // If user already has an active timer, auto-stop it cleanly first
-  const activeTimer = await TimeLog.findOne({ user: userId, endTime: { $exists: false } });
-  if (activeTimer) {
-    await stopTimer(userId, 'Auto-stopped on starting new timer');
+const roundHours = (hours: number) => Number(hours.toFixed(4));
+
+const getMilestoneId = (task: any): string | null => {
+  if (!task?.milestone) return null;
+  return typeof task.milestone === 'object' ? String(task.milestone._id) : String(task.milestone);
+};
+
+const getAssigneeId = (task: any): string | null => {
+  if (!task?.assignedTo) return null;
+  return typeof task.assignedTo === 'object' ? String(task.assignedTo._id) : String(task.assignedTo);
+};
+
+/**
+ * Who may log time against a task:
+ *  - Admin / PM: any task
+ *  - Team Lead / Team Member: only tasks assigned to them (or unassigned tasks in their projects)
+ */
+const assertCanLogTime = async (user: RequestUser, task: any) => {
+  if (!isProjectScopedRole(user.role)) return;
+
+  const userId = getUserId(user);
+  const assigneeId = getAssigneeId(task);
+
+  if (assigneeId && assigneeId !== userId) {
+    throw new ApiError(403, 'You can only log time on tasks assigned to you');
   }
 
-  // Ensure task exists
+  const milestoneId = getMilestoneId(task);
+  if (milestoneId && !(await canAccessMilestone(user, milestoneId))) {
+    throw new ApiError(403, 'You do not have access to this task');
+  }
+};
+
+/**
+ * Recompute Task.spentHours from its time logs. The task value is a cache of the
+ * logs, so every log write goes through here instead of doing ad-hoc $inc math.
+ * Returns the refreshed task, after applying the automatic status transitions:
+ *  - estimate reached while in progress -> in_review
+ *  - hours removed below the estimate while completed -> reopened
+ */
+export const syncTaskHours = async (taskId: string) => {
+  const task = await Task.findById(taskId);
+  if (!task) return null;
+
+  const logs = await TimeLog.find({ task: taskId, endTime: { $exists: true } }).select('durationSeconds');
+  const totalSeconds = logs.reduce((sum, l) => sum + (l.durationSeconds || 0), 0);
+  const spentHours = roundHours(totalSeconds / 3600);
+
+  let status = task.status;
+  const estimateReached = task.estimatedHours > 0 && spentHours >= task.estimatedHours;
+
+  if (estimateReached && status === 'in_progress') {
+    status = 'in_review';
+  } else if (!estimateReached && status === 'completed' && spentHours < task.estimatedHours) {
+    status = spentHours > 0 ? 'in_progress' : (task.assignedTo ? 'assigned' : 'unassigned');
+  }
+
+  if (task.spentHours !== spentHours || task.status !== status) {
+    task.spentHours = spentHours;
+    task.status = status;
+    await task.save();
+  }
+
+  const milestoneId = getMilestoneId(task);
+  if (milestoneId) {
+    await evaluateAndUpdateMilestoneStatus(milestoneId);
+  }
+
+  return task;
+};
+
+export const getActiveTimer = async (userId: string): Promise<ITimeLog | null> => {
+  return TimeLog.findOne({ user: userId, endTime: { $exists: false } })
+    .populate({
+      path: 'task',
+      select: 'title milestone estimatedHours spentHours status',
+      populate: {
+        path: 'milestone',
+        select: 'title project',
+        populate: { path: 'project', select: 'name' },
+      },
+    });
+};
+
+/**
+ * Stop a specific running log. Duration is clamped so a task can never exceed its
+ * estimate through the timer; the overflow is simply not counted.
+ */
+const closeLog = async (log: ITimeLog, description?: string): Promise<ITimeLog> => {
+  const task = await Task.findById(log.task);
+  const endTime = new Date();
+  let durationSeconds = Math.max(0, Math.floor((endTime.getTime() - log.startTime.getTime()) / 1000));
+
+  if (task && task.estimatedHours > 0) {
+    const remainingSeconds = Math.max(0, Math.round((task.estimatedHours - (task.spentHours || 0)) * 3600));
+    if (durationSeconds > remainingSeconds) durationSeconds = remainingSeconds;
+  }
+
+  log.endTime = endTime;
+  log.durationSeconds = durationSeconds;
+  if (description && !log.description) log.description = description;
+  await log.save();
+
+  if (task) await syncTaskHours(String(task._id));
+  return log;
+};
+
+export const stopTimer = async (userId: string, description?: string): Promise<ITimeLog> => {
+  const activeTimer = await TimeLog.findOne({ user: userId, endTime: { $exists: false } });
+  if (!activeTimer) {
+    throw new ApiError(400, 'No active timer found to stop');
+  }
+  const closed = await closeLog(activeTimer, description);
+  return closed.populate('task', 'title milestone status spentHours estimatedHours');
+};
+
+/** Stop every running timer on a task, regardless of who owns it. */
+export const stopActiveTimersForTask = async (taskId: string, description?: string): Promise<number> => {
+  const running = await TimeLog.find({ task: taskId, endTime: { $exists: false } });
+  for (const log of running) {
+    await closeLog(log, description);
+  }
+  return running.length;
+};
+
+export const startTimer = async (user: RequestUser, taskId: string, description?: string): Promise<ITimeLog> => {
+  const userId = getUserId(user);
+
   const task = await Task.findById(taskId);
   if (!task) {
     throw new ApiError(404, 'Task not found');
+  }
+  await assertCanLogTime(user, task);
+
+  if (task.status === 'completed') {
+    throw new ApiError(400, 'Cannot start a timer on a completed task');
   }
 
   const currentSpent = task.spentHours || 0;
   const estimated = task.estimatedHours || 0;
   if (estimated > 0 && currentSpent >= estimated) {
-    throw new ApiError(
-      400,
-      `Cannot start timer. Task estimated limit (${estimated}h) has already been reached.`
-    );
+    throw new ApiError(400, `Cannot start timer. Task estimated limit (${estimated}h) has already been reached.`);
   }
 
-  // Update task status to in_progress if it's still assigned
-  if (task.status === 'assigned') {
+  // One running timer per user: close the previous one first
+  const activeTimer = await TimeLog.findOne({ user: userId, endTime: { $exists: false } });
+  if (activeTimer) {
+    if (String(activeTimer.task) === String(task._id)) {
+      return activeTimer.populate('task', 'title milestone');
+    }
+    await closeLog(activeTimer, 'Auto-stopped on starting new timer');
+  }
+
+  // Working on a task means it is in progress
+  if (task.status !== 'in_progress') {
     task.status = 'in_progress';
     await task.save();
+    const milestoneId = getMilestoneId(task);
+    if (milestoneId) await evaluateAndUpdateMilestoneStatus(milestoneId);
   }
 
   const newLog = await TimeLog.create({
@@ -58,77 +191,36 @@ export const startTimer = async (userId: string, taskId: string, description?: s
   return newLog.populate('task', 'title milestone');
 };
 
-export const stopTimer = async (userId: string, description?: string): Promise<ITimeLog> => {
-  const activeTimer = await TimeLog.findOne({ user: userId, endTime: { $exists: false } }).populate('task');
-
-  if (!activeTimer) {
-    throw new ApiError(400, 'No active timer found to stop');
-  }
-
-  activeTimer.endTime = new Date();
-  const durationSeconds = Math.floor((activeTimer.endTime.getTime() - activeTimer.startTime.getTime()) / 1000);
-  activeTimer.durationSeconds = durationSeconds;
-  
-  // Increment spentHours on the Task and Milestone
-  let durationHours = Number((durationSeconds / 3600).toFixed(4));
-  const taskDoc: any = activeTimer.task;
-
-  if (taskDoc && taskDoc.estimatedHours > 0) {
-    const currentSpent = taskDoc.spentHours || 0;
-    const remaining = Math.max(0, taskDoc.estimatedHours - currentSpent);
-    if (durationHours > remaining) {
-      durationHours = remaining;
-      activeTimer.durationSeconds = Math.round(remaining * 3600);
+export const getTimeLogsByTask = async (taskId: string, user?: RequestUser): Promise<ITimeLog[]> => {
+  if (user && isProjectScopedRole(user.role)) {
+    const task = await Task.findById(taskId).select('milestone');
+    if (!task) throw new ApiError(404, 'Task not found');
+    const milestoneId = getMilestoneId(task);
+    if (milestoneId && !(await canAccessMilestone(user, milestoneId))) {
+      throw new ApiError(403, 'You do not have access to this task');
     }
   }
 
-  await activeTimer.save();
-
-  const updatedTask = await Task.findByIdAndUpdate(
-    taskDoc._id,
-    { $inc: { spentHours: durationHours } },
-    { new: true }
-  );
-
-  // Auto-transition task to in_review if spentHours has reached or exceeded estimatedHours
-  if (updatedTask && updatedTask.spentHours >= updatedTask.estimatedHours && updatedTask.status !== 'completed' && updatedTask.status !== 'in_review') {
-    await Task.findByIdAndUpdate(taskDoc._id, { status: 'in_review' });
-  }
-
-  if (taskDoc.milestone) {
-    const milestoneId = typeof taskDoc.milestone === 'object' ? taskDoc.milestone._id : taskDoc.milestone;
-    await Milestone.findByIdAndUpdate(milestoneId, {
-      $inc: { spentHours: durationHours }
-    });
-    await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
-  }
-
-  return activeTimer;
-};
-
-export const getActiveTimer = async (userId: string): Promise<ITimeLog | null> => {
-  return TimeLog.findOne({ user: userId, endTime: { $exists: false } })
-    .populate('task', 'title milestone')
-    .populate({
-      path: 'task',
-      populate: {
-        path: 'milestone',
-        select: 'title project'
-      }
-    });
-};
-
-export const getTimeLogsByTask = async (taskId: string): Promise<ITimeLog[]> => {
   return TimeLog.find({ task: taskId })
     .populate('user', 'name avatarUrl')
     .sort({ startTime: -1 });
 };
 
-export const getTeamTimeLogs = async (user?: any, params: PaginationParams = {}): Promise<PaginatedResult<ITimeLog>> => {
-  // Return all active timers, plus recently stopped ones (e.g. last 7 days)
+const getDepartmentUserIds = async (user: RequestUser) => {
+  if (!user.department) return [getUserId(user)];
+  const deptVariants = normalizeDept(user.department);
+  const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
+  const deptUsers = await User.find({
+    $or: [{ department: { $in: regexes } }, { department: user.department }],
+  }).select('_id');
+  return deptUsers.map((u) => u._id);
+};
+
+export const getTeamTimeLogs = async (user?: RequestUser, params: PaginationParams = {}): Promise<PaginatedResult<ITimeLog>> => {
+  // Return all active timers, plus recently stopped ones (last 7 days)
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
+
   const query: any = {};
 
   if (params.status === 'running') {
@@ -137,29 +229,13 @@ export const getTeamTimeLogs = async (user?: any, params: PaginationParams = {})
     query.endTime = { $exists: true };
     query.startTime = { $gte: sevenDaysAgo };
   } else {
-    query.$or = [
-      { endTime: { $exists: false } },
-      { startTime: { $gte: sevenDaysAgo } }
-    ];
+    query.$or = [{ endTime: { $exists: false } }, { startTime: { $gte: sevenDaysAgo } }];
   }
-  
-  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
-    if (user.department) {
-      const deptVariants = normalizeDept(user.department);
-      const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
-      
-      const deptUsers = await User.find({
-        $or: [
-          { department: { $in: regexes } },
-          { department: user.department }
-        ]
-      }).select('_id');
-      const deptUserIds = deptUsers.map((u) => u._id);
-      
-      query.user = { $in: deptUserIds };
-    } else {
-      query.user = user.id || user._id;
-    }
+
+  if (user?.role === Role.TEAM_MEMBER) {
+    query.user = getUserId(user);
+  } else if (user?.role === Role.TEAM_LEAD) {
+    query.user = { $in: await getDepartmentUserIds(user) };
   }
 
   const populateOptions = [
@@ -170,21 +246,32 @@ export const getTeamTimeLogs = async (user?: any, params: PaginationParams = {})
       populate: {
         path: 'milestone',
         select: 'title project',
-        populate: {
-          path: 'project',
-          select: 'name'
-        }
-      }
-    }
+        populate: { path: 'project', select: 'name' },
+      },
+    },
   ];
 
   return paginate(TimeLog, query, { ...params, sort: params.sort || '-startTime' }, populateOptions);
 };
 
-export const createManualLog = async (userId: string, taskId: string, hours: number, description?: string): Promise<ITimeLog> => {
+export const createManualLog = async (
+  user: RequestUser,
+  taskId: string,
+  hours: number,
+  description?: string
+): Promise<ITimeLog> => {
+  if (!Number.isFinite(hours) || hours <= 0) {
+    throw new ApiError(400, 'Hours must be a positive number');
+  }
+
   const task = await Task.findById(taskId);
   if (!task) {
     throw new ApiError(404, 'Task not found');
+  }
+  await assertCanLogTime(user, task);
+
+  if (task.status === 'completed') {
+    throw new ApiError(400, 'Cannot log time on a completed task');
   }
 
   const currentSpent = task.spentHours || 0;
@@ -203,7 +290,7 @@ export const createManualLog = async (userId: string, taskId: string, hours: num
   const startTime = new Date(now.getTime() - durationSeconds * 1000);
 
   const newLog = await TimeLog.create({
-    user: userId,
+    user: getUserId(user),
     task: taskId,
     startTime,
     endTime: now,
@@ -211,24 +298,7 @@ export const createManualLog = async (userId: string, taskId: string, hours: num
     description: description || 'Manual time log',
   });
 
-  const updatedTask = await Task.findByIdAndUpdate(
-    taskId,
-    { $inc: { spentHours: hours } },
-    { new: true }
-  );
-
-  if (updatedTask && updatedTask.spentHours >= updatedTask.estimatedHours && updatedTask.status !== 'completed' && updatedTask.status !== 'in_review') {
-    await Task.findByIdAndUpdate(taskId, { status: 'in_review' });
-  }
-
-  if (task.milestone) {
-    const milestoneId = typeof task.milestone === 'object' ? (task.milestone as any)._id : task.milestone;
-    await Milestone.findByIdAndUpdate(milestoneId, {
-      $inc: { spentHours: hours }
-    });
-    await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
-  }
-
+  await syncTaskHours(taskId);
   return newLog;
 };
 
@@ -237,43 +307,9 @@ export const deleteTimeLog = async (logId: string): Promise<void> => {
   if (!log) {
     throw new ApiError(404, 'Time log not found');
   }
-
-  const durationHours = (log.durationSeconds || 0) / 3600;
-  const taskId = typeof log.task === 'object' ? (log.task as any)._id : log.task;
-
+  const taskId = String(log.task);
   await TimeLog.findByIdAndDelete(logId);
-
-  if (taskId) {
-    const updatedTask = await Task.findByIdAndUpdate(
-      taskId,
-      { $inc: { spentHours: -durationHours } },
-      { new: true }
-    );
-
-    if (updatedTask) {
-      if (updatedTask.spentHours < 0) {
-        await Task.findByIdAndUpdate(taskId, { spentHours: 0 });
-        updatedTask.spentHours = 0;
-      }
-
-      if (updatedTask.spentHours < updatedTask.estimatedHours && updatedTask.status === 'completed') {
-        const newStatus = updatedTask.spentHours > 0 ? 'in_progress' : 'assigned';
-        await Task.findByIdAndUpdate(taskId, { status: newStatus });
-      }
-
-      if (updatedTask.milestone) {
-        const milestoneId = typeof updatedTask.milestone === 'object' ? (updatedTask.milestone as any)._id : updatedTask.milestone;
-        await Milestone.findByIdAndUpdate(milestoneId, {
-          $inc: { spentHours: -durationHours }
-        });
-        const updatedMilestone = await Milestone.findById(milestoneId);
-        if (updatedMilestone && updatedMilestone.spentHours < 0) {
-          await Milestone.findByIdAndUpdate(milestoneId, { spentHours: 0 });
-        }
-        await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
-      }
-    }
-  }
+  await syncTaskHours(taskId);
 };
 
 export const clearTaskTimeLogs = async (taskId: string): Promise<void> => {
@@ -281,87 +317,45 @@ export const clearTaskTimeLogs = async (taskId: string): Promise<void> => {
   if (!task) {
     throw new ApiError(404, 'Task not found');
   }
-
-  const logs = await TimeLog.find({ task: taskId });
-  const totalDurationSeconds = logs.reduce((sum, log) => sum + (log.durationSeconds || 0), 0);
-  const totalDurationHours = totalDurationSeconds / 3600;
-
   await TimeLog.deleteMany({ task: taskId });
-
-  await Task.findByIdAndUpdate(taskId, { spentHours: 0 });
-
-  if (task.status === 'completed') {
-    await Task.findByIdAndUpdate(taskId, { status: 'assigned' });
-  }
-
-  if (task.milestone) {
-    const milestoneId = typeof task.milestone === 'object' ? (task.milestone as any)._id : task.milestone;
-    await Milestone.findByIdAndUpdate(milestoneId, {
-      $inc: { spentHours: -totalDurationHours }
-    });
-    const updatedMilestone = await Milestone.findById(milestoneId);
-    if (updatedMilestone && updatedMilestone.spentHours < 0) {
-      await Milestone.findByIdAndUpdate(milestoneId, { spentHours: 0 });
-    }
-    await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
-  }
+  await syncTaskHours(taskId);
 };
 
-export const getTeamHoursSummary = async (user?: any): Promise<TeamMemberHoursSummary[]> => {
+export const getTeamHoursSummary = async (user?: RequestUser): Promise<TeamMemberHoursSummary[]> => {
   const userQuery: any = { isActive: true };
-  
-  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
-    if (user.department) {
-      const deptVariants = normalizeDept(user.department);
-      const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
-      userQuery.$or = [
-        { department: { $in: regexes } },
-        { department: user.department }
-      ];
-    } else {
-      userQuery._id = user.id || user._id;
-    }
+
+  if (user?.role === Role.TEAM_MEMBER) {
+    userQuery._id = getUserId(user);
+  } else if (user?.role === Role.TEAM_LEAD) {
+    userQuery._id = { $in: await getDepartmentUserIds(user) };
   }
-  
+
   const users = await User.find(userQuery).select('name email role department avatarUrl');
-  const userIds = users.map(u => u._id);
-  
-  const tasks = await Task.find({ assignedTo: { $in: userIds } });
-  const logs = await TimeLog.find({ user: { $in: userIds }, durationSeconds: { $gt: 0 } });
+  const userIds = users.map((u) => u._id);
+
+  const tasks = await Task.find({ assignedTo: { $in: userIds } }).select('assignedTo estimatedHours');
+  const logs = await TimeLog.find({ user: { $in: userIds }, durationSeconds: { $gt: 0 } }).select('user durationSeconds');
 
   const summaryMap = new Map<string, { assigned: number; spent: number }>();
-
-  for (const user of users) {
-    summaryMap.set(user._id.toString(), { assigned: 0, spent: 0 });
-  }
+  for (const u of users) summaryMap.set(String(u._id), { assigned: 0, spent: 0 });
 
   for (const task of tasks) {
-    if (task.assignedTo) {
-      const uId = task.assignedTo.toString();
-      const current = summaryMap.get(uId) || { assigned: 0, spent: 0 };
-      current.assigned += task.estimatedHours || 0;
-      summaryMap.set(uId, current);
-    }
+    if (!task.assignedTo) continue;
+    const entry = summaryMap.get(String(task.assignedTo));
+    if (entry) entry.assigned += task.estimatedHours || 0;
   }
 
   for (const log of logs) {
-    if (log.user) {
-      const uId = log.user.toString();
-      const current = summaryMap.get(uId) || { assigned: 0, spent: 0 };
-      current.spent += (log.durationSeconds || 0) / 3600;
-      summaryMap.set(uId, current);
-    }
+    const entry = summaryMap.get(String(log.user));
+    if (entry) entry.spent += (log.durationSeconds || 0) / 3600;
   }
 
   return users.map((u) => {
-    const uId = u._id.toString();
-    const data = summaryMap.get(uId) || { assigned: 0, spent: 0 };
+    const data = summaryMap.get(String(u._id)) || { assigned: 0, spent: 0 };
     const assignedHours = Number(data.assigned.toFixed(2));
     const spentHours = Number(data.spent.toFixed(2));
-    const pendingHours = Number(Math.max(assignedHours - spentHours, 0).toFixed(2));
-
     return {
-      userId: uId,
+      userId: String(u._id),
       name: u.name,
       email: u.email,
       role: u.role,
@@ -369,7 +363,7 @@ export const getTeamHoursSummary = async (user?: any): Promise<TeamMemberHoursSu
       avatarUrl: u.avatarUrl,
       assignedHours,
       spentHours,
-      pendingHours,
+      pendingHours: Number(Math.max(assignedHours - spentHours, 0).toFixed(2)),
     };
   });
 };
@@ -377,59 +371,52 @@ export const getTeamHoursSummary = async (user?: any): Promise<TeamMemberHoursSu
 export const getMyEodSummary = async (userId: string) => {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
-
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
   const logs = await TimeLog.find({
     user: userId,
     startTime: { $gte: startOfDay, $lte: endOfDay },
-    durationSeconds: { $gt: 0 }
+    durationSeconds: { $gt: 0 },
   }).populate({
     path: 'task',
     select: 'title status milestone estimatedHours spentHours',
     populate: {
       path: 'milestone',
       select: 'project',
-      populate: {
-        path: 'project',
-        select: 'name'
-      }
-    }
+      populate: { path: 'project', select: 'name' },
+    },
   });
 
   const projectsMap = new Map<string, { id: string; name: string; timeSpent: number; tasks: any[] }>();
 
   for (const log of logs) {
-    if (!log.task) continue;
     const taskDoc: any = log.task;
-    if (!taskDoc.milestone || !taskDoc.milestone.project) continue;
+    if (!taskDoc?.milestone?.project) continue;
 
-    const projectId = taskDoc.milestone.project._id.toString();
-    const projectName = taskDoc.milestone.project.name;
-    
+    const projectId = String(taskDoc.milestone.project._id);
     if (!projectsMap.has(projectId)) {
-      projectsMap.set(projectId, { id: projectId, name: projectName, timeSpent: 0, tasks: [] });
+      projectsMap.set(projectId, { id: projectId, name: taskDoc.milestone.project.name, timeSpent: 0, tasks: [] });
     }
-    
+
     const projectData = projectsMap.get(projectId)!;
     projectData.timeSpent += (log.durationSeconds || 0) / 3600;
-    
-    if (taskDoc.status === 'in_review') {
-      if (!projectData.tasks.find((t: any) => t.id === taskDoc._id.toString())) {
-        projectData.tasks.push({ 
-          id: taskDoc._id.toString(), 
-          title: taskDoc.title,
-          estimatedHours: taskDoc.estimatedHours || 0,
-          spentHours: taskDoc.spentHours || 0
-        });
-      }
+
+    // Every task worked on today is listed, not just the ones that reached review
+    if (!projectData.tasks.find((t) => t.id === String(taskDoc._id))) {
+      projectData.tasks.push({
+        id: String(taskDoc._id),
+        title: taskDoc.title,
+        status: taskDoc.status,
+        estimatedHours: taskDoc.estimatedHours || 0,
+        spentHours: taskDoc.spentHours || 0,
+      });
     }
   }
 
-  const projects = Array.from(projectsMap.values()).map(p => ({
+  const projects = Array.from(projectsMap.values()).map((p) => ({
     ...p,
-    timeSpent: Number(p.timeSpent.toFixed(2))
+    timeSpent: Number(p.timeSpent.toFixed(2)),
   }));
 
   return { projects };

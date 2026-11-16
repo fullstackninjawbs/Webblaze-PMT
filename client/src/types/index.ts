@@ -23,10 +23,12 @@ export enum MilestoneStatus {
 }
 
 export enum TaskStatus {
+  UNASSIGNED = 'unassigned',
   ASSIGNED = 'assigned',
   IN_PROGRESS = 'in_progress',
   IN_REVIEW = 'in_review',
   COMPLETED = 'completed',
+  ON_HOLD = 'on_hold',
 }
 
 export enum Department {

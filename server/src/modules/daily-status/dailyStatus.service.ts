@@ -1,13 +1,18 @@
 import { DailyStatus, IDailyStatus } from './dailyStatus.model';
+import { User } from '../users/user.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
+import { normalizeDept } from '../../utils/department';
+import { RequestUser, getUserId } from '../../utils/access';
+
+const populateOptions = [
+  { path: 'user', select: 'name email avatarUrl role department' },
+  { path: 'project', select: 'name' },
+];
 
 export const createDailyStatus = async (data: Partial<IDailyStatus>): Promise<IDailyStatus> => {
   const dailyStatus = await DailyStatus.create(data);
-  return dailyStatus.populate([
-    { path: 'user', select: 'name email avatarUrl role' },
-    { path: 'project', select: 'name' }
-  ]);
+  return dailyStatus.populate(populateOptions);
 };
 
 export const getMyDailyStatuses = async (userId: string): Promise<IDailyStatus[]> => {
@@ -16,14 +21,29 @@ export const getMyDailyStatuses = async (userId: string): Promise<IDailyStatus[]
     .sort({ date: -1, createdAt: -1 });
 };
 
-export const getTeamDailyStatuses = async (userRole: Role, userId: string): Promise<IDailyStatus[]> => {
-  // Access control check: Only Admin, PM, and Team Leads can view team status logs
-  if (userRole !== Role.ADMIN && userRole !== Role.PM && userRole !== Role.TEAM_LEAD) {
+/**
+ * Team view:
+ *  - Admin / PM see everyone
+ *  - Team Lead sees their own department only
+ */
+export const getTeamDailyStatuses = async (user: RequestUser): Promise<IDailyStatus[]> => {
+  const query: any = {};
+
+  if (user.role === Role.TEAM_LEAD) {
+    if (user.department) {
+      const regexes = normalizeDept(user.department).map((d) => new RegExp(d, 'i'));
+      const deptUsers = await User.find({
+        $or: [{ department: { $in: regexes } }, { department: user.department }],
+      }).select('_id');
+      query.user = { $in: deptUsers.map((u) => u._id) };
+    } else {
+      query.user = getUserId(user);
+    }
+  } else if (user.role !== Role.ADMIN && user.role !== Role.PM) {
     throw new ApiError(403, 'You do not have permission to view team status logs');
   }
 
-  return DailyStatus.find()
-    .populate('user', 'name email avatarUrl role department')
-    .populate('project', 'name')
+  return DailyStatus.find(query)
+    .populate(populateOptions)
     .sort({ date: -1, createdAt: -1 });
 };

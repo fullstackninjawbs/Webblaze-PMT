@@ -25,7 +25,7 @@ export const GlobalSearchModal = ({ opened, onClose }: GlobalSearchModalProps) =
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const { data: projectsData } = useGetProjectsQuery({ limit: 1000 }, { skip: !opened });
-  const { data: tasksData } = useGetAllTasksQuery(undefined, { skip: !opened });
+  const { data: tasksData } = useGetAllTasksQuery({ limit: 1000 }, { skip: !opened });
   const { data: clientsData } = useGetClientsQuery(undefined, { skip: !opened });
   const { data: invoicesData } = useGetInvoicesQuery(undefined, { skip: !opened });
   const { data: usersData } = useGetUsersQuery({ limit: 1000 }, { skip: !opened });

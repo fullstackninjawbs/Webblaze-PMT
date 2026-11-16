@@ -8,9 +8,10 @@ import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 import { ArrowLeft, Save, Edit } from 'lucide-react';
-import { useGetMilestoneByIdQuery, useUpdateMilestoneMutation } from './milestone.slice';
+import { useGetMilestoneByIdQuery, useUpdateMilestoneMutation, useGetMilestonesByProjectQuery } from './milestone.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
+import { getPreviousMilestoneAnchor, validateStartAgainstAnchor, describeAnchor } from '../../utils/milestoneSequence';
 
 const milestoneSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -37,7 +38,18 @@ export const MilestoneEditPage: React.FC = () => {
   const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
 
   const milestone = milestoneData?.data;
-  const project = projectsData?.data?.find(p => p._id === (projectId || milestone?.project));
+  const milestoneProjectId =
+    projectId || (typeof milestone?.project === 'object' ? (milestone?.project as any)?._id : milestone?.project);
+  const project = projectsData?.data?.find(p => p._id === milestoneProjectId);
+
+  const { data: milestonesData } = useGetMilestonesByProjectQuery(
+    { projectId: milestoneProjectId!, limit: 1000 },
+    { skip: !milestoneProjectId }
+  );
+  const anchor = React.useMemo(
+    () => getPreviousMilestoneAnchor(milestonesData?.data || [], milestone),
+    [milestonesData, milestone]
+  );
 
   const form = useForm({
     initialValues: {
@@ -68,6 +80,11 @@ export const MilestoneEditPage: React.FC = () => {
 
   const handleSubmit = async (values: typeof form.values) => {
     if (!id) return;
+    const sequenceError = validateStartAgainstAnchor(values.startDate, anchor, false);
+    if (sequenceError) {
+      form.setFieldError('startDate', sequenceError);
+      return;
+    }
     try {
       const sDate = values.startDate ? parseLocalDateString(values.startDate) : undefined;
       const eDate = values.endDate ? parseLocalDateString(values.endDate) : undefined;
@@ -178,6 +195,8 @@ export const MilestoneEditPage: React.FC = () => {
                 label="Start Date"
                 placeholder="Pick start date"
                 radius="md"
+                description={describeAnchor(anchor)}
+                minDate={anchor?.minStartDate}
                 maxDate={form.values.endDate ? parseLocalDateString(form.values.endDate) || undefined : undefined}
                 value={form.values.startDate ? parseLocalDateString(form.values.startDate) : null}
                 onChange={(date) =>

@@ -136,6 +136,7 @@ export const computeDerivedFields = async (proposal: Partial<IProposal> | any) =
 import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
 import { Role } from '../../types';
 import { Project } from '../projects/project.model';
+import { Client } from '../clients/client.model';
 import { ApiError } from '../../utils/ApiError';
 
 export class ProposalService {
@@ -279,16 +280,27 @@ export class ProposalService {
     if (proposal.currentStage !== 'won') throw new ApiError(400, 'Only WON proposals can be converted');
     if (proposal.convertedProjectId) throw new ApiError(400, 'Proposal is already converted');
 
-    // Create project logic
+    // A project requires a Client record: reuse one with the same name, otherwise create it
+    const clientName = (proposal.clientName || 'Unknown Client').trim();
+    let client = await Client.findOne({ name: new RegExp(`^${clientName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
+    if (!client) {
+      client = await Client.create({
+        name: clientName,
+        country: proposal.clientCountry,
+        source: 'upwork',
+        billingType: proposal.jobType === 'hourly' ? 'hourly' : 'fixed',
+        createdBy: user._id,
+      });
+    }
+
     const newProject = await Project.create({
       name: proposal.jobTitle || 'New Project from Proposal',
+      client: client._id,
       description: proposal.notes || '',
       status: 'new',
-      billingType: proposal.jobType === 'hourly' ? 'hourly' : 'fixed',
+      type: proposal.serviceCategory,
       totalBudget: proposal.wonRevenue || proposal.estimatedProjectValue || proposal.jobBudget || 0,
-      clientName: proposal.clientName || 'Unknown Client',
-      // We don't automatically create a client model because standard app behavior uses raw strings for clientName or similar, but we adapt to whatever `Project` needs
-      createdBy: user._id
+      createdBy: user._id,
     });
 
     proposal.convertedProjectId = newProject._id as any;

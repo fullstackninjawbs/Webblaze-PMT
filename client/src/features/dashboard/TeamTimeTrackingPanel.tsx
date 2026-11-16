@@ -5,7 +5,7 @@ import { useGetTeamTimeLogsQuery } from '../timelogs/timeLog.slice';
 import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 
 export const TeamTimeTrackingPanel: React.FC = () => {
-  const { data: logsData, isLoading } = useGetTeamTimeLogsQuery();
+  const { data: logsData, isLoading } = useGetTeamTimeLogsQuery({ limit: 1000 });
   const logs = logsData?.data || [];
 
   // Group logs by user for today's total logged time

@@ -114,7 +114,12 @@ export const ProjectsList: React.FC = () => {
     return dbTasks.reduce((acc: number, t: any) => acc + (t.spentHours || 0), 0);
   }, [dbTasks]);
   const myAssignedProjectsCount = useMemo(() => {
-    const pIds = new Set(dbTasks.map((t: any) => t.project));
+    const pIds = new Set(
+      dbTasks
+        .map((t: any) => t.milestone?.project?._id || t.milestone?.project || t.project?._id || t.project)
+        .filter(Boolean)
+        .map(String)
+    );
     return pIds.size;
   }, [dbTasks]);
   const weeklyGoalPercent = Math.min(Math.round((totalLoggedHours / 40) * 100), 100);
@@ -641,7 +646,7 @@ export const ProjectsList: React.FC = () => {
                 <Table.Tr>
                   <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROJECT</Table.Th>
                   <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
-                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>LOGGED HOURS</Table.Th>
                   {isFinancialsVisible && (
                     <>
                       <Table.Th>Total Amount</Table.Th>

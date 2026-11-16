@@ -66,11 +66,18 @@ export const TaskCreatePage: React.FC = () => {
   const currentProject = projects.find(p => p._id === selectedProjectId);
   const projectDept = currentProject ? normalizeFrontendDept(currentProject.type || '') : '';
 
-  const filteredUsers = users.filter(u => {
-    if (u.role !== 'team_lead' && u.role !== 'team_member') return false;
-    if (!projectDept) return true;
-    return normalizeFrontendDept(u.department || '') === projectDept;
-  });
+  // Assignees are the project's team (Team tab). With no team yet, fall back to all leads/members;
+  // the server adds whoever is assigned to the project team automatically.
+  const projectTeam = ((currentProject?.team || []) as any[]);
+  const hasProjectTeam = projectTeam.length > 0;
+  const filteredUsers: any[] = hasProjectTeam
+    ? projectTeam
+    : users.filter(u => u.role === 'team_lead' || u.role === 'team_member');
+  const assigneeHint = !selectedProjectId
+    ? 'Select a project first'
+    : hasProjectTeam
+      ? "Members from this project's Team tab"
+      : 'No team added yet. Showing all team leads and members.';
 
   const form = useForm({
     initialValues: {
@@ -227,8 +234,10 @@ export const TaskCreatePage: React.FC = () => {
 
               <Select
                 label="Assignee"
+                description={assigneeHint}
                 placeholder="Select team member"
-                data={filteredUsers.map(u => ({ value: u._id, label: `${u.name} (${u.role.replace('_', ' ')})` }))}
+                disabled={!selectedProjectId}
+                data={filteredUsers.map(u => ({ value: u._id, label: `${u.name} (${(u.role || '').replace('_', ' ')})` }))}
                 searchable
                 clearable
                 radius="md"

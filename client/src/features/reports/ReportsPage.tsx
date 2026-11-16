@@ -12,8 +12,8 @@ export const ReportsPage: React.FC = () => {
 
   // Queries
   const { data: projectsData, isLoading: projectsLoading } = useGetProjectsQuery({ limit: 1000 });
-  const { data: tasksData, isLoading: tasksLoading } = useGetAllTasksQuery();
-  const { data: timeLogsData, isLoading: logsLoading } = useGetTeamTimeLogsQuery();
+  const { data: tasksData, isLoading: tasksLoading } = useGetAllTasksQuery({ limit: 1000 });
+  const { data: timeLogsData, isLoading: logsLoading } = useGetTeamTimeLogsQuery({ limit: 1000 });
   const { data: usersData, isLoading: usersLoading } = useGetUsersQuery({ limit: 1000 });
 
   const projects = projectsData?.data || [];

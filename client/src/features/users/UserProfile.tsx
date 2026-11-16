@@ -91,7 +91,7 @@ export const UserProfile: React.FC = () => {
   const { data: userData, isLoading: isUserLoading } = useGetUserByIdQuery(id!);
   const { data: tasksData, isLoading: isTasksLoading } = useGetTasksByUserQuery({ userId: id!, limit: 1000 }, { skip: !id });
   const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
-  const { data: timeLogsData } = useGetTeamTimeLogsQuery();
+  const { data: timeLogsData } = useGetTeamTimeLogsQuery({ limit: 1000 });
 
   const { data: myDailyLogsData, isLoading: isMyLogsLoading } = useGetMyDailyStatusesQuery();
   const { data: teamLogsData, isLoading: isTeamLogsLoading } = useGetTeamDailyStatusesQuery(

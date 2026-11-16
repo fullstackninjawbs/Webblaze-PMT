@@ -8,9 +8,10 @@ import { DatePickerInput } from '@mantine/dates';
 import { useForm, zodResolver } from '@mantine/form';
 import { z } from 'zod';
 import { ArrowLeft, Save, Flag } from 'lucide-react';
-import { useCreateMilestoneMutation } from './milestone.slice';
+import { useCreateMilestoneMutation, useGetMilestonesByProjectQuery } from './milestone.slice';
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
+import { getPreviousMilestoneAnchor, validateStartAgainstAnchor, describeAnchor } from '../../utils/milestoneSequence';
 
 const milestoneSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -37,6 +38,15 @@ export const MilestoneCreatePage: React.FC = () => {
 
   const project = projectsData?.data?.find(p => p._id === projectId);
 
+  const { data: milestonesData } = useGetMilestonesByProjectQuery(
+    { projectId: projectId!, limit: 1000 },
+    { skip: !projectId }
+  );
+  const anchor = React.useMemo(
+    () => getPreviousMilestoneAnchor(milestonesData?.data || []),
+    [milestonesData]
+  );
+
   const form = useForm({
     initialValues: {
       title: '',
@@ -51,6 +61,11 @@ export const MilestoneCreatePage: React.FC = () => {
 
   const handleSubmit = async (values: typeof form.values) => {
     if (!projectId) return;
+    const sequenceError = validateStartAgainstAnchor(values.startDate, anchor, true);
+    if (sequenceError) {
+      form.setFieldError('startDate', sequenceError);
+      return;
+    }
     try {
       const sDate = values.startDate ? parseLocalDateString(values.startDate) : undefined;
       const eDate = values.endDate ? parseLocalDateString(values.endDate) : undefined;
@@ -154,6 +169,9 @@ export const MilestoneCreatePage: React.FC = () => {
                 label="Start Date"
                 placeholder="Pick start date"
                 radius="md"
+                withAsterisk={!!anchor}
+                description={describeAnchor(anchor)}
+                minDate={anchor?.minStartDate}
                 maxDate={form.values.endDate ? parseLocalDateString(form.values.endDate) || undefined : undefined}
                 value={form.values.startDate ? parseLocalDateString(form.values.startDate) : null}
                 onChange={(date) =>

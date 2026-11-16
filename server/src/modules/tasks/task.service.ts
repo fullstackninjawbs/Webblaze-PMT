@@ -1,295 +1,321 @@
 import { Task, ITask } from './task.model';
 import { Milestone } from '../milestones/milestone.model';
-import { User } from '../users/user.model';
-import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
 import { Project } from '../projects/project.model';
+import { User } from '../users/user.model';
+import { TimeLog } from '../timelogs/timeLog.model';
+import { evaluateAndUpdateMilestoneStatus, getAllocatedHours } from '../milestones/milestone.service';
+import { startTimer, stopActiveTimersForTask } from '../timelogs/timeLog.service';
 import { sendTaskAssignmentEmail, sendTaskStatusChangeEmail } from '../../utils/emailService';
 import { ApiError } from '../../utils/ApiError';
 import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
 import { Role } from '../../types';
-import { normalizeDept } from '../../utils/department';
+import {
+  canAccessMilestone,
+  getAccessibleProjectIds,
+  getUserId,
+  isProjectScopedRole,
+  RequestUser,
+} from '../../utils/access';
 
+type TaskStatus = ITask['status'];
+
+const toId = (value: any): string | null => {
+  if (!value) return null;
+  return typeof value === 'object' ? String(value._id ?? value) : String(value);
+};
+
+/** Sum of sibling task estimates + this task must stay within the milestone estimate. */
 const enforceHourCap = async (milestoneId: string, estimatedHours: number, currentTaskId?: string) => {
   const milestone = await Milestone.findById(milestoneId);
   if (!milestone) {
     throw new ApiError(404, 'Milestone not found');
   }
 
-  const query: any = { milestone: milestoneId };
-  if (currentTaskId) {
-    query._id = { $ne: currentTaskId };
-  }
-
-  const siblingTasks = await Task.find(query);
-  const sumOfSiblingHours = siblingTasks.reduce((sum, task) => sum + task.estimatedHours, 0);
-
-  if (sumOfSiblingHours + estimatedHours > milestone.estimatedHours) {
+  const allocated = await getAllocatedHours(milestoneId, currentTaskId);
+  if (allocated + estimatedHours > milestone.estimatedHours) {
     throw new ApiError(
       400,
-      `Task exceeds milestone estimated hours. Milestone budget: ${milestone.estimatedHours}, Used: ${sumOfSiblingHours}, Task: ${estimatedHours}`
+      `Task exceeds milestone estimated hours. Milestone budget: ${milestone.estimatedHours}h, already allocated: ${allocated}h, this task: ${estimatedHours}h`
     );
   }
 };
 
+/** A person assigned to a task automatically belongs to the project team. */
+const ensureAssigneeOnProjectTeam = async (milestoneId: any, assigneeId: any) => {
+  if (!milestoneId || !assigneeId) return;
+  const milestone = await Milestone.findById(milestoneId).select('project');
+  if (!milestone) return;
+  await Project.updateOne({ _id: milestone.project }, { $addToSet: { team: assigneeId } });
+};
+
+/** Milestone ids visible to the user, for scoping task lists. */
+const getAccessibleMilestoneIds = async (user: RequestUser) => {
+  const projectIds = await getAccessibleProjectIds(user);
+  return Milestone.find({ project: { $in: projectIds } }).distinct('_id');
+};
+
+const notifyAssignment = async (task: ITask) => {
+  const assigneeId = toId(task.assignedTo);
+  if (!assigneeId) return;
+  const assignedUser = await User.findById(assigneeId);
+  if (!assignedUser?.email) return;
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  sendTaskAssignmentEmail({
+    to: assignedUser.email,
+    assigneeName: assignedUser.name,
+    taskTitle: task.title,
+    taskDescription: task.description,
+    estimatedHours: task.estimatedHours,
+    department: task.department,
+    taskUrl: `${clientUrl}/tasks/${task._id}`,
+  }).catch((err) => console.error('Task assignment email error:', err));
+};
+
+const notifyStatusChange = async (task: ITask, oldStatus: TaskStatus, newStatus: TaskStatus) => {
+  const assigneeId = toId(task.assignedTo);
+  if (!assigneeId) return;
+  const assignedUser = await User.findById(assigneeId);
+  if (!assignedUser?.email) return;
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  sendTaskStatusChangeEmail({
+    to: assignedUser.email,
+    recipientName: assignedUser.name,
+    taskTitle: task.title,
+    oldStatus,
+    newStatus,
+    taskUrl: `${clientUrl}/tasks/${task._id}`,
+  }).catch((err) => console.error('Task status change email error:', err));
+};
+
 export const createTask = async (data: Partial<ITask>): Promise<ITask> => {
-  if (data.milestone) {
-    const milestone = await Milestone.findById(data.milestone).populate('project');
-    if (milestone) {
-      const project = milestone.project as any;
-      if (project && project.status === 'completed') {
-        throw new ApiError(400, 'Cannot add tasks to a completed project');
-      }
-    }
+  if (!data.milestone) {
+    throw new ApiError(400, 'Milestone is required');
   }
 
-  await enforceHourCap(data.milestone as unknown as string, data.estimatedHours!);
-  
-  if (data.assignedTo && !data.status) {
-    data.status = 'assigned';
+  const milestone = await Milestone.findById(data.milestone).populate('project');
+  if (!milestone) {
+    throw new ApiError(404, 'Milestone not found');
+  }
+  const project = milestone.project as any;
+  if (project?.status === 'completed') {
+    throw new ApiError(400, 'Cannot add tasks to a completed project');
+  }
+  if (milestone.status === 'completed' || milestone.status === 'cancelled') {
+    throw new ApiError(400, `Cannot add tasks to a ${milestone.status} milestone`);
   }
 
-  const task = await Task.create(data);
-  if (data.milestone) {
-    await evaluateAndUpdateMilestoneStatus(data.milestone as unknown as string);
-  }
+  await enforceHourCap(String(milestone._id), data.estimatedHours!);
 
-  // Send assignment email notification if assignedTo is provided
-  if (task.assignedTo) {
-    const assignedUser = await User.findById(task.assignedTo);
-    if (assignedUser && assignedUser.email) {
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-      sendTaskAssignmentEmail({
-        to: assignedUser.email,
-        assigneeName: assignedUser.name,
-        taskTitle: task.title,
-        taskDescription: task.description,
-        estimatedHours: task.estimatedHours,
-        department: task.department,
-        taskUrl: `${clientUrl}/tasks/${task._id}`,
-      }).catch((err) => console.error('Task assignment email error:', err));
-    }
-  }
+  // Derived fields are never accepted from the client
+  const { spentHours: _spent, status: requestedStatus, ...safeData } = data as any;
+
+  // Status follows assignment unless the creator explicitly picked something else
+  safeData.status = requestedStatus || (safeData.assignedTo ? 'assigned' : 'unassigned');
+  safeData.spentHours = 0;
+
+  const task = await Task.create(safeData);
+
+  await ensureAssigneeOnProjectTeam(task.milestone, task.assignedTo);
+  await evaluateAndUpdateMilestoneStatus(String(task.milestone));
+  await notifyAssignment(task);
 
   return task;
 };
 
-
-export const getTasksByMilestone = async (milestoneId: string, user?: any, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
-  let query: any = { milestone: milestoneId };
-
-  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
-    const projects = await Project.find({ team: user.id || user._id });
-    const projectIds = projects.map(p => p._id);
-    const milestones = await Milestone.find({ project: { $in: projectIds } });
-    const milestoneIds = milestones.map(m => m._id.toString());
-    
-    if (!milestoneIds.includes(milestoneId.toString())) {
-      // If the milestone doesn't belong to a project the user is assigned to, return empty
-      query.milestone = null;
-    }
+export const getTasksByMilestone = async (
+  milestoneId: string,
+  user?: RequestUser,
+  params: PaginationParams = {}
+): Promise<PaginatedResult<ITask>> => {
+  if (user && !(await canAccessMilestone(user, milestoneId))) {
+    throw new ApiError(403, 'You do not have access to this milestone');
   }
 
-  if (params.status && params.status !== 'all') {
-    query.status = params.status;
-  }
-  if (params.search) {
-    query.title = { $regex: new RegExp(params.search, 'i') };
-  }
+  const query: any = { milestone: milestoneId };
+  if (params.status && params.status !== 'all') query.status = params.status;
+  if (params.search) query.title = { $regex: new RegExp(String(params.search), 'i') };
 
-  const populateOptions = [
-    { path: 'assignedTo', select: 'name email avatarUrl role department' }
-  ];
-
-  return paginate(Task, query, params, populateOptions);
-};
-
-export const getTasksByUser = async (userId: string, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
-  const query: any = { assignedTo: userId };
-  if (params.status && params.status !== 'all') {
-    query.status = params.status;
-  }
-  if (params.search) {
-    query.title = { $regex: new RegExp(params.search, 'i') };
-  }
-
-  const populateOptions = [
-    {
-      path: 'milestone',
-      populate: {
-        path: 'project',
-        select: 'name client type',
-      },
-    }
-  ];
-  return paginate(Task, query, params, populateOptions);
-};
-
-export const getAllTasks = async (user?: any, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
-  let query: any = {};
-
-  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
-    const projects = await Project.find({ team: user.id || user._id });
-    const projectIds = projects.map(p => p._id);
-    const milestones = await Milestone.find({ project: { $in: projectIds } });
-    const milestoneIds = milestones.map(m => m._id);
-    
-    query.milestone = { $in: milestoneIds };
-  }
-
-  if (params.status && params.status !== 'all') {
-    query.status = params.status;
-  }
-  if (params.search) {
-    query.title = { $regex: new RegExp(params.search, 'i') };
-  }
-  if (params.department && params.department !== 'all') {
-    query.department = { $regex: new RegExp(params.department, 'i') };
-  }
-  if (params.userId && params.userId !== 'all') {
-    query.assignedTo = params.userId;
-  }
-
-  const populateOptions = [
+  return paginate(Task, query, params, [
     { path: 'assignedTo', select: 'name email avatarUrl role department' },
-    {
-      path: 'milestone',
-      populate: { path: 'project', select: 'name client type' }
-    }
-  ];
-
-  return paginate(Task, query, params, populateOptions);
+  ]);
 };
 
-export const getTaskById = async (id: string, user?: any): Promise<ITask> => {
+export const getTasksByUser = async (
+  userId: string,
+  params: PaginationParams = {},
+  requester?: RequestUser
+): Promise<PaginatedResult<ITask>> => {
+  // A team member can only list their own tasks
+  if (requester?.role === Role.TEAM_MEMBER && getUserId(requester) !== String(userId)) {
+    throw new ApiError(403, 'You can only view your own tasks');
+  }
+
+  const query: any = { assignedTo: userId };
+  if (params.status && params.status !== 'all') query.status = params.status;
+  if (params.search) query.title = { $regex: new RegExp(String(params.search), 'i') };
+
+  return paginate(Task, query, params, [
+    { path: 'assignedTo', select: 'name email avatarUrl role department' },
+    { path: 'milestone', populate: { path: 'project', select: 'name client type' } },
+  ]);
+};
+
+export const getAllTasks = async (user?: RequestUser, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
+  const query: any = {};
+
+  if (user && isProjectScopedRole(user.role)) {
+    query.milestone = { $in: await getAccessibleMilestoneIds(user) };
+  }
+
+  if (params.status && params.status !== 'all') query.status = params.status;
+  if (params.search) query.title = { $regex: new RegExp(String(params.search), 'i') };
+  if (params.department && params.department !== 'all') {
+    query.department = { $regex: new RegExp(String(params.department), 'i') };
+  }
+  if (params.userId && params.userId !== 'all') query.assignedTo = params.userId;
+
+  return paginate(Task, query, params, [
+    { path: 'assignedTo', select: 'name email avatarUrl role department' },
+    { path: 'milestone', populate: { path: 'project', select: 'name client type' } },
+  ]);
+};
+
+export const getTaskById = async (id: string, user?: RequestUser): Promise<ITask> => {
   const task = await Task.findById(id)
     .populate('assignedTo', 'name email avatarUrl role')
-    .populate({
-      path: 'attachments',
-      populate: { path: 'uploadedBy', select: 'name' }
-    });
+    .populate({ path: 'attachments', populate: { path: 'uploadedBy', select: 'name' } });
   if (!task) {
     throw new ApiError(404, 'Task not found');
   }
 
-  if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
-    const projects = await Project.find({ team: user.id || user._id });
-    const projectIds = projects.map(p => p._id);
-    const milestones = await Milestone.find({ project: { $in: projectIds } });
-    const milestoneIds = milestones.map(m => m._id.toString());
-    
-    if (task.milestone && !milestoneIds.includes(task.milestone.toString())) {
-      throw new ApiError(403, 'Forbidden: You do not have access to this project/task');
-    }
+  if (user && task.milestone && !(await canAccessMilestone(user, task.milestone))) {
+    throw new ApiError(403, 'Forbidden: You do not have access to this project/task');
   }
 
   return task;
 };
 
-export const updateTask = async (
-  id: string,
-  updateData: Partial<ITask>,
-  user?: { id?: string; _id?: string; role?: Role, department?: string }
-): Promise<ITask> => {
+/**
+ * Status and timers are coupled:
+ *  - the assignee moving a task to in_progress starts their timer on it
+ *  - any move away from in_progress stops every running timer on the task
+ *  - only Admin / PM may mark a task completed (checked in the controller)
+ */
+export const updateTask = async (id: string, updateData: Partial<ITask>, user?: RequestUser): Promise<ITask> => {
   const task = await getTaskById(id, user);
+  const actorId = user ? getUserId(user) : null;
+  const previousAssigneeId = toId(task.assignedTo);
+  const previousStatus = task.status;
 
-  if (user && user.role === Role.TEAM_MEMBER) {
-    const currentUserId = (user.id || user._id)?.toString();
-    const assignedId = task.assignedTo ? (typeof task.assignedTo === 'object' ? (task.assignedTo as any)._id?.toString() : String(task.assignedTo)) : null;
-    if (!assignedId || assignedId !== currentUserId) {
+  if (user?.role === Role.TEAM_MEMBER) {
+    if (!previousAssigneeId || previousAssigneeId !== actorId) {
       throw new ApiError(403, 'Forbidden: You can only update tasks assigned to you');
+    }
+    // Team members work on tasks; they do not re-plan or re-assign them
+    const managedFields: (keyof ITask)[] = ['assignedTo', 'estimatedHours', 'milestone', 'startDate', 'endDate', 'department'];
+    for (const field of managedFields) {
+      if (field in updateData) delete (updateData as any)[field];
     }
   }
 
+  // Derived field: only time logs change spentHours
+  delete (updateData as any).spentHours;
+
   if (updateData.estimatedHours !== undefined && updateData.estimatedHours !== task.estimatedHours) {
-    await enforceHourCap(task.milestone as unknown as string, updateData.estimatedHours, id);
+    const milestoneId = toId(task.milestone)!;
+    await enforceHourCap(milestoneId, updateData.estimatedHours, id);
+    if (updateData.estimatedHours < (task.spentHours || 0)) {
+      throw new ApiError(400, `Estimate cannot be below the ${task.spentHours}h already logged on this task`);
+    }
   }
 
-  if (updateData.assignedTo && (!task.status || task.status === 'unassigned') && !updateData.status) {
-    updateData.status = 'assigned';
+  const assignmentChanged = 'assignedTo' in updateData && toId(updateData.assignedTo) !== previousAssigneeId;
+  const nextAssigneeId = assignmentChanged ? toId(updateData.assignedTo) : previousAssigneeId;
+
+  // Status follows assignment when the caller did not pick a status explicitly
+  if (assignmentChanged && updateData.status === undefined) {
+    if (nextAssigneeId && (previousStatus === 'unassigned' || !previousStatus)) {
+      updateData.status = 'assigned';
+    } else if (!nextAssigneeId && previousStatus !== 'completed') {
+      updateData.status = 'unassigned';
+    }
+  }
+  if (updateData.status === 'assigned' && !nextAssigneeId) {
+    updateData.status = 'unassigned';
+  }
+  if (updateData.status === 'in_progress' && !nextAssigneeId) {
+    throw new ApiError(400, 'Assign the task to someone before starting work on it');
+  }
+  if (updateData.status === 'in_progress' && task.estimatedHours > 0 && (task.spentHours || 0) >= task.estimatedHours) {
+    throw new ApiError(400, `Task estimate (${task.estimatedHours}h) is already used up. Increase the estimate or move it to review.`);
   }
 
-  const updatedTask = await Task.findByIdAndUpdate(id, updateData, {
-    new: true,
-    runValidators: true,
-  })
-    .populate('assignedTo', 'name email avatarUrl role')
-    .populate({
-      path: 'attachments',
-      populate: { path: 'uploadedBy', select: 'name' }
-    });
+  const statusChanged = updateData.status !== undefined && updateData.status !== previousStatus;
+  const leavingInProgress = statusChanged && previousStatus === 'in_progress';
+  const enteringInProgress = statusChanged && updateData.status === 'in_progress';
 
+  // Moving away from in_progress ends all running timers on the task first,
+  // so the logged hours are final before the status is written.
+  if (leavingInProgress || (assignmentChanged && previousStatus === 'in_progress')) {
+    await stopActiveTimersForTask(id, `Auto-stopped: task moved to ${updateData.status || 'reassigned'}`);
+  }
+
+  const updatedTask = await Task.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
   if (!updatedTask) {
     throw new ApiError(404, 'Task not found after update');
   }
 
-  // Auto-recalculate status based on spentHours vs estimatedHours
-  // If estimatedHours was changed, we may need to update status
+  // Assignee pressing "In Progress" starts their timer on this task
+  if (enteringInProgress && user && actorId && nextAssigneeId === actorId) {
+    await startTimer(user, id);
+  }
+
+  // Estimate changed: re-check cap-based transitions
   if (updateData.estimatedHours !== undefined && updateData.status === undefined) {
-    const spentHours = updatedTask.spentHours || 0;
-    const newEstimated = updatedTask.estimatedHours;
-
-    if (spentHours >= newEstimated && updatedTask.status !== 'completed') {
-      // Hours used up — auto-complete
-      await Task.findByIdAndUpdate(id, { status: 'completed' });
-      updatedTask.status = 'completed';
-    } else if (spentHours < newEstimated && updatedTask.status === 'completed') {
-      // Estimated hours increased above spent — reopen to in_progress
-      const newStatus = spentHours > 0 ? 'in_progress' : 'assigned';
-      await Task.findByIdAndUpdate(id, { status: newStatus });
-      updatedTask.status = newStatus as ITask['status'];
+    const spent = updatedTask.spentHours || 0;
+    if (updatedTask.estimatedHours > 0 && spent >= updatedTask.estimatedHours && updatedTask.status === 'in_progress') {
+      await stopActiveTimersForTask(id, 'Auto-stopped: estimate reached');
+      await Task.updateOne({ _id: id }, { status: 'in_review' });
+    } else if (spent < updatedTask.estimatedHours && updatedTask.status === 'in_review' && previousStatus === 'in_review') {
+      // Estimate raised above logged hours: the task has room again
+      await Task.updateOne({ _id: id }, { status: spent > 0 ? 'in_progress' : 'assigned' });
     }
   }
 
-  const milestoneId = typeof updatedTask.milestone === 'object' ? (updatedTask.milestone as any)?._id : updatedTask.milestone;
+  if (assignmentChanged && nextAssigneeId) {
+    await ensureAssigneeOnProjectTeam(updatedTask.milestone, nextAssigneeId);
+  }
+
+  const milestoneId = toId(updatedTask.milestone);
   if (milestoneId) {
-    await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
+    await evaluateAndUpdateMilestoneStatus(milestoneId);
   }
 
-  // Email Notifications
-  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-
-  // 1. Assignment change email
-  if (updateData.assignedTo && updateData.assignedTo.toString() !== (task.assignedTo ? task.assignedTo.toString() : '')) {
-    const assignedUser = await User.findById(updateData.assignedTo);
-    if (assignedUser && assignedUser.email) {
-      sendTaskAssignmentEmail({
-        to: assignedUser.email,
-        assigneeName: assignedUser.name,
-        taskTitle: updatedTask.title,
-        taskDescription: updatedTask.description,
-        estimatedHours: updatedTask.estimatedHours,
-        department: updatedTask.department,
-        taskUrl: `${clientUrl}/tasks/${updatedTask._id}`,
-      }).catch((err) => console.error('Task assignment email error:', err));
-    }
+  const finalTask = await Task.findById(id)
+    .populate('assignedTo', 'name email avatarUrl role')
+    .populate({ path: 'attachments', populate: { path: 'uploadedBy', select: 'name' } });
+  if (!finalTask) {
+    throw new ApiError(404, 'Task not found after update');
   }
 
-  // 2. Status change email
-  if (updateData.status && updateData.status !== task.status) {
-    const assigneeObj = updatedTask.assignedTo as any;
-    if (assigneeObj && assigneeObj.email) {
-      sendTaskStatusChangeEmail({
-        to: assigneeObj.email,
-        recipientName: assigneeObj.name,
-        taskTitle: updatedTask.title,
-        oldStatus: task.status,
-        newStatus: updateData.status,
-        taskUrl: `${clientUrl}/tasks/${updatedTask._id}`,
-      }).catch((err) => console.error('Task status change email error:', err));
-    }
+  if (assignmentChanged && nextAssigneeId) {
+    await notifyAssignment(finalTask);
+  }
+  if (statusChanged && finalTask.status !== previousStatus) {
+    await notifyStatusChange(finalTask, previousStatus, finalTask.status);
   }
 
-  return updatedTask;
+  return finalTask;
 };
 
+export const deleteTask = async (id: string, user?: RequestUser): Promise<void> => {
+  const task = await getTaskById(id, user);
+  const milestoneId = toId(task.milestone);
 
-export const deleteTask = async (id: string): Promise<void> => {
-  const task = await Task.findByIdAndDelete(id);
-  if (!task) {
-    throw new ApiError(404, 'Task not found');
-  }
-  const milestoneId = typeof task.milestone === 'object' ? (task.milestone as any)?._id : task.milestone;
+  await TimeLog.deleteMany({ task: id });
+  await task.deleteOne();
+
   if (milestoneId) {
-    await evaluateAndUpdateMilestoneStatus(milestoneId.toString());
+    await evaluateAndUpdateMilestoneStatus(milestoneId);
   }
 };

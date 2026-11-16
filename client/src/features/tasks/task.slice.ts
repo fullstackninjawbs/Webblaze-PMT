@@ -14,7 +14,7 @@ export interface Task {
   startDate?: string;
   endDate?: string;
   assignedTo?: User | string;
-  status: 'assigned' | 'in_progress' | 'in_review' | 'completed';
+  status: 'unassigned' | 'assigned' | 'in_progress' | 'in_review' | 'completed' | 'on_hold';
   attachments?: Attachment[] | string[];
   createdBy: string;
   createdAt: string;
@@ -96,7 +96,9 @@ export const taskApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, body) => [
         { type: 'Task', id: `LIST-MILESTONE-${body.milestone}` },
         { type: 'Task', id: `LIST-USER-${body.assignedTo}` },
-        { type: 'Task', id: 'LIST-ALL' }
+        { type: 'Task', id: 'LIST-ALL' },
+        'Milestone', // milestone status/spent hours roll up from tasks
+        'Project',   // assignee is auto-added to the project team
       ],
     }),
     updateTask: builder.mutation<{ success: boolean; data: Task; message: string }, Partial<Task> & { _id: string }>({
@@ -124,15 +126,19 @@ export const taskApi = baseApi.injectEndpoints({
               },
               'Task',
               'Milestone',
+              'Project',
+              // A status change can start or stop a timer server-side
+              'ActiveTimer',
+              'TimeLog',
             ]
-          : ['Task', 'Milestone'],
+          : ['Task', 'Milestone', 'Project', 'ActiveTimer', 'TimeLog'],
     }),
     deleteTask: builder.mutation<{ success: boolean; data: null; message: string }, string>({
       query: (id) => ({
         url: `/tasks/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Task'],
+      invalidatesTags: ['Task', 'Milestone', 'TimeLog', 'ActiveTimer'],
     }),
   }),
 });

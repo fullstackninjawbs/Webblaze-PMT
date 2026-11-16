@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useGetProjectsQuery, useUpdateProjectMutation } from './project.slice';
 import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 import { useGetMilestonesByProjectQuery, useCreateMilestoneMutation, useUpdateMilestoneMutation, useDeleteMilestoneMutation } from '../milestones/milestone.slice';
-import { useGetTasksByMilestoneQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
+import { useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation, useGetAllTasksQuery } from '../tasks/task.slice';
 import { useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
 import { Container, Title, Text, Button, Group, Card, Badge, Stack, Drawer, TextInput, NumberInput, Loader, Center, Tabs, Progress, SimpleGrid, Table, Select, Tooltip, ActionIcon, FileInput, Textarea, Alert, Modal, MultiSelect, Paper, Grid, Box, Chip } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
@@ -21,6 +21,7 @@ import { UserAvatar } from '../../components/common/UserAvatar';
 import { useUploadFileMutation } from '../uploads/upload.slice';
 import { formatDateDisplay, parseLocalDateString, formatLocalDateString } from '../../utils/dateUtils';
 import { formatHours } from '../../utils/formatHours';
+import { getPreviousMilestoneAnchor, validateStartAgainstAnchor, describeAnchor } from '../../utils/milestoneSequence';
 
 const milestoneSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -88,7 +89,7 @@ export const ProjectDetails = () => {
   const { data: milestonesData, isLoading: isMilestonesLoading } = useGetMilestonesByProjectQuery({ projectId: id!, limit: 1000 });
   const milestones = milestonesData?.data || [];
 
-  const { data: allTasksData } = useGetAllTasksQuery();
+  const { data: allTasksData } = useGetAllTasksQuery({ limit: 1000 });
   const projectTasks = useMemo(() => {
     if (!allTasksData?.data) return [];
     const milestoneIds = new Set(milestones.map((m: any) => String(m._id)));
@@ -147,17 +148,21 @@ export const ProjectDetails = () => {
   const projectSpentHours = milestones.reduce((sum, m) => sum + (m.spentHours || 0), 0);
 
   const { data: usersData } = useGetUsersQuery({ limit: 1000 });
-  const projectDept = project?.type ? normalizeFrontendDept(project.type) : '';
-  const teamOptions = (usersData?.data || [])
-    .filter(u => {
-      if (u.role !== Role.TEAM_LEAD && u.role !== Role.TEAM_MEMBER) return false;
-      if (!projectDept) return true;
-      return normalizeFrontendDept(u.department || '') === projectDept;
-    })
-    .map(u => ({
-      value: u._id,
-      label: `${u.name} (${u.role.replace('_', ' ')})`
-    }));
+
+  // Assignees come from the project's Team tab. If nobody has been added yet, fall back to
+  // every team lead / member so task creation is never blocked (assigning auto-adds them to the team).
+  const projectTeam = (project?.team || []) as any[];
+  const hasProjectTeam = projectTeam.length > 0;
+  const assigneePool = hasProjectTeam
+    ? projectTeam
+    : (usersData?.data || []).filter(u => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER);
+  const teamOptions = assigneePool.map((u: any) => ({
+    value: u._id,
+    label: `${u.name} (${(u.role || '').replace('_', ' ')})`
+  }));
+  const assigneeHint = hasProjectTeam
+    ? 'Members from this project\'s Team tab'
+    : 'No team added yet. Showing all team leads and members; the assignee will be added to the project team.';
 
   const [createMilestone, { isLoading: isCreatingMilestone }] = useCreateMilestoneMutation();
   const [updateMilestone, { isLoading: isUpdatingMilestone }] = useUpdateMilestoneMutation();
@@ -339,7 +344,16 @@ export const ProjectDetails = () => {
     }
   };
 
+  // Sequencing: a new milestone starts after the previous one ends (or starts, if it has no end date)
+  const createAnchor = useMemo(() => getPreviousMilestoneAnchor(milestones), [milestones]);
+  const editAnchor = useMemo(() => getPreviousMilestoneAnchor(milestones, editingMilestone), [milestones, editingMilestone]);
+
   const handleCreateMilestone = async (values: typeof milestoneForm.values) => {
+    const sequenceError = validateStartAgainstAnchor(values.startDate, createAnchor, true);
+    if (sequenceError) {
+      milestoneForm.setFieldError('startDate', sequenceError);
+      return;
+    }
     try {
       const sDate = parseLocalDateString(values.startDate);
       const eDate = parseLocalDateString(values.endDate);
@@ -375,6 +389,11 @@ export const ProjectDetails = () => {
 
   const handleUpdateMilestone = async (values: typeof editMilestoneForm.values) => {
     if (!editingMilestone) return;
+    const sequenceError = validateStartAgainstAnchor(values.startDate, editAnchor, false);
+    if (sequenceError) {
+      editMilestoneForm.setFieldError('startDate', sequenceError);
+      return;
+    }
     try {
       const sDate = parseLocalDateString(values.startDate);
       const eDate = parseLocalDateString(values.endDate);
@@ -909,7 +928,7 @@ export const ProjectDetails = () => {
                         <Table.Th>Start Date</Table.Th>
                         <Table.Th>End Date</Table.Th>
                         <Table.Th>Est. Hours</Table.Th>
-                        <Table.Th>Active Hours</Table.Th>
+                        <Table.Th>Logged Hours</Table.Th>
                         <Table.Th>Status</Table.Th>
                         <Table.Th>Progress</Table.Th>
                         <Table.Th w={150}></Table.Th>
@@ -988,6 +1007,9 @@ export const ProjectDetails = () => {
                 label="Start Date"
                 placeholder="DD Month, YYYY"
                 valueFormat="DD MMMM, YYYY"
+                required={!!createAnchor}
+                description={describeAnchor(createAnchor)}
+                minDate={createAnchor?.minStartDate}
                 maxDate={parseLocalDateString(milestoneForm.values.endDate) || undefined}
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(milestoneForm.values.startDate)}
@@ -1084,7 +1106,7 @@ export const ProjectDetails = () => {
                 radius="md"
               />
             </Group>
-            <Select label="Assign To" placeholder="Leave empty for unassigned" data={teamOptions} searchable clearable {...taskForm.getInputProps('assignedTo')} />
+            <Select label="Assign To" description={assigneeHint} placeholder="Leave empty for unassigned" data={teamOptions} searchable clearable {...taskForm.getInputProps('assignedTo')} />
 
             <FileInput
               label="Attachments"
@@ -1113,6 +1135,8 @@ export const ProjectDetails = () => {
                 label="Start Date"
                 placeholder="DD Month, YYYY"
                 valueFormat="DD MMMM, YYYY"
+                description={describeAnchor(editAnchor)}
+                minDate={editAnchor?.minStartDate}
                 maxDate={parseLocalDateString(editMilestoneForm.values.endDate) || undefined}
                 leftSection={<Calendar size={16} color="#64748b" />}
                 value={parseLocalDateString(editMilestoneForm.values.startDate)}
@@ -1199,7 +1223,7 @@ export const ProjectDetails = () => {
                 radius="md"
               />
             </Group>
-            <Select label="Assign To" placeholder="Leave empty for unassigned" data={teamOptions} searchable clearable {...editTaskForm.getInputProps('assignedTo')} />
+            <Select label="Assign To" description={assigneeHint} placeholder="Leave empty for unassigned" data={teamOptions} searchable clearable {...editTaskForm.getInputProps('assignedTo')} />
 
             <Button type="submit" fullWidth loading={isUpdatingTask} mt="md">
               Update Task
@@ -1305,10 +1329,9 @@ const MilestoneTableRow = ({
   const { user } = useSelector((state: RootState) => state.auth);
   const isCompleted = projectStatus === 'completed';
   const canCreateTask = !isCompleted && (user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER);
-  const { data: tasksData } = useGetTasksByMilestoneQuery(milestone._id);
-  const tasks = tasksData?.data || [];
 
-  const spentHours = tasks.reduce((sum: number, t: any) => sum + (t.spentHours || 0), 0);
+  // spentHours is computed server-side from this milestone's task time logs
+  const spentHours = milestone.spentHours || 0;
   const progressPercent = Math.min((spentHours / (milestone.estimatedHours || 1)) * 100, 100);
 
   const effectiveStatus = milestone.status;
@@ -1342,7 +1365,7 @@ const MilestoneTableRow = ({
         </Text>
       </Table.Td>
 
-      {/* 5. Active Hours */}
+      {/* 5. Logged Hours */}
       <Table.Td onClick={() => navigate(`/projects/${pId}/milestones/${milestone._id}`)} style={{ cursor: 'pointer' }}>
         <Text size="sm" fw={600} style={{ color: spentHours > milestone.estimatedHours ? '#dc2626' : '#2563eb' }}>
           {formatHours(spentHours)}
@@ -1535,7 +1558,7 @@ const ProjectReports = ({ project, milestones }: { project: any; milestones: any
                   <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>STATUS</Table.Th>
                   <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>TASKS DONE</Table.Th>
                   <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>EST. HOURS</Table.Th>
-                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>ACTIVE HOURS</Table.Th>
+                  <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>LOGGED HOURS</Table.Th>
                   <Table.Th style={{ color: '#475569', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>PROGRESS</Table.Th>
                 </Table.Tr>
               </Table.Thead>
@@ -1792,7 +1815,7 @@ const ProjectTasks = ({
               <Table.Th>Department</Table.Th>
               <Table.Th>Assigned To</Table.Th>
               <Table.Th>Est. Time</Table.Th>
-              <Table.Th>Active Hours</Table.Th>
+              <Table.Th>Logged Hours</Table.Th>
               <Table.Th>Progress</Table.Th>
               <Table.Th w={150} style={{ textAlign: 'center' }}>Actions</Table.Th>
             </Table.Tr>
@@ -1901,14 +1924,6 @@ const ProjectTasks = ({
   );
 };
 
-const normalizeFrontendDept = (dept: string) => {
-  if (!dept) return '';
-  const d = dept.toLowerCase().replace(/\s+/g, '');
-  if (d === 'ui/ux' || d === 'design') return 'design';
-  if (d === 'fullstack' || d === 'development') return 'fullstack';
-  return d;
-};
-
 const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectData: any }) => {
   const { data: usersData } = useGetUsersQuery({ limit: 1000 });
   const [updateProject, { isLoading: isUpdating }] = useUpdateProjectMutation();
@@ -1921,14 +1936,8 @@ const ProjectTeam = ({ projectId, projectData }: { projectId: string; projectDat
   const team = projectData?.team || [];
   const allUsers = usersData?.data || [];
 
-  const projectDept = normalizeFrontendDept(projectData?.type || '');
-
-  const assignableUsers = allUsers.filter(u => {
-    if (u.role !== Role.TEAM_LEAD && u.role !== Role.TEAM_MEMBER) return false;
-    if (!projectDept) return true;
-    const userDept = normalizeFrontendDept(u.department || '');
-    return userDept === projectDept;
-  });
+  // Every team lead and team member is assignable, regardless of department
+  const assignableUsers = allUsers.filter(u => u.role === Role.TEAM_LEAD || u.role === Role.TEAM_MEMBER);
 
   const assignableOptions = assignableUsers.map(u => ({
     value: u._id,

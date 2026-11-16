@@ -9,6 +9,7 @@ import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
 import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginate';
+import { getAccessibleProjectIds, getUserId, isProjectScopedRole } from '../../utils/access';
 
 export class ProjectService {
   /**
@@ -58,9 +59,10 @@ export class ProjectService {
     const userRole = user.role;
 
     let allowedDeptRegexes: RegExp[] = [];
-    if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
-      // Strict isolation: TL/TM only see projects where they are explicitly assigned in the team array
-      query.team = user.id || user._id;
+    if (isProjectScopedRole(userRole)) {
+      // TL/TM only see projects they belong to: in the team array OR holding a task assigned to them
+      const accessibleIds = await getAccessibleProjectIds(user);
+      query._id = { $in: accessibleIds };
 
       if (user.department) {
         const deptVariants = normalizeDept(user.department);
@@ -141,22 +143,21 @@ export class ProjectService {
 
     if (!project) throw new ApiError(404, 'Project not found');
 
-    let allowedDeptRegexes: RegExp[] = [];
-    if (userRole === Role.TEAM_LEAD || userRole === Role.TEAM_MEMBER) {
-      // Verify user is explicitly in the team array
-      const isInTeam = project.team.some((member: any) => 
-        member._id.toString() === (user.id || user._id).toString()
-      );
+    if (isProjectScopedRole(userRole)) {
+      const userId = getUserId(user);
+      const isInTeam = project.team.some((member: any) => String(member._id) === userId);
 
       if (!isInTeam) {
-        throw new ApiError(403, 'You do not have access to this project (not assigned to team)');
+        const accessibleIds = await getAccessibleProjectIds(user);
+        const hasAssignedTask = accessibleIds.some((pid) => String(pid) === String(project._id));
+        if (!hasAssignedTask) {
+          throw new ApiError(403, 'You do not have access to this project (not assigned to team)');
+        }
       }
     }
 
     const projectWithProgress = await this.attachProgress(project);
-    let result = this.stripFinancials(projectWithProgress, userRole);
-
-    return result;
+    return this.stripFinancials(projectWithProgress, userRole);
   }
 
   static async updateProject(id: string, data: Partial<IProject>) {
