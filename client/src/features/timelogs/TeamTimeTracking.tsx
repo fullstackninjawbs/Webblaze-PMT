@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Container, Title, Text, Card, Table, Badge, Group, ActionIcon, TextInput, Tabs } from '@mantine/core';
 import { Search, X } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
@@ -19,16 +19,31 @@ export const TeamTimeTracking = () => {
   const logs = logsData?.data || [];
   const query = searchQuery.trim().toLowerCase();
 
+  // Running logs have no durationSeconds yet, so their total is computed live from startTime.
+  const hasRunningLogs = logs.some((log) => !log.endTime);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!hasRunningLogs) return;
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [hasRunningLogs]);
+
+  const getLoggedSeconds = (log: { startTime: string; endTime?: string; durationSeconds?: number }) => {
+    if (log.endTime) return log.durationSeconds || 0;
+    return Math.max(0, Math.floor((now - new Date(log.startTime).getTime()) / 1000));
+  };
+
   const handleTabChange = (val: string | null) => {
     setActiveTab(val);
     resetPage();
   };
 
-  const formatDuration = (seconds?: number) => {
-    if (seconds === undefined || seconds === null) return '0h 0m';
+  const formatDuration = (seconds?: number, withSeconds = false) => {
+    if (seconds === undefined || seconds === null) return withSeconds ? '0h 0m 0s' : '0h 0m';
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
-    return `${h}h ${m}m`;
+    const s = seconds % 60;
+    return withSeconds ? `${h}h ${m}m ${s}s` : `${h}h ${m}m`;
   };
 
   const formatDateTime = (dateStr?: string | Date) => {
@@ -64,8 +79,9 @@ export const TeamTimeTracking = () => {
       const col4_endTime = log.endTime ? formatDateTime(log.endTime).toLowerCase() : 'active running';
 
       // Column 5: TOTAL LOGGED
-      const durationFormatted = formatDuration(log.durationSeconds).toLowerCase();
-      const col5_totalLogged = `${durationFormatted} ${log.durationSeconds || 0}`.toLowerCase();
+      const loggedSeconds = getLoggedSeconds(log);
+      const durationFormatted = formatDuration(loggedSeconds).toLowerCase();
+      const col5_totalLogged = `${durationFormatted} ${loggedSeconds}`.toLowerCase();
 
       // Search match across all 5 columns
       return (
@@ -211,7 +227,9 @@ export const TeamTimeTracking = () => {
                         </Group>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm" fw={600}>{formatDuration(log.durationSeconds)}</Text>
+                        <Text size="sm" fw={600} c="blue" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                          {formatDuration(getLoggedSeconds(log), true)}
+                        </Text>
                       </Table.Td>
                     </Table.Tr>
                   );
@@ -275,7 +293,7 @@ export const TeamTimeTracking = () => {
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm" fw={600}>{formatDuration(log.durationSeconds)}</Text>
+                        <Text size="sm" fw={600}>{formatDuration(getLoggedSeconds(log))}</Text>
                       </Table.Td>
                     </Table.Tr>
                   );

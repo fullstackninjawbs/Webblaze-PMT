@@ -9,40 +9,44 @@ import { canAccessMilestone, canAccessProject, RequestUser } from '../../utils/a
 const roundHours = (hours: number) => Number(hours.toFixed(4));
 
 /**
- * Milestone.spentHours and Milestone.status are DERIVED from the milestone's tasks.
- * This is the single place that computes them; every write path that touches a task
- * or a time log must call it afterwards.
- *
- * Rules:
- *  - completed    : logged hours reached the estimate, or every task is completed
- *  - in_progress  : any hours logged, or any task in_progress / in_review
- *  - not_started  : nothing logged and no task has started
- *  - on_hold / cancelled are manual states and are never overridden by activity,
- *    except that reaching completion still closes the milestone.
+ * Milestone.spentHours is DERIVED from the milestone's tasks.
+ * Milestone.status auto-advances based on task activity, but preserves manual statuses:
+ *  - completed    : auto-set when logged hours reach estimate or every task is completed;
+ *                   also preserved if set manually.
+ *  - in_progress  : auto-set from not_started when any hours are logged or any task starts;
+ *                   also preserved if set manually.
+ *  - on_hold / cancelled: manual states that are preserved.
+ *  - not_started  : default / manual state when no active work is in progress.
  */
-export const evaluateAndUpdateMilestoneStatus = async (milestoneId: string): Promise<IMilestone | null> => {
+export const evaluateAndUpdateMilestoneStatus = async (
+  milestoneId: string,
+  options?: { preserveStatus?: boolean }
+): Promise<IMilestone | null> => {
   const milestone = await Milestone.findById(milestoneId);
   if (!milestone) return null;
 
   const tasks = await Task.find({ milestone: milestoneId }).select('status spentHours');
   const calculatedSpentHours = roundHours(tasks.reduce((sum, t) => sum + (t.spentHours || 0), 0));
 
-  const isHoursReached = milestone.estimatedHours > 0 && calculatedSpentHours >= milestone.estimatedHours;
-  const areAllTasksCompleted = tasks.length > 0 && tasks.every((t) => t.status === 'completed');
-  const hasActivity =
-    calculatedSpentHours > 0 || tasks.some((t) => t.status === 'in_progress' || t.status === 'in_review');
-  const isManuallyPaused = milestone.status === 'on_hold' || milestone.status === 'cancelled';
-
   let newStatus: IMilestone['status'] = milestone.status;
 
-  if (isHoursReached || areAllTasksCompleted) {
-    newStatus = 'completed';
-  } else if (isManuallyPaused) {
-    newStatus = milestone.status;
-  } else if (hasActivity) {
-    newStatus = 'in_progress';
-  } else {
-    newStatus = 'not_started';
+  if (!options?.preserveStatus) {
+    const isHoursReached = milestone.estimatedHours > 0 && calculatedSpentHours >= milestone.estimatedHours;
+    const areAllTasksCompleted = tasks.length > 0 && tasks.every((t) => t.status === 'completed');
+    const hasActivity =
+      calculatedSpentHours > 0 || tasks.some((t) => t.status === 'in_progress' || t.status === 'in_review');
+
+    if (milestone.status === 'cancelled') {
+      newStatus = 'cancelled';
+    } else if (milestone.status === 'on_hold') {
+      newStatus = 'on_hold';
+    } else if (isHoursReached || areAllTasksCompleted) {
+      newStatus = 'completed';
+    } else if (milestone.status === 'not_started' && hasActivity) {
+      newStatus = 'in_progress';
+    } else {
+      newStatus = milestone.status;
+    }
   }
 
   if (milestone.spentHours !== calculatedSpentHours || milestone.status !== newStatus) {
@@ -173,8 +177,8 @@ export const updateMilestone = async (id: string, updateData: Partial<IMilestone
     throw new ApiError(404, 'Milestone not found');
   }
 
-  // spentHours is derived; never trust it from the client
-  const { spentHours: _ignored, ...safeData } = updateData as any;
+  // spentHours is derived; never trust it from the client. Project cannot be changed.
+  const { spentHours: _ignored, project: _ignoredProject, ...safeData } = updateData as any;
 
   // A milestone cannot shrink below the hours already allocated to its tasks
   if (safeData.estimatedHours !== undefined && safeData.estimatedHours !== existing.estimatedHours) {
@@ -187,12 +191,13 @@ export const updateMilestone = async (id: string, updateData: Partial<IMilestone
     }
   }
 
-  const effectiveStartDate = 'startDate' in safeData ? safeData.startDate : existing.startDate;
-  await assertStartDateFollowsPrevious(existing.project, effectiveStartDate, {
-    excludeId: id,
-    beforeCreatedAt: existing.createdAt,
-    requireWhenAnchored: false,
-  });
+  if ('startDate' in safeData && safeData.startDate !== undefined) {
+    await assertStartDateFollowsPrevious(existing.project, safeData.startDate, {
+      excludeId: id,
+      beforeCreatedAt: existing.createdAt,
+      requireWhenAnchored: false,
+    });
+  }
 
   const milestone = await Milestone.findByIdAndUpdate(id, safeData, {
     new: true,
@@ -202,7 +207,10 @@ export const updateMilestone = async (id: string, updateData: Partial<IMilestone
     throw new ApiError(404, 'Milestone not found');
   }
 
-  const evaluated = await evaluateAndUpdateMilestoneStatus(id);
+  const evaluated = await evaluateAndUpdateMilestoneStatus(
+    id,
+    safeData.status !== undefined ? { preserveStatus: true } : undefined
+  );
   return evaluated || milestone;
 };
 
