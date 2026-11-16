@@ -31,6 +31,15 @@ import { MilestoneEditPage } from '../features/milestones/MilestoneEditPage';
 import { MilestoneDetailPage } from '../features/milestones/MilestoneDetailPage';
 import { TaskCreatePage } from '../features/tasks/TaskCreatePage';
 
+const isProposalUser = (user: any): boolean => {
+  if (!user) return false;
+  if (user.role === Role.ADMIN) return true;
+  if (user.role === Role.SALES_MANAGER || user.role === Role.SALES_EXEC) return true;
+  const isSalesDept = user.department && user.department.toLowerCase() === 'sales';
+  if ((user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER) && isSalesDept) return true;
+  return false;
+};
+
 const AppRoutes = () => {
   return (
     <Routes>
@@ -56,7 +65,7 @@ const AppRoutes = () => {
         <Route 
           path="/proposals" 
           element={
-            <RoleGuard allowedRoles={[Role.ADMIN, Role.SALES_MANAGER, Role.SALES_EXEC]} fallback={<Navigate to="/dashboard" replace />}>
+            <RoleGuard customCheck={isProposalUser} fallback={<Navigate to="/dashboard" replace />}>
               <ProposalsList />
             </RoleGuard>
           } 
@@ -64,7 +73,7 @@ const AppRoutes = () => {
         <Route 
           path="/proposals/:id" 
           element={
-            <RoleGuard allowedRoles={[Role.ADMIN, Role.SALES_MANAGER, Role.SALES_EXEC]} fallback={<Navigate to="/dashboard" replace />}>
+            <RoleGuard customCheck={isProposalUser} fallback={<Navigate to="/dashboard" replace />}>
               <ProposalDetail />
             </RoleGuard>
           } 

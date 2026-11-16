@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Filter, Target, Send, Eye, MessageCircle, Phone, CheckCircle, Trophy, XCircle, Search, ArrowRight, Clock, LayoutList, LayoutDashboard } from 'lucide-react';
-import { useGetProposalsQuery, useCreateProposalMutation, useUpdateProposalMutation } from './proposalApi';
+import { Plus, Filter, Target, Send, Eye, MessageCircle, Phone, CheckCircle, Trophy, XCircle, Search, ArrowRight, Trash2, Clock, LayoutList, LayoutDashboard } from 'lucide-react';
+import { useGetProposalsQuery, useCreateProposalMutation, useUpdateProposalMutation, useDeleteProposalMutation } from './proposalApi';
 import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 import { Proposal } from './types';
 import { Group, Title, Button, Card, Select, Badge, Table, Text, TextInput, Box, Stack, ActionIcon, Progress, ThemeIcon, Avatar, SegmentedControl, Center } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 import { ProposalsBoard } from './ProposalsBoard';
 
 // Badges for Proposal Stages with Icons and Premium Colors
 const StageBadge: React.FC<{ stage?: Proposal['currentStage'] }> = ({ stage }) => {
   const config: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
+    draft: { color: 'violet', icon: <Clock size={12} />, label: 'Draft' },
     applied: { color: 'gray', icon: <Target size={12} />, label: 'Applied' },
     sent: { color: 'blue', icon: <Send size={12} />, label: 'Sent' },
     viewed: { color: 'grape', icon: <Eye size={12} />, label: 'Viewed' },
@@ -46,19 +49,40 @@ export const ProposalsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'board'>('list');
   
-  const { data, isLoading } = useGetProposalsQuery(viewMode === 'list' ? { page, limit, ...filters } : { page: 1, limit: 500, ...filters });
+  const { data, isLoading } = useGetProposalsQuery(
+    viewMode === 'list' ? { page, limit, ...filters } : { page: 1, limit: 500, ...filters },
+    { pollingInterval: 4000, refetchOnMountOrArgChange: true }
+  );
   const [createProposal, { isLoading: isCreating }] = useCreateProposalMutation();
   const [updateProposal] = useUpdateProposalMutation();
+  const [deleteProposal, { isLoading: isDeleting }] = useDeleteProposalMutation();
+  const [deleteTarget, setDeleteTarget] = useState<Proposal | null>(null);
 
   const handleCreate = async () => {
     try {
       const res = await createProposal({ 
-        jobTitle: 'New Premium Proposal', 
-        proposalCode: `P-${Math.floor(Math.random() * 10000)}` 
+        jobTitle: 'New Proposal',
+        isDraft: true,
+        currentStage: 'draft'
       }).unwrap();
       navigate(`/proposals/${res._id}`);
     } catch (err) {
       console.error('Failed to create proposal', err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteProposal(deleteTarget._id).unwrap();
+      notifications.show({
+        title: 'Deleted',
+        message: 'Proposal deleted successfully',
+        color: 'teal',
+      });
+      setDeleteTarget(null);
+    } catch (err) {
+      console.error('Failed to delete proposal', err);
     }
   };
 
@@ -70,19 +94,30 @@ export const ProposalsList: React.FC = () => {
     }
   }, [data]);
 
-  // Filter local search for now if backend doesn't support search param yet
-  const filteredData = localProposals.filter(p => 
-    !searchQuery || 
-    p.clientName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    p.jobTitle?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter local search for client, job title, code, or sales rep
+  const filteredData = localProposals.filter(p => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    const repName = typeof p.salesExec === 'object' ? p.salesExec?.name?.toLowerCase() : '';
+    const repEmail = typeof p.salesExec === 'object' ? p.salesExec?.email?.toLowerCase() : '';
+    return (
+      p.clientName?.toLowerCase().includes(q) ||
+      p.jobTitle?.toLowerCase().includes(q) ||
+      p.proposalCode?.toLowerCase().includes(q) ||
+      repName?.includes(q) ||
+      repEmail?.includes(q)
+    );
+  });
 
   const handleStageChange = async (proposalId: string, newStage: string) => {
     // Optimistic Update
-    setLocalProposals(prev => prev.map(p => p._id === proposalId ? { ...p, currentStage: newStage as Proposal['currentStage'] } : p));
+    setLocalProposals(prev => prev.map(p => p._id === proposalId ? { ...p, currentStage: newStage as Proposal['currentStage'], isDraft: false } : p));
 
     // Map stage to boolean flags
-    const payload: Partial<Proposal> = {};
+    const payload: Partial<Proposal> = {
+      currentStage: newStage as Proposal['currentStage'],
+      isDraft: false,
+    };
     if (newStage === 'applied') {
       payload.proposalSent = false;
       payload.proposalViewed = false;
@@ -270,6 +305,7 @@ export const ProposalsList: React.FC = () => {
             <Table.Thead bg="#f8fafc">
               <Table.Tr>
                 <Table.Th style={{ color: '#64748b', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client & Job details</Table.Th>
+                <Table.Th style={{ color: '#64748b', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sales Rep</Table.Th>
                 <Table.Th style={{ color: '#64748b', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Stage</Table.Th>
                 <Table.Th style={{ color: '#64748b', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quality Scores</Table.Th>
                 <Table.Th style={{ color: '#64748b', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Timeline</Table.Th>
@@ -297,14 +333,43 @@ export const ProposalsList: React.FC = () => {
                           {(proposal.clientName || 'U').charAt(0).toUpperCase()}
                         </Avatar>
                         <div>
-                          <Text size="sm" fw={700} c="gray.9" style={{ lineHeight: 1.2 }}>
-                            {proposal.clientName || 'Unknown Client'}
-                          </Text>
-                          <Text size="xs" c="dimmed" mt={2} truncate style={{ maxWidth: 250 }}>
+                          <Group gap={6} align="center">
+                            <Text size="sm" fw={700} c="gray.9" style={{ lineHeight: 1.2 }}>
+                              {proposal.clientName || 'Unknown Client'}
+                            </Text>
+                            {proposal.proposalCode && (
+                              <Badge size="xs" variant="outline" color="indigo" radius="sm">
+                                {proposal.proposalCode}
+                              </Badge>
+                            )}
+                          </Group>
+                          <Text size="xs" c="dimmed" mt={2} truncate style={{ maxWidth: 220 }}>
                             {proposal.jobTitle || 'Untitled Job'}
                           </Text>
                         </div>
                       </Group>
+                    </Table.Td>
+
+                    <Table.Td>
+                      {typeof proposal.salesExec === 'object' && proposal.salesExec?.name ? (
+                        <Group gap="xs" wrap="nowrap">
+                          <Avatar size="sm" radius="xl" color="blue" src={proposal.salesExec.avatarUrl}>
+                            {proposal.salesExec.name.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <div>
+                            <Text size="xs" fw={600} c="gray.8">
+                              {proposal.salesExec.name}
+                            </Text>
+                            <Text size="10px" c="dimmed">
+                              {proposal.salesExec.email}
+                            </Text>
+                          </div>
+                        </Group>
+                      ) : (
+                        <Badge variant="light" color="gray" size="sm">
+                          Unassigned
+                        </Badge>
+                      )}
                     </Table.Td>
                     
                     <Table.Td>
@@ -350,18 +415,31 @@ export const ProposalsList: React.FC = () => {
                     </Table.Td>
                     
                     <Table.Td ta="right">
-                      <ActionIcon 
-                        variant="light" 
-                        color="indigo" 
-                        radius="xl"
-                        size="lg"
-                        style={{ transition: 'transform 0.2s' }}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(2px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
-                        onClick={(e) => { e.stopPropagation(); navigate(`/proposals/${proposal._id}`); }}
-                      >
-                        <ArrowRight size={16} />
-                      </ActionIcon>
+                      <Group gap="xs" justify="flex-end" wrap="nowrap">
+                        <ActionIcon 
+                          variant="light" 
+                          color="indigo" 
+                          radius="md"
+                          size="md"
+                          title="Open Proposal Details"
+                          style={{ transition: 'transform 0.2s' }}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(2px)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
+                          onClick={(e) => { e.stopPropagation(); navigate(`/proposals/${proposal._id}`); }}
+                        >
+                          <ArrowRight size={16} />
+                        </ActionIcon>
+                        <ActionIcon 
+                          variant="light" 
+                          color="red" 
+                          radius="md"
+                          size="md"
+                          title="Delete Proposal"
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(proposal); }}
+                        >
+                          <Trash2 size={15} />
+                        </ActionIcon>
+                      </Group>
                     </Table.Td>
                   </Table.Tr>
                 );
@@ -384,6 +462,16 @@ export const ProposalsList: React.FC = () => {
         </PaginatedTable>
       </Card>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        opened={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Proposal"
+        itemName={deleteTarget?.jobTitle || deleteTarget?.proposalCode}
+        loading={isDeleting}
+      />
 
       {/* Dynamic CSS for Hover Effects */}
       <style>{`

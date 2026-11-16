@@ -42,6 +42,8 @@ import {
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { Role, DEPARTMENT_OPTIONS } from '../../types';
 import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
 
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 
@@ -55,6 +57,7 @@ const registerSchema = z.object({
 
 export const UsersList: React.FC = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useSelector((state: RootState) => state.auth);
   const { data: usersData, isLoading } = useGetUsersQuery({ limit: 1000 });
   const [registerUser, { isLoading: isRegistering }] = useRegisterUserMutation();
   const [updateUser, { isLoading: isUpdating }] = useUpdateUserMutation();
@@ -91,9 +94,10 @@ export const UsersList: React.FC = () => {
 
   const onSubmit = async (values: typeof form.values) => {
     try {
+      const isRoleAdminOrPm = values.role === Role.ADMIN || values.role === Role.PM;
       const payload = {
         ...values,
-        department: values.department || undefined,
+        department: isRoleAdminOrPm ? undefined : (values.department || undefined),
       };
       await registerUser(payload as any).unwrap();
       setModalOpened(false);
@@ -106,21 +110,25 @@ export const UsersList: React.FC = () => {
 
   const openEditModal = (user: any) => {
     setEditingUser(user);
+    const isRoleAdminOrPm = user.role === Role.ADMIN || user.role === Role.PM;
     editForm.setValues({
       role: user.role,
-      department: user.department || '',
+      department: isRoleAdminOrPm ? '' : (user.department || ''),
     });
     setEditModalOpened(true);
   };
 
   const onEditSubmit = async (values: typeof editForm.values) => {
     if (!editingUser) return;
+    const isSelf = (currentUser?._id || (currentUser as any)?.id) === (editingUser._id || (editingUser as any)?.id);
+    const effectiveRole = isSelf ? editingUser.role : values.role;
+    const isRoleAdminOrPm = effectiveRole === Role.ADMIN || effectiveRole === Role.PM;
     try {
       await updateUser({
         id: editingUser._id,
         data: {
-          role: values.role,
-          department: values.department || undefined,
+          role: effectiveRole,
+          department: isRoleAdminOrPm ? (undefined as any) : (values.department || undefined),
         },
       }).unwrap();
       setEditModalOpened(false);
@@ -179,86 +187,95 @@ export const UsersList: React.FC = () => {
     totalPages: Math.ceil(filteredUsers.length / limit) || 1,
   };
 
-  const rows = paginatedUsers.map((user) => (
-    <Table.Tr key={user._id}>
-      <Table.Td>
-        <Group gap="sm" style={{ cursor: 'pointer' }} onClick={() => navigate(`/team/${user._id}`)}>
-          <UserAvatar
-            name={user.name}
-            email={user.email}
-            avatarUrl={user.avatarUrl}
-            size={36}
-          />
-          <div>
-            <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
-              {user.name || 'Unknown User'}
-            </Text>
-            <Text size="xs" style={{ color: '#64748b' }}>
-              <Mail size={12} style={{ display: 'inline', marginRight: 4 }} />
-              {user.email}
-            </Text>
-          </div>
-        </Group>
-      </Table.Td>
-      <Table.Td>
-        <Badge
-          variant="light"
-          radius="sm"
-          fw={600}
-          color={
-            user.role === Role.ADMIN
-              ? 'red'
-              : user.role === Role.PM
-                ? 'grape'
-                : user.role === Role.TEAM_LEAD
-                  ? 'blue'
-                  : 'gray'
-          }
-        >
-          {user.role.replace('_', ' ')}
-        </Badge>
-      </Table.Td>
-      <Table.Td>
-        {user.department ? (
-          <Badge variant="outline" color="dark" radius="sm" fw={600}>
-            {user.department.toUpperCase()}
+  const rows = paginatedUsers.map((user) => {
+    const isSelf = (currentUser?._id || (currentUser as any)?.id) === (user._id || (user as any)?.id);
+    return (
+      <Table.Tr key={user._id}>
+        <Table.Td>
+          <Group gap="sm" style={{ cursor: 'pointer' }} onClick={() => navigate(`/team/${user._id}`)}>
+            <UserAvatar
+              name={user.name}
+              email={user.email}
+              avatarUrl={user.avatarUrl}
+              size={36}
+            />
+            <div>
+              <Text size="sm" fw={700} style={{ color: '#0f172a' }}>
+                {user.name || 'Unknown User'} {isSelf && <Badge size="xs" variant="light" color="indigo" ml={4}>You</Badge>}
+              </Text>
+              <Text size="xs" style={{ color: '#64748b' }}>
+                <Mail size={12} style={{ display: 'inline', marginRight: 4 }} />
+                {user.email}
+              </Text>
+            </div>
+          </Group>
+        </Table.Td>
+        <Table.Td>
+          <Badge
+            variant="light"
+            radius="sm"
+            fw={600}
+            color={
+              user.role === Role.ADMIN
+                ? 'red'
+                : user.role === Role.PM
+                  ? 'grape'
+                  : user.role === Role.TEAM_LEAD
+                    ? 'blue'
+                    : 'gray'
+            }
+          >
+            {user.role.replace('_', ' ')}
           </Badge>
-        ) : (
-          <Text size="xs" style={{ color: '#94a3b8' }}>
-            -
-          </Text>
-        )}
-      </Table.Td>
-      <Table.Td>
-        <Group gap={4} justify="flex-end" wrap="nowrap">
-          <ActionIcon
-            variant="subtle"
-            color="blue"
-            onClick={() => navigate(`/team/${user._id}`)}
-            title="View Profile"
-          >
-            <Eye size={16} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="blue"
-            onClick={() => openEditModal(user)}
-            title="Edit Role"
-          >
-            <Edit size={16} />
-          </ActionIcon>
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            onClick={() => handleDelete(user._id, user.name)}
-            title="Remove User"
-          >
-            <Trash size={16} />
-          </ActionIcon>
-        </Group>
-      </Table.Td>
-    </Table.Tr>
-  ));
+        </Table.Td>
+        <Table.Td>
+          {user.role === Role.ADMIN || user.role === Role.PM ? (
+            <Text size="xs" style={{ color: '#94a3b8' }}>
+              -
+            </Text>
+          ) : user.department ? (
+            <Badge variant="outline" color="dark" radius="sm" fw={600}>
+              {user.department.toUpperCase()}
+            </Badge>
+          ) : (
+            <Text size="xs" style={{ color: '#94a3b8' }}>
+              -
+            </Text>
+          )}
+        </Table.Td>
+        <Table.Td>
+          <Group gap={4} justify="flex-end" wrap="nowrap">
+            <ActionIcon
+              variant="subtle"
+              color="blue"
+              onClick={() => navigate(`/team/${user._id}`)}
+              title="View Profile"
+            >
+              <Eye size={16} />
+            </ActionIcon>
+            <ActionIcon
+              variant="subtle"
+              color="blue"
+              onClick={() => openEditModal(user)}
+              title={isSelf ? "Edit Profile (Your Role is Locked)" : "Edit Role"}
+            >
+              <Edit size={16} />
+            </ActionIcon>
+            <ActionIcon
+              variant="subtle"
+              color="red"
+              onClick={() => handleDelete(user._id, user.name)}
+              title={isSelf ? "You cannot delete your own account" : "Remove User"}
+              disabled={isSelf}
+              style={{ opacity: isSelf ? 0.35 : 1, cursor: isSelf ? 'not-allowed' : 'pointer' }}
+            >
+              <Trash size={16} />
+            </ActionIcon>
+          </Group>
+        </Table.Td>
+      </Table.Tr>
+    );
+  });
 
   return (
     <div style={{ animation: 'fade-in 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}>
@@ -478,13 +495,30 @@ export const UsersList: React.FC = () => {
                 withAsterisk
                 radius="md"
                 {...form.getInputProps('role')}
+                onChange={(val) => {
+                  form.setFieldValue('role', val as any);
+                  if (val === Role.ADMIN || val === Role.PM) {
+                    form.setFieldValue('department', '');
+                  }
+                }}
               />
               <Select
                 label="Department"
-                placeholder="Optional"
+                placeholder={
+                  form.values.role === Role.ADMIN || form.values.role === Role.PM
+                    ? 'N/A for Admin & PM'
+                    : 'Optional'
+                }
                 data={DEPARTMENT_OPTIONS}
                 radius="md"
+                disabled={form.values.role === Role.ADMIN || form.values.role === Role.PM}
+                description={
+                  form.values.role === Role.ADMIN || form.values.role === Role.PM
+                    ? 'Admin & PM oversee all departments'
+                    : undefined
+                }
                 {...form.getInputProps('department')}
+                value={form.values.role === Role.ADMIN || form.values.role === Role.PM ? '' : form.values.department}
               />
             </Group>
             <PasswordInput
@@ -530,61 +564,92 @@ export const UsersList: React.FC = () => {
         padding="xl"
         size={520}
       >
-        {editingUser && (
-          <form onSubmit={editForm.onSubmit(onEditSubmit)}>
-            <Stack gap="md">
-              <TextInput label="Full Name" value={editingUser.name || ''} disabled radius="md" />
-              <TextInput label="Email Address" value={editingUser.email || ''} disabled radius="md" />
+        {editingUser && (() => {
+          const isSelf = (currentUser?._id || (currentUser as any)?.id) === (editingUser._id || (editingUser as any)?.id);
+          return (
+            <form onSubmit={editForm.onSubmit(onEditSubmit)}>
+              <Stack gap="md">
+                {isSelf && (
+                  <Alert color="blue" variant="light" radius="md">
+                    You are editing your own profile. You cannot change your own role.
+                  </Alert>
+                )}
+                <TextInput label="Full Name" value={editingUser.name || ''} disabled radius="md" />
+                <TextInput label="Email Address" value={editingUser.email || ''} disabled radius="md" />
 
-              <Group grow gap="md">
-                <Select
-                  label="Role"
-                  data={[
-                    { value: Role.ADMIN, label: 'Admin' },
-                    { value: Role.PM, label: 'Project Manager' },
-                    { value: Role.TEAM_LEAD, label: 'Team Lead' },
-                    { value: Role.TEAM_MEMBER, label: 'Team Member' },
-                  ]}
-                  withAsterisk
-                  radius="md"
-                  {...editForm.getInputProps('role')}
-                />
-                <Select
-                  label="Department"
-                  placeholder="None"
-                  data={DEPARTMENT_OPTIONS}
-                  clearable
-                  radius="md"
-                  {...editForm.getInputProps('department')}
-                />
-              </Group>
+                <Group grow gap="md">
+                  <Select
+                    label="Role"
+                    data={[
+                      { value: Role.ADMIN, label: 'Admin' },
+                      { value: Role.PM, label: 'Project Manager' },
+                      { value: Role.TEAM_LEAD, label: 'Team Lead' },
+                      { value: Role.TEAM_MEMBER, label: 'Team Member' },
+                    ]}
+                    withAsterisk
+                    radius="md"
+                    disabled={isSelf}
+                    description={isSelf ? "You cannot modify your own role" : undefined}
+                    {...editForm.getInputProps('role')}
+                    onChange={(val) => {
+                      editForm.setFieldValue('role', val as any);
+                      if (val === Role.ADMIN || val === Role.PM) {
+                        editForm.setFieldValue('department', '');
+                      }
+                    }}
+                  />
+                  <Select
+                    label="Department"
+                    placeholder={
+                      editForm.values.role === Role.ADMIN || editForm.values.role === Role.PM
+                        ? 'N/A for Admin & PM'
+                        : 'None'
+                    }
+                    data={DEPARTMENT_OPTIONS}
+                    clearable
+                    radius="md"
+                    disabled={editForm.values.role === Role.ADMIN || editForm.values.role === Role.PM}
+                    description={
+                      editForm.values.role === Role.ADMIN || editForm.values.role === Role.PM
+                        ? 'Admin & PM oversee all departments'
+                        : undefined
+                    }
+                    {...editForm.getInputProps('department')}
+                    value={
+                      editForm.values.role === Role.ADMIN || editForm.values.role === Role.PM
+                        ? ''
+                        : editForm.values.department
+                    }
+                  />
+                </Group>
 
-              <Group justify="flex-end" mt="md">
-                <Button
-                  variant="light"
-                  color="gray"
-                  onClick={() => setEditModalOpened(false)}
-                  radius="md"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  loading={isUpdating}
-                  radius="md"
-                  size="md"
-                  style={{
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                    fontWeight: 600,
-                    boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
-                  }}
-                >
-                  Save Changes
-                </Button>
-              </Group>
-            </Stack>
-          </form>
-        )}
+                <Group justify="flex-end" mt="md">
+                  <Button
+                    variant="light"
+                    color="gray"
+                    onClick={() => setEditModalOpened(false)}
+                    radius="md"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    loading={isUpdating}
+                    radius="md"
+                    size="md"
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+                      fontWeight: 600,
+                      boxShadow: '0 4px 14px rgba(59, 130, 246, 0.35)',
+                    }}
+                  >
+                    Save Changes
+                  </Button>
+                </Group>
+              </Stack>
+            </form>
+          );
+        })()}
       </Modal>
 
       {/* Delete Confirmation Modal */}

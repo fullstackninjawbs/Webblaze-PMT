@@ -124,7 +124,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'SALES CRM',
       items: [
-        { name: 'Proposals', href: '/proposals', icon: Target },
+        { name: 'Proposals (CRM)', href: '/proposals', icon: Target },
         { name: 'KPI Dashboard', href: '/dashboard', icon: LayoutDashboard }, // Sales dashboard view
       ]
     }
@@ -133,7 +133,7 @@ const categorizedSidebarNavigation: Record<Role, NavSection[]> = {
     {
       title: 'SALES CRM',
       items: [
-        { name: 'My Proposals', href: '/proposals', icon: Target },
+        { name: 'Proposals (CRM)', href: '/proposals', icon: Target },
         { name: 'My KPI Dashboard', href: '/dashboard', icon: LayoutDashboard },
       ]
     }
@@ -168,7 +168,37 @@ export const DashboardLayout: React.FC = () => {
     navigate('/login');
   };
 
-  const navSections = user?.role ? categorizedSidebarNavigation[user.role] : [];
+  const navSections = React.useMemo(() => {
+    if (!user?.role) return [];
+    const baseSections = categorizedSidebarNavigation[user.role] || [];
+
+    // Deep clone sections so we don't mutate static configuration
+    const sections: NavSection[] = baseSections.map((s) => ({
+      title: s.title,
+      items: [...s.items],
+    }));
+
+    const isSalesDept = user.department && user.department.toLowerCase() === 'sales';
+
+    // If Team Lead or Team Member is in the Sales department, inject Sales CRM section
+    if (isSalesDept && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
+      const alreadyHasProposals = sections.some((s) => s.items.some((i) => i.href === '/proposals'));
+      if (!alreadyHasProposals) {
+        sections.unshift({
+          title: 'SALES CRM',
+          items: [
+            {
+              name: 'Proposals (CRM)',
+              href: '/proposals',
+              icon: Target,
+            },
+          ],
+        });
+      }
+    }
+
+    return sections;
+  }, [user]);
 
   const renderSectionedNavItems = () => {
     return navSections.map((section, idx) => (

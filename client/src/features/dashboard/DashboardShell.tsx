@@ -20,13 +20,18 @@ export const DashboardShell: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
 
+  const isSalesDept = user?.department && user.department.toLowerCase() === 'sales';
+  const isSalesRole = user?.role === Role.SALES_MANAGER || user?.role === Role.SALES_EXEC || (isSalesDept && (user?.role === Role.TEAM_LEAD || user?.role === Role.TEAM_MEMBER));
+
   React.useEffect(() => {
     if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
-      navigate('/projects', { replace: true });
+      if (isSalesDept) {
+        navigate('/proposals', { replace: true });
+      } else {
+        navigate('/projects', { replace: true });
+      }
     }
-  }, [user, navigate]);
-
-  const isSalesRole = user?.role === Role.SALES_MANAGER || user?.role === Role.SALES_EXEC;
+  }, [user, isSalesDept, navigate]);
 
   const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
   const { data: tasksData } = useGetTasksByUserQuery({ userId: user?._id || '', limit: 1000 }, { skip: !user?._id });

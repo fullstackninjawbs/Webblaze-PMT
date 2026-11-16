@@ -4,7 +4,9 @@ import {
   useDroppable, 
   useDraggable, 
   DragOverlay, 
-  closestCorners, 
+  pointerWithin,
+  rectIntersection,
+  CollisionDetection,
   KeyboardSensor, 
   PointerSensor, 
   useSensor, 
@@ -32,6 +34,14 @@ const STAGES = [
   { id: 'won', label: 'Won', color: 'green', icon: <Trophy size={14} /> },
   { id: 'lost', label: 'Lost', color: 'red', icon: <XCircle size={14} /> },
 ];
+
+const customCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    return pointerCollisions;
+  }
+  return rectIntersection(args);
+};
 
 const ProposalCard = ({ proposal, isDragging, isOverlay }: { proposal: Proposal, isDragging?: boolean, isOverlay?: boolean }) => {
   const navigate = useNavigate();
@@ -61,9 +71,22 @@ const ProposalCard = ({ proposal, isDragging, isOverlay }: { proposal: Proposal,
         </ActionIcon>
       </Group>
       
-      <Text size="xs" c="dimmed" mb="md" lineClamp={1}>
-        {proposal.clientName || 'Unknown Client'}
-      </Text>
+      <Group justify="space-between" align="center" mb="xs">
+        <Text size="xs" c="dimmed" lineClamp={1}>
+          {proposal.clientName || 'Unknown Client'}
+        </Text>
+        {proposal.proposalCode && (
+          <Badge size="xs" variant="outline" color="gray">
+            {proposal.proposalCode}
+          </Badge>
+        )}
+      </Group>
+
+      {typeof proposal.salesExec === 'object' && proposal.salesExec?.name && (
+        <Badge size="xs" variant="light" color="indigo" radius="sm" mb="xs">
+          Rep: {proposal.salesExec.name}
+        </Badge>
+      )}
       
       <Group gap="xs" mb="sm">
         <Tooltip label="Job Quality Score">
@@ -120,14 +143,26 @@ const DraggableItem = ({ proposal }: { proposal: Proposal }) => {
 const DroppableColumn = ({ stage, count, children }: { stage: typeof STAGES[0], count: number, children: React.ReactNode }) => {
   const { isOver, setNodeRef } = useDroppable({
     id: stage.id,
+    data: { stageId: stage.id }
   });
 
   return (
     <Paper
-      bg="#f8fafc"
+      ref={setNodeRef}
+      bg={isOver ? '#f1f5f9' : '#f8fafc'}
       p="sm"
       radius="md"
-      style={{ minWidth: '300px', width: '300px', flexShrink: 0, display: 'flex', flexDirection: 'column', maxHeight: '75vh' }}
+      withBorder
+      style={{ 
+        minWidth: '300px', 
+        width: '300px', 
+        flexShrink: 0, 
+        display: 'flex', 
+        flexDirection: 'column', 
+        minHeight: '600px',
+        borderColor: isOver ? '#6366f1' : '#e2e8f0',
+        transition: 'all 0.2s ease',
+      }}
     >
       <Group justify="space-between" mb="md" px="xs">
         <Group gap="xs">
@@ -138,20 +173,15 @@ const DroppableColumn = ({ stage, count, children }: { stage: typeof STAGES[0], 
             {stage.label}
           </Text>
         </Group>
-        <Badge color="gray" variant="light" radius="xl" size="sm">
+        <Badge color={stage.color} variant="light" radius="xl" size="sm">
           {count}
         </Badge>
       </Group>
 
       <div
-        ref={setNodeRef}
         style={{
           flexGrow: 1,
-          minHeight: '100px',
           padding: '4px',
-          transition: 'background-color 0.2s ease',
-          backgroundColor: isOver ? '#f1f5f9' : 'transparent',
-          borderRadius: '8px',
           overflowY: 'auto',
           scrollbarWidth: 'thin'
         }}
@@ -196,9 +226,9 @@ export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onSta
     setActiveId(null);
     const { active, over } = event;
     
-    if (over && active.id !== over.id) {
+    if (over) {
       const draggedProposalId = active.id as string;
-      const targetStageId = over.id as string;
+      const targetStageId = (over.data?.current?.stageId || over.id) as string;
       
       const draggedProposal = proposals.find(p => p._id === draggedProposalId);
       if (draggedProposal && draggedProposal.currentStage !== targetStageId) {
@@ -210,11 +240,11 @@ export const ProposalsBoard: React.FC<ProposalsBoardProps> = ({ proposals, onSta
   return (
     <DndContext 
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={customCollisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '16px', alignItems: 'flex-start', width: '100%', maxWidth: '100%', minHeight: '600px' }}>
+      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto', paddingBottom: '16px', alignItems: 'flex-start', width: '100%', maxWidth: '100%', minHeight: '620px' }}>
         {STAGES.map((stage) => (
           <DroppableColumn key={stage.id} stage={stage} count={columns[stage.id]?.length || 0}>
             {columns[stage.id]?.map((proposal) => (

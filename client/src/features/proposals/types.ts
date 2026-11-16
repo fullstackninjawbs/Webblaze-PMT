@@ -3,7 +3,7 @@ export interface Proposal {
   proposalCode: string;
   dateFound?: string;
   dateApplied?: string;
-  salesExec?: { _id: string; name: string; email: string } | string;
+  salesExec?: { _id: string; name: string; email: string; avatarUrl?: string; role?: string } | string;
   upworkProfile?: string;
   jobTitle?: string;
   jobUrl?: string;
@@ -75,8 +75,8 @@ export interface Proposal {
   lost?: boolean;
   noResponse?: boolean;
   lostReason?: string;
-
-  currentStage?: 'applied' | 'sent' | 'viewed' | 'replied' | 'interview' | 'offer' | 'won' | 'lost' | 'no_response';
+  isDraft?: boolean;
+  currentStage?: 'draft' | 'applied' | 'sent' | 'viewed' | 'replied' | 'interview' | 'offer' | 'won' | 'lost' | 'no_response';
   nextFollowUpDate?: string;
   nextAction?: string;
   notes?: string;

@@ -85,7 +85,6 @@ const invoiceSchema = new Schema<IInvoice>(
 
 invoiceSchema.index({ project: 1 });
 invoiceSchema.index({ status: 1 });
-invoiceSchema.index({ invoiceNumber: 1 }, { unique: true });
 
 // Middleware to compute pending amount and update status automatically
 invoiceSchema.pre('save', function(next) {

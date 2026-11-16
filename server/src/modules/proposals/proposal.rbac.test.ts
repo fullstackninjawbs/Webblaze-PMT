@@ -48,11 +48,41 @@ describe('Proposal Service RBAC', () => {
     }));
   });
 
+  it('should scope getKpiSummary for TEAM_MEMBER with department sales', async () => {
+    const user = { _id: 'member123', role: Role.TEAM_MEMBER, department: 'sales' };
+    
+    await ProposalService.getKpiSummary(user);
+    expect(Proposal.find).toHaveBeenCalledWith(expect.objectContaining({
+      salesExec: 'member123'
+    }));
+  });
+
+  it('should NOT scope getKpiSummary for TEAM_LEAD with department sales (sees all submitted)', async () => {
+    const user = { _id: 'lead123', role: Role.TEAM_LEAD, department: 'sales' };
+    
+    await ProposalService.getKpiSummary(user);
+    expect(Proposal.find).toHaveBeenCalledWith(expect.objectContaining({
+      isDraft: { $ne: true },
+      currentStage: { $ne: 'draft' }
+    }));
+  });
+
   it('should NOT scope getKpiSummary for ADMIN', async () => {
     const user = { _id: 'admin123', role: Role.ADMIN };
     
     await ProposalService.getKpiSummary(user);
-    expect(Proposal.find).toHaveBeenCalledWith({}); // empty query = all
+    expect(Proposal.find).toHaveBeenCalledWith(expect.objectContaining({
+      isDraft: { $ne: true },
+      currentStage: { $ne: 'draft' }
+    }));
+  });
+
+  it('should throw 403 Forbidden for non-sales users', async () => {
+    const user = { _id: 'pm123', role: Role.PM };
+    await expect(ProposalService.getKpiSummary(user)).rejects.toThrow('Forbidden');
+
+    const dev = { _id: 'dev123', role: Role.TEAM_MEMBER, department: 'fullstack' };
+    await expect(ProposalService.getKpiSummary(dev)).rejects.toThrow('Forbidden');
   });
 });
 
