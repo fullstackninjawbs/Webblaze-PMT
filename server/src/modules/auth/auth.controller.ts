@@ -100,12 +100,14 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
   const { currentPassword, newPassword } = req.body;
   const userId = (req as any).user.id || (req as any).user._id;
 
-  await authService.changePassword(userId, currentPassword, newPassword);
+  // Other sessions are signed out; this one continues with fresh tokens
+  const tokens = await authService.changePassword(userId, currentPassword, newPassword);
+  setRefreshCookie(res, tokens.refreshToken);
 
   res.status(200).json({
     success: true,
-    data: null,
-    message: 'Password changed successfully'
+    data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken },
+    message: 'Password changed successfully. Other devices have been signed out.'
   });
 });
 

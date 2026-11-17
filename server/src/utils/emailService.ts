@@ -9,24 +9,33 @@ interface SendInviteParams {
   tempPassword?: string;
 }
 
-const createTransporter = () => {
+const getSmtpConfig = () => {
   const host = process.env.SMTP_HOST;
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const user = process.env.SMTP_USER?.trim();
+  // Gmail shows app passwords in groups of four ("abcd efgh ijkl mnop"); spaces are not part of it
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, '');
   const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  return { host, port, user, pass, secure, configured: !!(host && user && pass) };
+};
 
-  if (host && user && pass) {
-    logger.info(`[Email] Creating SMTP transporter → host=${host}, port=${port}, secure=${secure}, user=${user}`);
-    return nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+let cachedTransporter: nodemailer.Transporter | null = null;
+
+const createTransporter = () => {
+  const { host, port, user, pass, secure, configured } = getSmtpConfig();
+
+  if (configured) {
+    if (!cachedTransporter) {
+      cachedTransporter = nodemailer.createTransport({
+        host,
+        port,
+        secure,
+        auth: { user, pass },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+      });
+    }
+    return cachedTransporter;
   }
 
   // Fallback: dev-mode logger (no real SMTP credentials configured)
@@ -41,6 +50,39 @@ const createTransporter = () => {
       return { messageId: 'dev-mode-mock-id' };
     },
   } as any;
+};
+
+/** Explains common SMTP failures in plain words for the server log. */
+const describeSmtpError = (error: any): string => {
+  const code = error?.code || '';
+  const response = String(error?.response || error?.message || '');
+  if (code === 'EAUTH' || response.includes('535')) {
+    return 'SMTP login rejected. For Gmail, SMTP_PASS must be a 16-character App Password (Google Account > Security > 2-Step Verification > App passwords), not the normal account password.';
+  }
+  if (['ETIMEDOUT', 'ECONNECTION', 'ESOCKET', 'ECONNREFUSED'].includes(code)) {
+    return `Could not reach ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}. The host may block outbound SMTP ports (many VPS providers block 25/465/587 by default).`;
+  }
+  return response.slice(0, 300);
+};
+
+/**
+ * Checks the SMTP login at startup so a broken email setup shows up in the server log
+ * immediately, instead of silently failing on the first password reset.
+ */
+export const verifyEmailTransport = async (): Promise<boolean> => {
+  const { host, port, user, configured } = getSmtpConfig();
+  if (!configured) {
+    logger.warn('[Email] SMTP not configured. Emails will only be logged, not sent.');
+    return false;
+  }
+  try {
+    await (createTransporter() as nodemailer.Transporter).verify();
+    logger.info(`[Email] SMTP ready: ${user} via ${host}:${port}`);
+    return true;
+  } catch (error) {
+    logger.error(`[Email] SMTP verification FAILED: ${describeSmtpError(error)}`);
+    return false;
+  }
 };
 
 const inviteLinkFromHtml = (html: string): string => {
@@ -58,7 +100,7 @@ export const sendResetPasswordEmail = async ({
   to,
   name,
   resetUrl,
-}: SendResetPasswordParams): Promise<void> => {
+}: SendResetPasswordParams): Promise<boolean> => {
   const transporter = createTransporter();
   const from = process.env.SMTP_FROM || '"WebBlaze PMS" <no-reply@webblaze.com>';
 
@@ -121,8 +163,10 @@ export const sendResetPasswordEmail = async ({
       html,
     });
     logger.info(`Password reset email dispatched successfully to ${to}`);
+    return true;
   } catch (error) {
-    logger.error('Error sending password reset email:', error);
+    logger.error(`[Email] Failed to send password reset email to ${to}: ${describeSmtpError(error)}`);
+    return false;
   }
 };
 
@@ -205,7 +249,7 @@ export const sendInviteEmail = async ({
     });
     logger.info(`[Email] Invitation dispatched successfully to ${to} (messageId: ${info.messageId})`);
   } catch (error: any) {
-    logger.error(`[Email] Failed to send invitation email to ${to}: ${error?.message || error}`);
+    logger.error(`[Email] Failed to send invitation email to ${to}: ${describeSmtpError(error)}`);
     logger.error('[Email] Full SMTP error:', error);
   }
 };
@@ -295,7 +339,7 @@ export const sendTaskAssignmentEmail = async ({
     });
     logger.info(`Task assignment email dispatched successfully to ${to}`);
   } catch (error) {
-    logger.error('Error sending task assignment email:', error);
+    logger.error(`[Email] Failed to send task assignment email to ${to}: ${describeSmtpError(error)}`);
   }
 };
 
@@ -375,7 +419,7 @@ export const sendTaskStatusChangeEmail = async ({
     });
     logger.info(`Task status change email dispatched successfully to ${to}`);
   } catch (error) {
-    logger.error('Error sending task status change email:', error);
+    logger.error(`[Email] Failed to send task status email to ${to}: ${describeSmtpError(error)}`);
   }
 };
 

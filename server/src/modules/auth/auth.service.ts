@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { User, IUser } from '../users/user.model';
 import { ApiError } from '../../utils/ApiError';
-import { sendInviteEmail, sendResetPasswordEmail } from '../../utils/emailService';
+import { sendInviteEmail, sendResetPasswordEmail, verifyEmailTransport } from '../../utils/emailService';
 
 const generateTokens = (userId: string, tokenVersion: number = 0) => {
   const accessToken = jwt.sign(
@@ -24,7 +24,7 @@ export const loginUser = async (
   email: string,
   password: string
 ): Promise<{ user: IUser; tokens: { accessToken: string; refreshToken: string } }> => {
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email: String(email || '').trim().toLowerCase() }).select('+password');
   if (!user || !user.isActive) {
     throw new ApiError(401, 'Invalid email or password');
   }
@@ -110,7 +110,7 @@ export const changePassword = async (
   userId: string,
   currentPassword: string,
   newPassword: string
-): Promise<void> => {
+): Promise<{ accessToken: string; refreshToken: string }> => {
   const user = await User.findById(userId).select('+password');
   if (!user) {
     throw new ApiError(404, 'User not found');
@@ -122,11 +122,23 @@ export const changePassword = async (
   }
 
   user.password = newPassword;
+  // Sign out other sessions; the controller issues fresh tokens for this one
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
+  return generateTokens(String(user._id), user.tokenVersion);
 };
 
+const normalizeEmail = (email: string) => String(email || '').trim().toLowerCase();
+
 export const requestPasswordReset = async (email: string): Promise<void> => {
-  const user = await User.findOne({ email, isActive: true });
+  // Check email delivery BEFORE looking up the user, so an outage gives every caller
+  // the same answer and does not reveal which addresses have accounts.
+  const emailReady = await verifyEmailTransport();
+  if (!emailReady && process.env.NODE_ENV === 'production') {
+    throw new ApiError(503, 'Password reset emails are temporarily unavailable. Please contact your administrator.', 'EMAIL_UNAVAILABLE');
+  }
+
+  const user = await User.findOne({ email: normalizeEmail(email), isActive: true });
   if (!user) {
     // Return early silently so we don't leak user existence
     return;
@@ -142,11 +154,15 @@ export const requestPasswordReset = async (email: string): Promise<void> => {
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
   const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
 
-  await sendResetPasswordEmail({
+  const sent = await sendResetPasswordEmail({
     to: user.email,
     name: user.name,
     resetUrl,
   });
+
+  if (!sent && process.env.NODE_ENV === 'production') {
+    throw new ApiError(503, 'Password reset emails are temporarily unavailable. Please contact your administrator.', 'EMAIL_UNAVAILABLE');
+  }
 };
 
 export const resetPassword = async (rawToken: string, newPassword: string): Promise<void> => {
@@ -164,5 +180,7 @@ export const resetPassword = async (rawToken: string, newPassword: string): Prom
   user.password = newPassword;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
+  // Sign out every existing session: whoever had the old password loses access
+  user.tokenVersion = (user.tokenVersion || 0) + 1;
   await user.save();
 };

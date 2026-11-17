@@ -34,7 +34,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { useUpdateUserMutation } from '../users/user.slice';
-import { useChangePasswordMutation, setUser } from '../auth/auth.slice';
+import { useChangePasswordMutation, setUser, updateToken } from '../auth/auth.slice';
 import { Role } from '../../types';
 
 export const SettingsPage: React.FC = () => {
@@ -105,7 +105,11 @@ export const SettingsPage: React.FC = () => {
     try {
       const res = await changePassword({ currentPassword, newPassword }).unwrap();
       if (res.success) {
-        setPasswordSuccess('Password updated successfully!');
+        // The server signs out other sessions; keep this one with the fresh tokens
+        if (res.data?.accessToken) {
+          dispatch(updateToken({ accessToken: res.data.accessToken, refreshToken: res.data.refreshToken }));
+        }
+        setPasswordSuccess('Password updated. Other devices have been signed out.');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');

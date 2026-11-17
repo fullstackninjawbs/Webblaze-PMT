@@ -136,7 +136,7 @@ export const authApi = baseApi.injectEndpoints({
         }
       }
     }),
-    changePassword: builder.mutation<{ success: boolean; message: string }, any>({
+    changePassword: builder.mutation<{ success: boolean; message: string; data?: { accessToken: string; refreshToken: string } }, any>({
       query: (body) => ({
         url: '/auth/change-password',
         method: 'POST',

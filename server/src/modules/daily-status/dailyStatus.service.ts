@@ -1,5 +1,8 @@
-import { DailyStatus, IDailyStatus } from './dailyStatus.model';
+import { Types } from 'mongoose';
+import { DailyStatus, IDailyStatus, IDailyStatusEntry } from './dailyStatus.model';
 import { User } from '../users/user.model';
+import { Task } from '../tasks/task.model';
+import { TimeLog } from '../timelogs/timeLog.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
@@ -8,16 +11,228 @@ import { RequestUser, getUserId } from '../../utils/access';
 const populateOptions = [
   { path: 'user', select: 'name email avatarUrl role department' },
   { path: 'project', select: 'name' },
+  { path: 'entries.task', select: 'title status estimatedHours spentHours' },
+  { path: 'entries.project', select: 'name' },
 ];
 
-export const createDailyStatus = async (data: Partial<IDailyStatus>): Promise<IDailyStatus> => {
-  const dailyStatus = await DailyStatus.create(data);
-  return dailyStatus.populate(populateOptions);
+const roundHours = (hours: number) => Number(hours.toFixed(4));
+
+const dayBounds = (date: Date) => {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+};
+
+/**
+ * Seconds a user logged on each task during one calendar day.
+ * Running timers count up to now, so an EOD submitted mid-timer is still accurate.
+ */
+export const getDailyTaskSeconds = async (userId: string, date: Date): Promise<Map<string, number>> => {
+  const { start, end } = dayBounds(date);
+  const logs = await TimeLog.find({ user: userId, startTime: { $gte: start, $lte: end } })
+    .select('task startTime endTime durationSeconds');
+
+  const now = Date.now();
+  const perTask = new Map<string, number>();
+  for (const log of logs) {
+    const seconds = log.endTime
+      ? log.durationSeconds || 0
+      : Math.max(0, Math.floor((now - log.startTime.getTime()) / 1000));
+    if (seconds <= 0) continue;
+    const key = String(log.task);
+    perTask.set(key, (perTask.get(key) || 0) + seconds);
+  }
+  return perTask;
+};
+
+/**
+ * Builds structured entries for a report. Task-linked entries are resolved and their
+ * hours are taken from the user's time logs for that day; clients cannot set hours.
+ */
+const buildEntries = async (
+  userId: string,
+  date: Date,
+  rawEntries: { task?: string | null; title: string }[] = []
+): Promise<{ entries: IDailyStatusEntry[]; totalHours: number }> => {
+  const taskSeconds = await getDailyTaskSeconds(userId, date);
+
+  const taskIds = rawEntries.map((e) => e.task).filter((id): id is string => !!id && Types.ObjectId.isValid(id));
+  const tasks = taskIds.length
+    ? await Task.find({ _id: { $in: taskIds } })
+        .select('title status milestone')
+        .populate({ path: 'milestone', select: 'project', populate: { path: 'project', select: 'name' } })
+    : [];
+  const taskMap = new Map(tasks.map((t) => [String(t._id), t as any]));
+
+  const seenTasks = new Set<string>();
+  const entries: IDailyStatusEntry[] = [];
+
+  for (const raw of rawEntries) {
+    const title = raw.title.trim();
+    if (!title) continue;
+
+    const task = raw.task ? taskMap.get(String(raw.task)) : undefined;
+    if (!task) {
+      entries.push({ title });
+      continue;
+    }
+
+    const id = String(task._id);
+    // A task's hours are counted once even if it appears on several lines
+    const hours = seenTasks.has(id) ? 0 : roundHours((taskSeconds.get(id) || 0) / 3600);
+    seenTasks.add(id);
+
+    const project = task.milestone?.project;
+    entries.push({
+      task: task._id,
+      title,
+      project: project?._id,
+      projectName: project?.name,
+      taskStatus: task.status,
+      hours,
+    });
+  }
+
+  const totalSeconds = Array.from(taskSeconds.values()).reduce((sum, s) => sum + s, 0);
+  return { entries, totalHours: roundHours(totalSeconds / 3600) };
+};
+
+type RawEntry = { task?: string | null; title: string };
+
+/** Turns a stored report into raw entries; legacy reports only have workDone text. */
+const toRawEntries = (report: IDailyStatus): RawEntry[] => {
+  if (report.entries && report.entries.length > 0) {
+    return report.entries.map((e) => ({ task: e.task ? String(e.task) : null, title: e.title }));
+  }
+  return (report.workDone || '')
+    .split('\n')
+    .map((line) => line.replace(/^\s*[-•*]\s*/, '').trim())
+    .filter(Boolean)
+    .map((title) => ({ title }));
+};
+
+/**
+ * Merges entry lists. A task appears once (the later text wins); identical free-text
+ * lines appear once. Order is preserved, with new lines appended.
+ */
+export const mergeRawEntries = (...lists: RawEntry[][]): RawEntry[] => {
+  const merged: RawEntry[] = [];
+  const taskIndex = new Map<string, number>();
+  const seenText = new Set<string>();
+
+  for (const list of lists) {
+    for (const entry of list) {
+      const title = entry.title.trim();
+      if (!title) continue;
+      if (entry.task) {
+        const key = String(entry.task);
+        const existing = taskIndex.get(key);
+        if (existing !== undefined) {
+          merged[existing] = { task: key, title };
+        } else {
+          taskIndex.set(key, merged.length);
+          merged.push({ task: key, title });
+        }
+      } else {
+        const key = title.toLowerCase();
+        if (seenText.has(key)) continue;
+        seenText.add(key);
+        merged.push({ title });
+      }
+    }
+  }
+  return merged;
+};
+
+const deriveProject = (entries: IDailyStatusEntry[], fallback?: any) => {
+  if (fallback) return fallback;
+  const projectIds = new Set(entries.filter((e) => e.project).map((e) => String(e.project)));
+  return projectIds.size === 1 ? entries.find((e) => e.project)!.project : undefined;
+};
+
+/** Writes one report from merged entries, recomputing hours from the day's time logs. */
+const applyEntries = async (
+  report: IDailyStatus,
+  userId: string,
+  date: Date,
+  rawEntries: RawEntry[],
+  extras: { plannedWork?: string; blockers?: string; project?: any } = {}
+) => {
+  const { entries, totalHours } = await buildEntries(userId, date, rawEntries);
+  report.entries = entries;
+  report.totalHours = totalHours;
+  report.workDone = entries.map((e) => `- ${e.title}`).join('\n') || report.workDone;
+  report.project = deriveProject(entries, extras.project ?? report.project);
+  if (extras.plannedWork) report.plannedWork = extras.plannedWork;
+  if (extras.blockers) report.blockers = extras.blockers;
+  await report.save();
+  return report;
+};
+
+/**
+ * One report per user per calendar day. Submitting again on the same day updates that
+ * day's report: new lines are added, task lines are refreshed with today's hours.
+ * Returns whether an existing report was updated.
+ */
+export const createDailyStatus = async (
+  data: Partial<IDailyStatus> & { entries?: RawEntry[] }
+): Promise<{ status: IDailyStatus; updated: boolean }> => {
+  const userId = String(data.user);
+  const date = data.date ? new Date(data.date) : new Date();
+  const { start, end } = dayBounds(date);
+
+  const incoming: RawEntry[] =
+    data.entries && data.entries.length > 0
+      ? data.entries
+      : (data.workDone || '').split('\n').map((l) => ({ title: l.replace(/^\s*[-•*]\s*/, '').trim() }));
+
+  const existing = await DailyStatus.findOne({ user: userId, date: { $gte: start, $lte: end } }).sort({ createdAt: 1 });
+
+  if (existing) {
+    const merged = mergeRawEntries(toRawEntries(existing), incoming);
+    await applyEntries(existing, userId, existing.date, merged, data);
+    return { status: await existing.populate(populateOptions), updated: true };
+  }
+
+  const report = new DailyStatus({ user: userId, date, workDone: data.workDone, plannedWork: data.plannedWork, blockers: data.blockers });
+  await applyEntries(report, userId, date, mergeRawEntries(incoming), data);
+  return { status: await report.populate(populateOptions), updated: false };
+};
+
+/**
+ * Collapses duplicate reports (same user, same day) left from before the
+ * one-per-day rule into the earliest report of that day.
+ */
+export const mergeDuplicateDailyStatuses = async (): Promise<number> => {
+  const all = await DailyStatus.find().sort({ createdAt: 1 });
+  const groups = new Map<string, IDailyStatus[]>();
+  for (const report of all) {
+    const day = new Date(report.date);
+    day.setHours(0, 0, 0, 0);
+    const key = `${report.user}-${day.getTime()}`;
+    groups.set(key, [...(groups.get(key) || []), report]);
+  }
+
+  let removed = 0;
+  for (const reports of groups.values()) {
+    if (reports.length < 2) continue;
+    const [keep, ...rest] = reports;
+    const merged = mergeRawEntries(...reports.map(toRawEntries));
+    await applyEntries(keep, String(keep.user), keep.date, merged, {
+      plannedWork: rest.map((r) => r.plannedWork).filter(Boolean).pop(),
+      blockers: rest.map((r) => r.blockers).filter(Boolean).pop(),
+    });
+    await DailyStatus.deleteMany({ _id: { $in: rest.map((r) => r._id) } });
+    removed += rest.length;
+  }
+  return removed;
 };
 
 export const getMyDailyStatuses = async (userId: string): Promise<IDailyStatus[]> => {
   return DailyStatus.find({ user: userId })
-    .populate('project', 'name')
+    .populate(populateOptions)
     .sort({ date: -1, createdAt: -1 });
 };
 

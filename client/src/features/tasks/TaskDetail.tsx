@@ -9,7 +9,7 @@ import { useUploadFileMutation } from '../uploads/upload.slice';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
 import { Role } from '../../types';
-import { formatHours } from '../../utils/formatHours';
+import { formatHours, formatSecondsClock } from '../../utils/formatHours';
 
 export const TaskDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -199,7 +199,7 @@ export const TaskDetail = () => {
               <Group justify="space-between" mb={8}>
                 <Text fw={600} size="sm">Task Progress</Text>
                 <Text fw={700} size="sm" color={totalSpentHours > task.estimatedHours ? 'red' : 'blue'}>
-                  {Number(totalSpentHours.toFixed(2))}h / {formatHours(task.estimatedHours)}
+                  {isTimerActiveForThisTask ? formatSecondsClock(totalSpentHours * 3600) : formatHours(totalSpentHours)} / {formatHours(task.estimatedHours)}
                 </Text>
               </Group>
               <Progress 
@@ -355,7 +355,7 @@ export const TaskDetail = () => {
           <Text size="sm">Please provide a quick comment on what was completed before moving to <strong>{selectedStatus.replace('_', ' ')}</strong>.</Text>
           {selectedStatus === 'in_review' && (
             <Text size="sm" mt={-8} c="dimmed">
-              Total time logged: <strong>{Number(totalSpentHours.toFixed(2))}h</strong> / {formatHours(task.estimatedHours)}
+              Total time logged: <strong>{formatHours(totalSpentHours)}</strong> / {formatHours(task.estimatedHours)}
             </Text>
           )}
           <Textarea 

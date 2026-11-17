@@ -39,6 +39,23 @@ export interface TeamMemberHoursSummary {
   pendingHours: number;
 }
 
+export interface EodTask {
+  id: string;
+  title: string;
+  status: string;
+  milestoneTitle?: string;
+  estimatedHours: number;
+  spentHours: number;
+  /** Hours logged on this task today, including a running timer up to now. */
+  hoursToday: number;
+  isRunning: boolean;
+}
+
+export interface EodSummary {
+  projects: { id: string; name: string; timeSpent: number; tasks: EodTask[] }[];
+  totalHours: number;
+}
+
 export const timeLogApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getActiveTimer: builder.query<{ success: boolean; data: TimeLog | null }, void>({
@@ -75,9 +92,11 @@ export const timeLogApi = baseApi.injectEndpoints({
             ]
           : [{ type: 'TimeLog', id: `LIST-TASK-${taskId}` }],
     }),
-    getMyEodSummary: builder.query<{ success: boolean; data: { projects: { id: string; name: string; timeSpent: number; tasks: { id: string; title: string }[] }[] } }, void>({
+    getMyEodSummary: builder.query<{ success: boolean; data: EodSummary }, void>({
       query: () => '/timelogs/my-eod-summary',
       providesTags: ['TimeLog'],
+      // Always refetch when the EOD form opens; today's hours change by the minute
+      keepUnusedDataFor: 0,
     }),
     startTimer: builder.mutation<{ success: boolean; data: TimeLog; message: string }, { taskId: string; description?: string }>({
       query: (body) => ({

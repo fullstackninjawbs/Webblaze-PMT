@@ -368,6 +368,10 @@ export const getTeamHoursSummary = async (user?: RequestUser): Promise<TeamMembe
   });
 };
 
+/**
+ * Tasks the user worked on today, grouped by project, with the hours logged TODAY on
+ * each task. Running timers count up to now so the EOD form is accurate mid-session.
+ */
 export const getMyEodSummary = async (userId: string) => {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -377,47 +381,61 @@ export const getMyEodSummary = async (userId: string) => {
   const logs = await TimeLog.find({
     user: userId,
     startTime: { $gte: startOfDay, $lte: endOfDay },
-    durationSeconds: { $gt: 0 },
   }).populate({
     path: 'task',
     select: 'title status milestone estimatedHours spentHours',
     populate: {
       path: 'milestone',
-      select: 'project',
+      select: 'title project',
       populate: { path: 'project', select: 'name' },
     },
   });
 
+  const now = Date.now();
   const projectsMap = new Map<string, { id: string; name: string; timeSpent: number; tasks: any[] }>();
+  let totalSeconds = 0;
 
   for (const log of logs) {
     const taskDoc: any = log.task;
     if (!taskDoc?.milestone?.project) continue;
 
+    const isRunning = !log.endTime;
+    const seconds = isRunning
+      ? Math.max(0, Math.floor((now - log.startTime.getTime()) / 1000))
+      : log.durationSeconds || 0;
+    if (seconds <= 0 && !isRunning) continue;
+
     const projectId = String(taskDoc.milestone.project._id);
     if (!projectsMap.has(projectId)) {
       projectsMap.set(projectId, { id: projectId, name: taskDoc.milestone.project.name, timeSpent: 0, tasks: [] });
     }
-
     const projectData = projectsMap.get(projectId)!;
-    projectData.timeSpent += (log.durationSeconds || 0) / 3600;
+    projectData.timeSpent += seconds / 3600;
+    totalSeconds += seconds;
 
-    // Every task worked on today is listed, not just the ones that reached review
-    if (!projectData.tasks.find((t) => t.id === String(taskDoc._id))) {
-      projectData.tasks.push({
+    let taskEntry = projectData.tasks.find((t) => t.id === String(taskDoc._id));
+    if (!taskEntry) {
+      taskEntry = {
         id: String(taskDoc._id),
         title: taskDoc.title,
         status: taskDoc.status,
+        milestoneTitle: taskDoc.milestone.title,
         estimatedHours: taskDoc.estimatedHours || 0,
         spentHours: taskDoc.spentHours || 0,
-      });
+        hoursToday: 0,
+        isRunning: false,
+      };
+      projectData.tasks.push(taskEntry);
     }
+    taskEntry.hoursToday += seconds / 3600;
+    if (isRunning) taskEntry.isRunning = true;
   }
 
   const projects = Array.from(projectsMap.values()).map((p) => ({
     ...p,
-    timeSpent: Number(p.timeSpent.toFixed(2)),
+    timeSpent: roundHours(p.timeSpent),
+    tasks: p.tasks.map((t) => ({ ...t, hoursToday: roundHours(t.hoursToday) })),
   }));
 
-  return { projects };
+  return { projects, totalHours: roundHours(totalSeconds / 3600) };
 };

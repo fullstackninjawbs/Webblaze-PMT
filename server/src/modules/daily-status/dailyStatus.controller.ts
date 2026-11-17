@@ -10,12 +10,13 @@ export const createDailyStatus = asyncHandler(async (req: Request, res: Response
     project: req.body.project || undefined
   };
 
-  const status = await dailyStatusService.createDailyStatus(statusData);
+  const { status, updated } = await dailyStatusService.createDailyStatus(statusData);
 
-  res.status(201).json({
+  res.status(updated ? 200 : 201).json({
     success: true,
     data: status,
-    message: 'Daily status submitted successfully',
+    updated,
+    message: updated ? "Today's report has been updated" : 'Daily status submitted successfully',
   });
 });
 

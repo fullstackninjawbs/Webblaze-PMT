@@ -42,7 +42,7 @@ export const ReportsPage: React.FC = () => {
 
   // 3. Logged Hours Aggregate
   const totalSeconds = logs.reduce((sum, log) => sum + (log.durationSeconds || 0), 0);
-  const totalHoursLogged = Math.round((totalSeconds / 3600) * 10) / 10;
+  const totalHoursLogged = totalSeconds / 3600;
 
   // 4. Team Workload (Hours per user)
   const userHours = users.map((u) => {
@@ -51,7 +51,7 @@ export const ReportsPage: React.FC = () => {
       return logUserId === u._id;
     });
     const loggedSeconds = userLogs.reduce((sum, log) => sum + (log.durationSeconds || 0), 0);
-    const loggedHours = Math.round((loggedSeconds / 3600) * 10) / 10;
+    const loggedHours = loggedSeconds / 3600;
     return {
       _id: u._id,
       name: u.name,
@@ -203,7 +203,7 @@ export const ReportsPage: React.FC = () => {
             </div>
           </Group>
           <Text fw={800} style={{ fontSize: '1.625rem', color: '#d97706', letterSpacing: '-0.03em' }}>
-            {totalHoursLogged} Hrs
+            {formatHours(totalHoursLogged)}
           </Text>
           <Text size="xs" mt={4} style={{ color: '#64748b' }}>
             Logged via automatic live task timers
@@ -461,7 +461,7 @@ export const ReportsPage: React.FC = () => {
                     )}
                   </Group>
                 </Table.Td>
-                <Table.Td fw={700} style={{ color: '#0f172a' }}>{u.hours} hrs</Table.Td>
+                <Table.Td fw={700} style={{ color: '#0f172a' }}>{formatHours(u.hours)}</Table.Td>
                 <Table.Td>
                   <Group gap="xs" wrap="nowrap">
                     <Progress
