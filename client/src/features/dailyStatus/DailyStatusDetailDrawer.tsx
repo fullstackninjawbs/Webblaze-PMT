@@ -6,6 +6,7 @@ import { UserAvatar } from '../../components/common/UserAvatar';
 import { formatDateDisplay } from '../../utils/dateUtils';
 import { formatHours } from '../../utils/formatHours';
 import { DailyStatus } from './dailyStatus.slice';
+import { LinkifiedText } from './LinkifiedText';
 import {
   getTaskEntries,
   getNoteEntries,
@@ -133,7 +134,7 @@ const ReportBody: React.FC<{ log: DailyStatus; onClose: () => void; navigate: (t
                           style={{ textAlign: 'left' }}
                         >
                           <Group gap={4} wrap="nowrap">
-                            <span>{e.title}</span>
+                            <span style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}>{e.title}</span>
                             <ArrowUpRight size={14} style={{ flexShrink: 0 }} />
                           </Group>
                         </Anchor>
@@ -174,7 +175,7 @@ const ReportBody: React.FC<{ log: DailyStatus; onClose: () => void; navigate: (t
                 {notes.map((n, i) => (
                   <Group key={i} gap={8} align="flex-start" wrap="nowrap">
                     <Text size="sm" c="#94a3b8" fw={700} style={{ lineHeight: 1.6 }}>•</Text>
-                    <Text size="sm" c="#334155" style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{n.title}</Text>
+                    <Text size="sm" c="#334155" style={{ lineHeight: 1.6, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0, flex: 1 }}><LinkifiedText text={n.title} /></Text>
                   </Group>
                 ))}
               </Stack>
@@ -185,21 +186,21 @@ const ReportBody: React.FC<{ log: DailyStatus; onClose: () => void; navigate: (t
         {log.conclusion && (
           <Paper p="md" radius="md" bg="#eff6ff" style={{ border: '1px solid #dbeafe' }}>
             <SectionTitle icon={<FileText size={15} color="#2563eb" />} title="Day Summary" />
-            <Text size="sm" c="#1e3a8a" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{log.conclusion}</Text>
+            <Text size="sm" c="#1e3a8a" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}><LinkifiedText text={log.conclusion} /></Text>
           </Paper>
         )}
 
         {log.plannedWork && (
           <div>
             <SectionTitle icon={<Calendar size={15} color="#6366f1" />} title="Planned Next" />
-            <Text size="sm" c="#334155" style={{ whiteSpace: 'pre-wrap' }}>{log.plannedWork}</Text>
+            <Text size="sm" c="#334155" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}><LinkifiedText text={log.plannedWork} /></Text>
           </div>
         )}
 
         {log.blockers && (
           <Paper p="md" radius="md" bg="#fef2f2" style={{ border: '1px solid #fecaca' }}>
             <SectionTitle icon={<AlertTriangle size={15} color="#dc2626" />} title="Blockers" />
-            <Text size="sm" c="#7f1d1d" style={{ whiteSpace: 'pre-wrap' }}>{log.blockers}</Text>
+            <Text size="sm" c="#7f1d1d" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word', minWidth: 0 }}><LinkifiedText text={log.blockers} /></Text>
           </Paper>
         )}
 
