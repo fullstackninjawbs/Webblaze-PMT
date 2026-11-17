@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { Plus, ArrowLeft, Play, Square, DollarSign, Calendar, Users, Activity, FileText, FileCheck, CheckCircle, Info, UploadCloud, Filter, Edit, Trash, Search, Clock, TrendingUp, AlertTriangle, Eye } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
-import { Role, ProjectStatus, DEPARTMENT_OPTIONS } from '../../types';
+import { Role, ProjectStatus, DEPARTMENT_OPTIONS, platformOptions } from '../../types';
 import { useGetUsersQuery } from '../users/user.slice';
 import { useGetReleasesQuery, useCreateReleaseMutation, useUpdateReleaseMutation, useDeleteReleaseMutation } from '../releases/release.slice';
 import { useGetInvoicesQuery, useCreateInvoiceMutation, useUpdateInvoiceMutation, useDeleteInvoiceMutation } from '../invoices/invoice.slice';
@@ -868,7 +868,7 @@ export const ProjectDetails = () => {
               <Card withBorder shadow="sm" p="xl" radius="lg" bg="#ffffff">
                 <Title order={4} mb="md">Project Metadata</Title>
                 <Stack gap="sm">
-                  <Group justify="space-between"><Text size="xs" c="dimmed">Project Type</Text><Text size="xs" fw={600}>{project.type || 'Standard'}</Text></Group>
+                  <Group justify="space-between"><Text size="xs" c="dimmed">Platform</Text><Text size="xs" fw={600}>{project.type || 'Not set'}</Text></Group>
                   <Group justify="space-between"><Text size="xs" c="dimmed">Created Date</Text><Text size="xs" fw={600}>{formatDateDisplay(project.createdAt)}</Text></Group>
                   <Group justify="space-between"><Text size="xs" c="dimmed">Client Source</Text><Badge variant="light" size="xs">{project.client?.source || 'direct'}</Badge></Group>
                 </Stack>
@@ -1277,8 +1277,10 @@ export const ProjectDetails = () => {
             <TextInput label="Project Name" {...editProjectForm.getInputProps('name')} withAsterisk />
             <Textarea label="Description" {...editProjectForm.getInputProps('description')} minRows={3} />
             <Select
-              label="Department / Project Type"
-              data={['Shopify', 'WordPress', 'Full Stack', 'SEO', 'UI/UX']}
+              label="Platform"
+              placeholder="Select platform"
+              data={platformOptions(editProjectForm.values.type)}
+              clearable
               {...editProjectForm.getInputProps('type')}
             />
             <Select

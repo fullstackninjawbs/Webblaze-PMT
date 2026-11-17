@@ -35,12 +35,18 @@ const taskSchema = z.object({
   path: ["endDate"],
 });
 
-const normalizeFrontendDept = (dept: string) => {
-  if (!dept) return '';
-  const d = dept.toLowerCase().replace(/\s+/g, '');
-  if (d === 'ui/ux' || d === 'design') return 'design';
-  if (d === 'fullstack' || d === 'development') return 'fullstack';
-  return d;
+/**
+ * Projects now store a platform, not a department. A matching department is only a
+ * starting suggestion for the task; the user can always change it.
+ */
+const suggestDeptFromPlatform = (platform: string): string => {
+  const p = (platform || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (p.includes('shopify')) return 'shopify';
+  if (p.includes('wordpress') || p.includes('woocommerce')) return 'wordpress';
+  if (p.includes('fullstack') || p.includes('custom') || p.includes('development')) return 'fullstack';
+  if (p.includes('seo')) return 'seo';
+  if (p.includes('design') || p.includes('uiux')) return 'design';
+  return '';
 };
 
 export const TaskCreatePage: React.FC = () => {
@@ -64,7 +70,7 @@ export const TaskCreatePage: React.FC = () => {
   const users = usersData?.data || [];
 
   const currentProject = projects.find(p => p._id === selectedProjectId);
-  const projectDept = currentProject ? normalizeFrontendDept(currentProject.type || '') : '';
+  const projectDept = currentProject ? suggestDeptFromPlatform(currentProject.type || '') : '';
 
   // Assignees are the project's team (Team tab). With no team yet, fall back to all leads/members;
   // the server adds whoever is assigned to the project team automatically.
@@ -219,7 +225,6 @@ export const TaskCreatePage: React.FC = () => {
                 data={DEPARTMENT_OPTIONS}
                 withAsterisk
                 radius="md"
-                disabled={!!projectDept}
                 {...form.getInputProps('department')}
               />
 

@@ -158,7 +158,7 @@ const applyEntries = async (
   userId: string,
   date: Date,
   rawEntries: RawEntry[],
-  extras: { plannedWork?: string; blockers?: string; project?: any } = {}
+  extras: { plannedWork?: string; blockers?: string; conclusion?: string; project?: any } = {}
 ) => {
   const { entries, totalHours } = await buildEntries(userId, date, rawEntries);
   report.entries = entries;
@@ -167,6 +167,8 @@ const applyEntries = async (
   report.project = deriveProject(entries, extras.project ?? report.project);
   if (extras.plannedWork) report.plannedWork = extras.plannedWork;
   if (extras.blockers) report.blockers = extras.blockers;
+  // The latest conclusion of the day replaces the earlier one
+  if (extras.conclusion) report.conclusion = extras.conclusion;
   await report.save();
   return report;
 };

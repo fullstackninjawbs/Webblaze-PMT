@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, FileInput, Paper, NumberInput, Chip } from '@mantine/core';
-import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Plus } from 'lucide-react';
-import { useGetTaskByIdQuery, useUpdateTaskMutation } from './task.slice';
+import { Container, Card, Title, Text, Group, Badge, Button, Stack, Progress, ActionIcon, Timeline, Loader, Center, Modal, Textarea, FileInput, Paper, NumberInput, Chip, Alert } from '@mantine/core';
+import { ArrowLeft, Play, Square, Clock, CheckCircle, UploadCloud, Paperclip, Plus, ThumbsUp, ThumbsDown, AlertTriangle } from 'lucide-react';
+import { useGetTaskByIdQuery, useUpdateTaskMutation, useReviewTaskMutation } from './task.slice';
+import { taskStatusDisplay } from './taskStatus';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { useGetTimeLogsByTaskQuery, useStartTimerMutation, useStopTimerMutation, useGetActiveTimerQuery, useCreateManualTimeLogMutation } from '../timelogs/timeLog.slice';
 import { useUploadFileMutation } from '../uploads/upload.slice';
@@ -23,6 +24,10 @@ export const TaskDetail = () => {
   const [startTimer] = useStartTimerMutation();
   const [stopTimer] = useStopTimerMutation();
   const [updateTask] = useUpdateTaskMutation();
+  const [reviewTask, { isLoading: isReviewing }] = useReviewTaskMutation();
+  const isManager = user?.role === Role.ADMIN || user?.role === Role.PM;
+  const [rejectModalOpened, setRejectModalOpened] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
   const [createManualTimeLog, { isLoading: isCreatingManualLog }] = useCreateManualTimeLogMutation();
 
   const [, setTicker] = useState<number>(0);
@@ -86,6 +91,21 @@ export const TaskDetail = () => {
 
   const handleStatusChange = async (val: string | null) => {
     if (!val || val === task.status) return;
+
+    // PM / Admin complete a task with one click, no comment needed.
+    // A task in review is completed through the approve action.
+    if (val === 'completed' && isManager) {
+      try {
+        if (task.status === 'in_review') {
+          await reviewTask({ id: task._id, decision: 'approve' }).unwrap();
+        } else {
+          await updateTask({ _id: task._id, status: 'completed' }).unwrap();
+        }
+      } catch {
+        /* the global error toast shows the server's message */
+      }
+      return;
+    }
 
     if (val === 'in_review' || val === 'completed') {
       setSelectedStatus(val);
@@ -181,14 +201,52 @@ export const TaskDetail = () => {
           <div>
             <Group gap="xs" mb="sm">
               <Badge color="blue" variant="light">{task.department || 'No Dept'}</Badge>
-              <Badge color={task.status === 'completed' ? 'green' : 'gray'} variant="outline">
-                {task.status.replace('_', ' ')}
+              <Badge color={taskStatusDisplay(task.status).color} variant="outline">
+                {taskStatusDisplay(task.status).label}
               </Badge>
             </Group>
             <Title order={2} style={{ color: '#111827', fontSize: '28px', fontWeight: 800 }}>{task.title}</Title>
             <Text color="dimmed" mt="xs" style={{ whiteSpace: 'pre-wrap' }}>{task.description || 'No description provided.'}</Text>
           </div>
         </Group>
+
+        {task.status === 'rejected' && (
+          <Alert color="red" variant="light" radius="md" mb="lg" icon={<AlertTriangle size={18} />} title="Sent back by the PM">
+            <Text size="sm" style={{ whiteSpace: 'pre-wrap' }}>{task.reviewFeedback || 'No reason given.'}</Text>
+            <Text size="xs" c="dimmed" mt={6}>Start the timer to continue working on it, then send it for review again.</Text>
+          </Alert>
+        )}
+
+        {task.status === 'in_review' && isManager && (
+          <Paper withBorder radius="md" p="md" mb="lg" bg="#faf5ff" style={{ borderColor: '#e9d5ff' }}>
+            <Group justify="space-between" wrap="wrap" gap="sm">
+              <div>
+                <Text fw={700} size="sm">Waiting for your review</Text>
+                {task.workSummary && (
+                  <Text size="sm" c="dimmed" mt={2} style={{ whiteSpace: 'pre-wrap' }}>&ldquo;{task.workSummary}&rdquo;</Text>
+                )}
+              </div>
+              <Group gap="sm">
+                <Button
+                  color="red"
+                  variant="light"
+                  leftSection={<ThumbsDown size={16} />}
+                  onClick={() => setRejectModalOpened(true)}
+                >
+                  Reject
+                </Button>
+                <Button
+                  color="green"
+                  leftSection={<ThumbsUp size={16} />}
+                  loading={isReviewing}
+                  onClick={() => reviewTask({ id: task._id, decision: 'approve' }).unwrap().catch(() => undefined)}
+                >
+                  Approve
+                </Button>
+              </Group>
+            </Group>
+          </Paper>
+        )}
 
         <Group justify="space-between" align="flex-end" wrap="nowrap">
           <Group gap="xl" align="center" wrap="nowrap" style={{ flex: 1 }}>
@@ -360,6 +418,45 @@ export const TaskDetail = () => {
           </Group>
         </Stack>
       </Card>
+
+      {/* Reject Review Modal */}
+      <Modal opened={rejectModalOpened} onClose={() => setRejectModalOpened(false)} title={<Text fw={700}>Reject and send back</Text>} radius="lg">
+        <Stack>
+          <Text size="sm">Tell {(task.assignedTo as any)?.name || 'the assignee'} what needs to change. They will see this on the task and get an email.</Text>
+          <Textarea
+            placeholder="E.g., The mobile menu still overlaps the logo on small screens..."
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            minRows={3}
+            autosize
+            data-autofocus
+          />
+          {task.estimatedHours > 0 && (task.spentHours || 0) >= task.estimatedHours && (
+            <Text size="xs" c="orange.8">
+              This task has used its full estimate, so the assignee can't start a timer until you raise the estimate.
+            </Text>
+          )}
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setRejectModalOpened(false)}>Cancel</Button>
+            <Button
+              color="red"
+              loading={isReviewing}
+              disabled={!rejectReason.trim()}
+              onClick={async () => {
+                try {
+                  await reviewTask({ id: task._id, decision: 'reject', reason: rejectReason.trim() }).unwrap();
+                  setRejectModalOpened(false);
+                  setRejectReason('');
+                } catch {
+                  /* the global error toast shows the server's message */
+                }
+              }}
+            >
+              Reject task
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       {/* Status Update Modal */}
       <Modal opened={statusModalOpened} onClose={() => setStatusModalOpened(false)} title={<Text fw={700}>Status Update Required</Text>}>

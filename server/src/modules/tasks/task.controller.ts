@@ -67,3 +67,13 @@ export const deleteTask = asyncHandler(async (req: Request, res: Response) => {
     message: 'Task deleted successfully',
   });
 });
+
+export const reviewTask = asyncHandler(async (req: Request, res: Response) => {
+  const { decision, reason } = req.body;
+  const task = await taskService.reviewTask(req.params.id, decision, reason, (req as any).user);
+  res.status(200).json({
+    success: true,
+    data: task,
+    message: decision === 'approve' ? 'Task approved and completed' : 'Task sent back to the assignee',
+  });
+});

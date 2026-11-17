@@ -63,3 +63,8 @@ export const getMyEodSummary = asyncHandler(async (req: Request, res: Response) 
   const summary = await timeLogService.getMyEodSummary(getUserId(req));
   res.status(200).json({ success: true, data: summary });
 });
+
+export const getLoggedHoursSummary = asyncHandler(async (req: Request, res: Response) => {
+  const rows = await timeLogService.getLoggedHoursSummary(getUser(req));
+  res.status(200).json({ success: true, data: rows });
+});

@@ -1,5 +1,5 @@
 import { TimeLog, ITimeLog } from './timeLog.model';
-import { dayBounds, isSameBusinessDay } from '../../utils/appTime';
+import { dayBounds, weekBounds, isSameBusinessDay } from '../../utils/appTime';
 import { Task } from '../tasks/task.model';
 import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
 import { ApiError } from '../../utils/ApiError';
@@ -419,8 +419,9 @@ const toEodTask = (taskDoc: any) => {
     hoursToday: 0,
     isRunning: false,
     movedToReviewToday,
-    // The comment written when moving to review today becomes the EOD line text
-    reviewNote: movedToReviewToday && taskDoc.workSummary ? String(taskDoc.workSummary).trim() : undefined,
+    inReview: taskDoc.status === 'in_review',
+    // The comment written when moving to review becomes the EOD line text
+    reviewNote: taskDoc.status === 'in_review' && taskDoc.workSummary ? String(taskDoc.workSummary).trim() : undefined,
   };
 };
 
@@ -472,10 +473,10 @@ export const getMyEodSummary = async (userId: string) => {
     if (isRunning) taskEntry.isRunning = true;
   }
 
-  // Tasks this user moved to review today belong in the report even with no time logged today
+  // Every task this user has In Review belongs in the report, even with no time logged today
   const reviewedToday = await Task.find({
     assignedTo: userId,
-    inReviewAt: { $gte: startOfDay, $lte: endOfDay },
+    $or: [{ status: 'in_review' }, { inReviewAt: { $gte: startOfDay, $lte: endOfDay } }],
   })
     .select('title status milestone estimatedHours spentHours workSummary inReviewAt')
     .populate({ path: 'milestone', select: 'title project', populate: { path: 'project', select: 'name' } });
@@ -499,4 +500,70 @@ export const getMyEodSummary = async (userId: string) => {
   }));
 
   return { projects, totalHours: roundHours(totalSeconds / 3600) };
+};
+
+export interface LoggedHoursRow {
+  userId: string;
+  name: string;
+  role: string;
+  department?: string;
+  avatarUrl?: string;
+  todayHours: number;
+  weekHours: number;
+  totalHours: number;
+  isRunning: boolean;
+}
+
+/**
+ * Logged hours per person for today, this week (Mon to Sun) and all time, using the
+ * business timezone. Running timers count up to now. Scoped like the team summary:
+ * team members see themselves, team leads their department, Admin / PM everyone.
+ */
+export const getLoggedHoursSummary = async (user?: RequestUser): Promise<LoggedHoursRow[]> => {
+  const userQuery: any = { isActive: true, role: { $in: [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER] } };
+  if (user?.role === Role.TEAM_MEMBER) {
+    userQuery._id = getUserId(user);
+  } else if (user?.role === Role.TEAM_LEAD) {
+    userQuery._id = { $in: await getDepartmentUserIds(user) };
+  }
+
+  const users = await User.find(userQuery).select('name role department avatarUrl').sort({ name: 1 });
+  const userIds = users.map((u) => u._id);
+
+  const now = Date.now();
+  const today = dayBounds();
+  const week = weekBounds();
+
+  const logs = await TimeLog.find({ user: { $in: userIds } }).select('user startTime endTime durationSeconds');
+
+  const totals = new Map<string, { today: number; week: number; total: number; running: boolean }>();
+  for (const u of users) totals.set(String(u._id), { today: 0, week: 0, total: 0, running: false });
+
+  for (const log of logs) {
+    const entry = totals.get(String(log.user));
+    if (!entry) continue;
+    const isRunning = !log.endTime;
+    const seconds = isRunning
+      ? Math.max(0, Math.floor((now - log.startTime.getTime()) / 1000))
+      : log.durationSeconds || 0;
+    entry.total += seconds;
+    if (log.startTime >= week.start && log.startTime <= week.end) entry.week += seconds;
+    if (log.startTime >= today.start && log.startTime <= today.end) entry.today += seconds;
+    if (isRunning) entry.running = true;
+  }
+
+  return users.map((u) => {
+    const t = totals.get(String(u._id))!;
+    return {
+      userId: String(u._id),
+      name: u.name,
+      role: u.role,
+      department: u.department,
+      avatarUrl: u.avatarUrl,
+      todayHours: roundHours(t.today / 3600),
+      weekHours: roundHours(t.week / 3600),
+      totalHours: roundHours(t.total / 3600),
+      isRunning: t.running,
+    };
+  });
 };

@@ -5,12 +5,14 @@ import {
   getTaskById,
   updateTask,
   deleteTask,
+  reviewTask,
 } from './task.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { rbacMiddleware } from '../../middlewares/rbac.middleware';
 import { PERMISSIONS } from '../../config/permissions';
 import { validate } from '../../middlewares/validate.middleware';
-import { createTaskSchema, updateTaskSchema } from './task.validation';
+import { createTaskSchema, updateTaskSchema, reviewTaskSchema } from './task.validation';
+import { Role } from '../../types';
 
 const router = Router();
 
@@ -34,6 +36,14 @@ router.put(
   rbacMiddleware(PERMISSIONS['delivery:view']),
   validate(updateTaskSchema),
   updateTask
+);
+
+// Approve or reject a task in review: Admin / PM only
+router.post(
+  '/:id/review',
+  rbacMiddleware([Role.ADMIN, Role.PM]),
+  validate(reviewTaskSchema),
+  reviewTask
 );
 
 router.delete(

@@ -13,7 +13,7 @@ export class ProjectsPage {
     this.newProjectButton = page.getByRole('button', { name: 'New Project' });
     this.projectNameInput = page.getByPlaceholder('e.g., E-Commerce Platform');
     this.clientSelect = page.locator('label').filter({ hasText: 'Client' }).locator('..').locator('input'); // Basic mantine select locator
-    this.typeSelect = page.locator('label').filter({ hasText: 'Department (Type)' }).locator('..').locator('input');
+    this.typeSelect = page.locator('label').filter({ hasText: 'Platform' }).locator('..').locator('input');
     this.createProjectButton = page.getByRole('button', { name: 'Create Project' });
   }
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
-import { useGetAllTasksQuery } from './task.slice';
+import { useGetAllTasksQuery, TODO_STATUSES } from './task.slice';
 import { useGetUsersQuery } from '../users/user.slice';
 import { Container, Title, Text, Group, Select, Loader, Center, TextInput } from '@mantine/core';
 import { Search } from 'lucide-react';
@@ -19,13 +19,16 @@ export const TeamTasks = () => {
   const { page, limit, setPage, setLimit, resetPage } = usePagination();
   const isGlobalManager = currentUser?.role === Role.ADMIN || currentUser?.role === Role.PM;
   
+  // Todo shows open work only: New, Assigned, In Progress, In Review, Rejected, On Hold.
+  // Completed tasks are hidden. Polling keeps running timers and statuses current.
   const { data: tasksData, isLoading: isTasksLoading } = useGetAllTasksQuery({
     page,
     limit,
+    status: TODO_STATUSES,
     search: searchQuery,
     department: isGlobalManager && selectedFilter ? selectedFilter : undefined,
     userId: !isGlobalManager && selectedFilter ? selectedFilter : undefined
-  });
+  }, { pollingInterval: 30000 });
 
   const tasks = tasksData?.data || [];
   const meta = tasksData?.meta || { page: 1, limit: 20, total: 0, totalPages: 1 };
@@ -84,7 +87,7 @@ export const TeamTasks = () => {
             </Title>
           </Group>
           <Text size="sm" mt={4} style={{ color: '#64748b' }}>
-            Manage and assign todos across all your projects.
+            Open tasks across your projects. Completed tasks are hidden.
           </Text>
         </div>
         <Group gap="sm">

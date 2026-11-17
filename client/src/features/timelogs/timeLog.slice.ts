@@ -51,8 +51,22 @@ export interface EodTask {
   isRunning: boolean;
   /** True when the user moved this task to review today. */
   movedToReviewToday?: boolean;
+  /** True while the task is In Review (any day). */
+  inReview?: boolean;
   /** Comment written when moving to review today; used as the EOD line text. */
   reviewNote?: string;
+}
+
+export interface LoggedHoursRow {
+  userId: string;
+  name: string;
+  role: string;
+  department?: string;
+  avatarUrl?: string;
+  todayHours: number;
+  weekHours: number;
+  totalHours: number;
+  isRunning: boolean;
 }
 
 export interface EodSummary {
@@ -95,6 +109,10 @@ export const timeLogApi = baseApi.injectEndpoints({
               { type: 'TimeLog', id: `LIST-TASK-${taskId}` },
             ]
           : [{ type: 'TimeLog', id: `LIST-TASK-${taskId}` }],
+    }),
+    getLoggedHoursSummary: builder.query<{ success: boolean; data: LoggedHoursRow[] }, void>({
+      query: () => '/timelogs/logged-summary',
+      providesTags: ['TimeLog'],
     }),
     getMyEodSummary: builder.query<{ success: boolean; data: EodSummary }, void>({
       query: () => '/timelogs/my-eod-summary',
@@ -195,4 +213,5 @@ export const {
   useDeleteTimeLogMutation,
   useClearTaskTimeLogsMutation,
   useGetMyEodSummaryQuery,
+  useGetLoggedHoursSummaryQuery,
 } = timeLogApi;

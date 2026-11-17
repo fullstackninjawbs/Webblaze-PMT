@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Modal, Title, Text, Group, Paper, Stack, TextInput, ActionIcon, Button, Badge, Loader, Center, Tooltip, Anchor,
+  Modal, Title, Text, Group, Paper, Stack, TextInput, ActionIcon, Button, Badge, Loader, Center, Tooltip, Anchor, Textarea,
 } from '@mantine/core';
 import { Sparkles, Send, Trash2, Clock, ExternalLink, ListChecks, PenLine } from 'lucide-react';
 import { useGetMyEodSummaryQuery, EodTask } from '../timelogs/timeLog.slice';
@@ -25,6 +25,9 @@ interface Row {
   hoursToday?: number;
   isRunning?: boolean;
   movedToReview?: boolean;
+  inReview?: boolean;
+  /** Total hours ever logged on the task. */
+  totalLogged?: number;
 }
 
 let rowSeq = 0;
@@ -45,6 +48,8 @@ const rowsFromTasks = (projects: { name: string; tasks: EodTask[] }[]): Row[] =>
       // The review comment says what was done; fall back to the task title
       text: t.reviewNote || t.title,
       movedToReview: t.movedToReviewToday,
+      inReview: t.inReview,
+      totalLogged: t.spentHours,
       taskId: t.id,
       projectName: p.name,
       status: t.status,
@@ -59,6 +64,7 @@ export const EodSubmitModal: React.FC<Props> = ({ opened, onClose, isUpdate = fa
 
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [error, setError] = useState<string | null>(null);
+  const [conclusion, setConclusion] = useState('');
   const prefilled = useRef(false);
 
   const projects = data?.data?.projects || [];
@@ -71,6 +77,7 @@ export const EodSubmitModal: React.FC<Props> = ({ opened, onClose, isUpdate = fa
       prefilled.current = false;
       setRows([emptyRow()]);
       setError(null);
+      setConclusion('');
       return;
     }
     if (isFetching || !data || prefilled.current) return;
@@ -99,6 +106,7 @@ export const EodSubmitModal: React.FC<Props> = ({ opened, onClose, isUpdate = fa
       const res = await submitDailyStatus({
         workDone: filled.map((r) => `- ${r.text.trim()}`).join('\n'),
         entries: filled.map((r) => ({ task: r.taskId, title: r.text.trim() })),
+        conclusion: conclusion.trim() || undefined,
       }).unwrap();
       notifications.show({
         color: 'green',
@@ -209,15 +217,22 @@ export const EodSubmitModal: React.FC<Props> = ({ opened, onClose, isUpdate = fa
                         {status && <Badge size="xs" variant="light" color={status.color}>{status.label}</Badge>}
                       </Group>
                       <Group gap={6} wrap="nowrap">
-                        {row.movedToReview && (
+                        {row.movedToReview ? (
                           <Badge size="xs" color="grape" variant="filled">Sent to review today</Badge>
-                        )}
+                        ) : row.inReview ? (
+                          <Badge size="xs" color="grape" variant="light">In review</Badge>
+                        ) : null}
                         {row.isRunning && (
                           <Badge size="xs" color="blue" variant="filled">Running</Badge>
                         )}
                         <Badge size="sm" variant="light" color="cyan" leftSection={<Clock size={11} />}>
                           {formatHours(row.hoursToday || 0)} today
                         </Badge>
+                        <Tooltip label="Total time logged on this task" withArrow>
+                          <Badge size="sm" variant="outline" color="gray">
+                            {formatHours(row.totalLogged || 0)} total
+                          </Badge>
+                        </Tooltip>
                       </Group>
                     </Group>
                   )}
@@ -248,6 +263,18 @@ export const EodSubmitModal: React.FC<Props> = ({ opened, onClose, isUpdate = fa
           </Stack>
 
           {error && <Text c="red" size="xs">{error}</Text>}
+
+          <Textarea
+            label="Day summary (optional)"
+            description="A short conclusion for the day: overall progress, what's next, anything the PM should know."
+            placeholder="E.g., Checkout redesign is ready for review; tomorrow I start on the mobile menu."
+            value={conclusion}
+            onChange={(e) => setConclusion(e.currentTarget.value)}
+            autosize
+            minRows={2}
+            maxRows={5}
+            radius="md"
+          />
 
           <Group justify="flex-end" mt="md">
             <Button variant="light" color="gray" onClick={onClose} radius="md">

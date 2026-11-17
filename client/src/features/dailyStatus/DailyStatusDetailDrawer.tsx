@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Drawer, Text, Group, Badge, Stack, Paper, SimpleGrid, Divider, Anchor } from '@mantine/core';
-import { Calendar, Clock, Briefcase, ListChecks, StickyNote, AlertTriangle, ArrowUpRight, Target } from 'lucide-react';
+import { Calendar, Clock, Briefcase, ListChecks, StickyNote, AlertTriangle, ArrowUpRight, Target, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { formatDateDisplay } from '../../utils/dateUtils';
@@ -180,6 +180,13 @@ const ReportBody: React.FC<{ log: DailyStatus; onClose: () => void; navigate: (t
               </Stack>
             </Paper>
           </div>
+        )}
+
+        {log.conclusion && (
+          <Paper p="md" radius="md" bg="#eff6ff" style={{ border: '1px solid #dbeafe' }}>
+            <SectionTitle icon={<FileText size={15} color="#2563eb" />} title="Day Summary" />
+            <Text size="sm" c="#1e3a8a" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{log.conclusion}</Text>
+          </Paper>
         )}
 
         {log.plannedWork && (

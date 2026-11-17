@@ -14,7 +14,13 @@ export interface Task {
   startDate?: string;
   endDate?: string;
   assignedTo?: User | string;
-  status: 'unassigned' | 'assigned' | 'in_progress' | 'in_review' | 'completed' | 'on_hold';
+  status: 'unassigned' | 'assigned' | 'in_progress' | 'in_review' | 'rejected' | 'completed' | 'on_hold';
+  workSummary?: string;
+  /** Reason the PM gave when rejecting the review. */
+  reviewFeedback?: string;
+  reviewedAt?: string;
+  /** Set on list responses when a timer is running on this task right now. */
+  runningTimer?: { startTime: string; user?: { _id: string; name: string; avatarUrl?: string } } | null;
   attachments?: Attachment[] | string[];
   createdBy: string;
   createdAt: string;
@@ -133,6 +139,14 @@ export const taskApi = baseApi.injectEndpoints({
             ]
           : ['Task', 'Milestone', 'Project', 'ActiveTimer', 'TimeLog'],
     }),
+    reviewTask: builder.mutation<{ success: boolean; data: Task; message: string }, { id: string; decision: 'approve' | 'reject'; reason?: string }>({
+      query: ({ id, decision, reason }) => ({
+        url: `/tasks/${id}/review`,
+        method: 'POST',
+        body: { decision, reason },
+      }),
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Task', id }, 'Task', 'Milestone', 'Project', 'TimeLog'],
+    }),
     deleteTask: builder.mutation<{ success: boolean; data: null; message: string }, string>({
       query: (id) => ({
         url: `/tasks/${id}`,
@@ -151,4 +165,8 @@ export const {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useReviewTaskMutation,
 } = taskApi;
+
+/** Statuses shown in Todo lists: everything still open. Completed tasks are hidden. */
+export const TODO_STATUSES = 'unassigned,assigned,in_progress,in_review,rejected,on_hold';

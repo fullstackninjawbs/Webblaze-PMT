@@ -46,5 +46,17 @@ export const dayBounds = (date: Date = new Date(), timeZone: string = APP_TIMEZO
   return { start, end };
 };
 
-export const isSameBusinessDay = (a?: Date | string | null, b: Date = new Date()) =>
+/** UTC instants for the business week (Monday to Sunday) containing `date`. */
+export const weekBounds = (date: Date = new Date(), timeZone: string = APP_TIMEZONE) => {
+  const [y, m, d] = dayKey(date, timeZone).split('-').map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = Sunday
+  const daysSinceMonday = (weekday + 6) % 7;
+  const mondayNoon = new Date(Date.UTC(y, m - 1, d - daysSinceMonday, 12));
+  const { start } = dayBounds(mondayNoon, timeZone);
+  const sundayNoon = new Date(Date.UTC(y, m - 1, d - daysSinceMonday + 6, 12));
+  const { end } = dayBounds(sundayNoon, timeZone);
+  return { start, end };
+};
+
+export const isSameBusinessDay =(a?: Date | string | null, b: Date = new Date()) =>
   !!a && dayKey(new Date(a)) === dayKey(b);

@@ -17,7 +17,7 @@ test.describe('Project Creation E2E', () => {
     // If the selected client/department doesn't exist, this test will fail.
     // You should modify the names to match your DB seeds.
     const clientName = 'Acme Corp'; // Change to an actual client in your DB
-    const departmentName = 'Fullstack'; // Change to an actual department
+    const departmentName = 'Shopify'; // Platform option
 
     try {
       await projectsPage.createProject(testProjectName, clientName, departmentName);

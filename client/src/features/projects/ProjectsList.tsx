@@ -48,7 +48,7 @@ import {
 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../app/store';
-import { Role, ProjectStatus } from '../../types';
+import { Role, ProjectStatus, PLATFORM_OPTIONS, platformOptions } from '../../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 import { formatHours } from '../../utils/formatHours';
@@ -67,13 +67,6 @@ const projectSchema = z.object({
   team: z.array(z.string()).optional(),
 });
 
-const PROJECT_DEPARTMENT_OPTIONS = [
-  { value: 'Shopify', label: 'Shopify' },
-  { value: 'WordPress', label: 'WordPress' },
-  { value: 'Full Stack', label: 'Full Stack' },
-  { value: 'SEO', label: 'SEO' },
-  { value: 'UI/UX', label: 'UI/UX' },
-];
 
 export const ProjectsList: React.FC = () => {
   const navigate = useNavigate();
@@ -621,8 +614,8 @@ export const ProjectsList: React.FC = () => {
 
           <Group gap="sm">
             <Select
-              placeholder="Filter Department"
-              data={PROJECT_DEPARTMENT_OPTIONS}
+              placeholder="Filter Platform"
+              data={PLATFORM_OPTIONS}
               value={departmentFilter}
               onChange={handleDeptChange}
               clearable
@@ -717,9 +710,9 @@ export const ProjectsList: React.FC = () => {
                 />
                 <Group grow gap="md">
                   <Select
-                    label="Department / Project Type"
-                    placeholder="Select Department"
-                    data={PROJECT_DEPARTMENT_OPTIONS}
+                    label="Platform"
+                    placeholder="Select platform"
+                    data={platformOptions(form.values.type)}
                     searchable
                     clearable
                     radius="md"
@@ -892,7 +885,7 @@ export const ProjectsList: React.FC = () => {
 
                   <Group justify="space-between">
                     <Text size="xs" style={{ color: '#64748b' }}>
-                      Type
+                      Platform
                     </Text>
                     <Text size="xs" fw={600} style={{ color: '#0f172a' }}>
                       {form.values.type || '-'}

@@ -10,12 +10,16 @@ export interface ITask extends Document {
   startDate?: Date;
   endDate?: Date;
   assignedTo?: Types.ObjectId;
-  status: 'unassigned' | 'assigned' | 'in_progress' | 'in_review' | 'completed' | 'on_hold';
+  status: 'unassigned' | 'assigned' | 'in_progress' | 'in_review' | 'rejected' | 'completed' | 'on_hold';
   /** Comment written when the task was last moved to review; prefills the EOD report. */
   workSummary?: string;
   prLink?: string;
   /** When the task last entered in_review. */
   inReviewAt?: Date;
+  /** Reason given by the PM when the review was rejected. */
+  reviewFeedback?: string;
+  reviewedAt?: Date;
+  reviewedBy?: Types.ObjectId;
   attachments?: Types.ObjectId[];
   createdBy: Types.ObjectId;
   createdAt: Date;
@@ -63,7 +67,7 @@ const taskSchema = new Schema<ITask>(
     },
     status: {
       type: String,
-      enum: ['unassigned', 'assigned', 'in_progress', 'in_review', 'completed', 'on_hold'],
+      enum: ['unassigned', 'assigned', 'in_progress', 'in_review', 'rejected', 'completed', 'on_hold'],
       default: 'unassigned',
     },
     workSummary: {
@@ -74,6 +78,16 @@ const taskSchema = new Schema<ITask>(
     },
     inReviewAt: {
       type: Date,
+    },
+    reviewFeedback: {
+      type: String,
+    },
+    reviewedAt: {
+      type: Date,
+    },
+    reviewedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
     attachments: [
       {

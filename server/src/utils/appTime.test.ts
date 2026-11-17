@@ -1,4 +1,4 @@
-import { dayKey, dayBounds, isSameBusinessDay } from './appTime';
+import { dayKey, dayBounds, weekBounds, isSameBusinessDay } from './appTime';
 
 describe('business day helpers (Asia/Kolkata)', () => {
   const TZ = 'Asia/Kolkata';
@@ -17,6 +17,13 @@ describe('business day helpers (Asia/Kolkata)', () => {
   it('works for timezones with daylight saving', () => {
     const { start } = dayBounds(new Date('2026-07-01T12:00:00Z'), 'America/New_York');
     expect(start.toISOString()).toBe('2026-07-01T04:00:00.000Z');
+  });
+
+  it('returns Monday to Sunday for the business week', () => {
+    // Thursday 19 Nov 2026, 10:00 IST
+    const { start, end } = weekBounds(new Date('2026-11-19T04:30:00Z'), TZ);
+    expect(start.toISOString()).toBe('2026-11-15T18:30:00.000Z'); // Mon 16 Nov 00:00 IST
+    expect(end.toISOString()).toBe('2026-11-22T18:29:59.999Z'); // Sun 22 Nov 23:59:59 IST
   });
 
   it('compares business days', () => {

@@ -2,22 +2,32 @@ import { useState, useMemo, useEffect } from 'react';
 import { Container, Title, Text, Card, Table, Badge, Group, ActionIcon, TextInput, Tabs } from '@mantine/core';
 import { Search, X } from 'lucide-react';
 import { UserAvatar } from '../../components/common/UserAvatar';
-import { useGetTeamTimeLogsQuery } from './timeLog.slice';
+import { useGetTeamTimeLogsQuery, useGetLoggedHoursSummaryQuery } from './timeLog.slice';
+import { formatHours } from '../../utils/formatHours';
 import { PaginatedTable, usePagination } from '../../components/common/PaginatedTable';
 
 export const TeamTimeTracking = () => {
   const [activeTab, setActiveTab] = useState<string | null>('running');
   const { page, limit, setPage, setLimit, resetPage } = usePagination();
   
-  const { data: logsData, isLoading } = useGetTeamTimeLogsQuery({
-    limit: 1000,
-    status: activeTab || undefined
+  const { data: logsData, isLoading } = useGetTeamTimeLogsQuery(
+    { limit: 1000, status: activeTab || undefined },
+    { skip: activeTab === 'logged' }
+  );
+  // Per-person totals for today / this week / all time; refreshed every minute
+  const { data: loggedData, isLoading: isLoggedLoading } = useGetLoggedHoursSummaryQuery(undefined, {
+    skip: activeTab !== 'logged',
+    pollingInterval: 60000,
   });
-  
   const [searchQuery, setSearchQuery] = useState('');
 
   const logs = logsData?.data || [];
   const query = searchQuery.trim().toLowerCase();
+
+  // The search box also filters the Logged Hours tab by name, role or department
+  const loggedRows = (loggedData?.data || []).filter((r) =>
+    !query || [r.name, r.role, r.department || ''].join(' ').toLowerCase().includes(query)
+  );
 
   // Running logs have no durationSeconds yet, so their total is computed live from startTime.
   const hasRunningLogs = logs.some((log) => !log.endTime);
@@ -183,6 +193,9 @@ export const TeamTimeTracking = () => {
           <Tabs.Tab value="completed" color="gray" style={{ fontWeight: 600, fontSize: '0.95rem' }}>
             Not Running
           </Tabs.Tab>
+          <Tabs.Tab value="logged" color="teal" style={{ fontWeight: 600, fontSize: '0.95rem' }}>
+            Logged Hours
+          </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="running">
@@ -311,6 +324,56 @@ export const TeamTimeTracking = () => {
             </Table>
             </Card>
           </PaginatedTable>
+        </Tabs.Panel>
+        <Tabs.Panel value="logged">
+          <Card shadow="sm" p="0" radius="lg" withBorder>
+            <Table verticalSpacing="sm">
+              <Table.Thead bg="#f8fafc">
+                <Table.Tr>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Team Member</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Today</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>This Week</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>All Time</Table.Th>
+                  <Table.Th style={{ fontSize: '0.75rem', fontWeight: 700 }}>Status</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {loggedRows.map((row) => (
+                  <Table.Tr key={row.userId}>
+                    <Table.Td>
+                      <Group gap="sm">
+                        <UserAvatar name={row.name} avatarUrl={row.avatarUrl} size="sm" />
+                        <div>
+                          <Text size="sm" fw={500}>{row.name}</Text>
+                          <Text size="xs" c="dimmed" tt="capitalize">{row.role.replace('_', ' ')}{row.department ? ` · ${row.department}` : ''}</Text>
+                        </div>
+                      </Group>
+                    </Table.Td>
+                    <Table.Td><Text size="sm" fw={700} c={row.todayHours > 0 ? 'teal.7' : 'dimmed'}>{formatHours(row.todayHours)}</Text></Table.Td>
+                    <Table.Td><Text size="sm" fw={600}>{formatHours(row.weekHours)}</Text></Table.Td>
+                    <Table.Td><Text size="sm" c="dimmed">{formatHours(row.totalHours)}</Text></Table.Td>
+                    <Table.Td>
+                      {row.isRunning ? (
+                        <Badge color="blue" variant="filled" className="pulsing-badge">Running</Badge>
+                      ) : (
+                        <Badge color="gray" variant="light">Idle</Badge>
+                      )}
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+                {loggedRows.length === 0 && !isLoggedLoading && (
+                  <Table.Tr>
+                    <Table.Td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>
+                      <Text c="dimmed">{query ? `No team members matching "${searchQuery}".` : 'No logged time yet.'}</Text>
+                    </Table.Td>
+                  </Table.Tr>
+                )}
+              </Table.Tbody>
+            </Table>
+          </Card>
+          <Text size="xs" c="dimmed" mt="sm">
+            Today and this week use the company timezone. Running timers are counted up to the last refresh.
+          </Text>
         </Tabs.Panel>
       </Tabs>
 

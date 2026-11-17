@@ -12,6 +12,7 @@ export const createDailyStatusSchema = z.object({
     workDone: z.string().min(1, 'Work done description is required'),
     plannedWork: z.string().optional(),
     blockers: z.string().optional(),
+    conclusion: z.string().trim().max(2000).optional(),
     entries: z.array(entrySchema).optional(),
   }),
 });

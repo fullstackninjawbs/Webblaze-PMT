@@ -10,6 +10,7 @@ import {
   deleteTimeLog,
   clearTaskTimeLogs,
   getMyEodSummary,
+  getLoggedHoursSummary,
 } from './timeLog.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
@@ -33,6 +34,7 @@ router.get('/active', getActiveTimer);
 router.get('/team', rbacMiddleware(PMS_ROLES), getTeamTimeLogs);
 router.get('/my-eod-summary', getMyEodSummary);
 router.get('/team-hours-summary', rbacMiddleware(PMS_ROLES), getTeamHoursSummary);
+router.get('/logged-summary', rbacMiddleware(PMS_ROLES), getLoggedHoursSummary);
 
 // Logs for a specific task (scoped in the service)
 router.get('/task/:taskId', rbacMiddleware(PMS_ROLES), getTimeLogsByTask);

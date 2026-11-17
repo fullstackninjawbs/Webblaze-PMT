@@ -90,6 +90,34 @@ const notifyStatusChange = async (task: ITask, oldStatus: TaskStatus, newStatus:
   }).catch((err) => console.error('Task status change email error:', err));
 };
 
+/** "assigned,in_review" -> { $in: [...] }; a single status or "all" behaves as before. */
+const applyStatusFilter = (query: any, status?: unknown) => {
+  if (!status || status === 'all') return;
+  const list = String(status).split(',').map((v) => v.trim()).filter(Boolean);
+  if (list.length === 1) query.status = list[0];
+  else if (list.length > 1) query.status = { $in: list };
+};
+
+/**
+ * Adds `runningTimer` ({ startTime, user }) to every task in a page that has a timer
+ * running right now, so lists can show a live "Running" clock.
+ */
+const withRunningTimers = async (result: PaginatedResult<ITask>): Promise<PaginatedResult<any>> => {
+  const ids = result.data.map((t: any) => t._id);
+  if (ids.length === 0) return result;
+  const running = await TimeLog.find({ task: { $in: ids }, endTime: { $exists: false } })
+    .select('task user startTime')
+    .populate('user', 'name avatarUrl');
+  const byTask = new Map(running.map((l: any) => [String(l.task), { startTime: l.startTime, user: l.user }]));
+  return {
+    ...result,
+    data: result.data.map((t: any) => {
+      const obj = typeof t.toObject === 'function' ? t.toObject() : t;
+      return { ...obj, runningTimer: byTask.get(String(obj._id)) || null };
+    }),
+  };
+};
+
 export const createTask = async (data: Partial<ITask>, user?: RequestUser): Promise<ITask> => {
   if (!data.milestone) {
     throw new ApiError(400, 'Milestone is required');
@@ -151,12 +179,12 @@ export const getTasksByMilestone = async (
   }
 
   const query: any = { milestone: milestoneId };
-  if (params.status && params.status !== 'all') query.status = params.status;
+  applyStatusFilter(query, params.status);
   if (params.search) query.title = { $regex: containsRegex(params.search) };
 
-  return paginate(Task, query, params, [
+  return withRunningTimers(await paginate(Task, query, params, [
     { path: 'assignedTo', select: 'name email avatarUrl role department' },
-  ]);
+  ]));
 };
 
 export const getTasksByUser = async (
@@ -174,13 +202,13 @@ export const getTasksByUser = async (
   if (requester && isProjectScopedRole(requester.role) && getUserId(requester) !== String(userId)) {
     query.milestone = { $in: await getAccessibleMilestoneIds(requester) };
   }
-  if (params.status && params.status !== 'all') query.status = params.status;
+  applyStatusFilter(query, params.status);
   if (params.search) query.title = { $regex: containsRegex(params.search) };
 
-  return paginate(Task, query, params, [
+  return withRunningTimers(await paginate(Task, query, params, [
     { path: 'assignedTo', select: 'name email avatarUrl role department' },
     { path: 'milestone', populate: { path: 'project', select: 'name client type' } },
-  ]);
+  ]));
 };
 
 export const getAllTasks = async (user?: RequestUser, params: PaginationParams = {}): Promise<PaginatedResult<ITask>> => {
@@ -190,17 +218,17 @@ export const getAllTasks = async (user?: RequestUser, params: PaginationParams =
     query.milestone = { $in: await getAccessibleMilestoneIds(user) };
   }
 
-  if (params.status && params.status !== 'all') query.status = params.status;
+  applyStatusFilter(query, params.status);
   if (params.search) query.title = { $regex: containsRegex(params.search) };
   if (params.department && params.department !== 'all') {
     query.department = { $regex: containsRegex(params.department) };
   }
   if (params.userId && params.userId !== 'all') query.assignedTo = params.userId;
 
-  return paginate(Task, query, params, [
+  return withRunningTimers(await paginate(Task, query, params, [
     { path: 'assignedTo', select: 'name email avatarUrl role department' },
     { path: 'milestone', populate: { path: 'project', select: 'name client type' } },
-  ]);
+  ]));
 };
 
 export const getTaskById = async (id: string, user?: RequestUser): Promise<ITask> => {
@@ -332,6 +360,46 @@ export const updateTask = async (id: string, updateData: Partial<ITask>, user?: 
     await notifyStatusChange(finalTask, previousStatus, finalTask.status);
   }
 
+  return finalTask;
+};
+
+/**
+ * PM / Admin decision on a task in review.
+ *  - approve: the task is completed
+ *  - reject:  the task goes to "rejected" with a reason; the assignee sees it and
+ *             starting their timer again moves it back to in_progress
+ */
+export const reviewTask = async (
+  id: string,
+  decision: 'approve' | 'reject',
+  reason: string | undefined,
+  user: RequestUser
+): Promise<ITask> => {
+  const task = await getTaskById(id, user);
+  if (task.status !== 'in_review') {
+    throw new ApiError(400, 'Only tasks that are In Review can be approved or rejected');
+  }
+
+  const previousStatus = task.status;
+  const update: any = { reviewedAt: new Date(), reviewedBy: getUserId(user) };
+  if (decision === 'approve') {
+    update.status = 'completed';
+    update.reviewFeedback = undefined;
+  } else {
+    update.status = 'rejected';
+    update.reviewFeedback = (reason || '').trim();
+  }
+
+  await Task.updateOne({ _id: id }, decision === 'approve' ? { $set: update, $unset: { reviewFeedback: 1 } } : { $set: update });
+  const milestoneId = toId(task.milestone);
+  if (milestoneId) await evaluateAndUpdateMilestoneStatus(milestoneId);
+
+  const finalTask = await Task.findById(id)
+    .populate('assignedTo', 'name email avatarUrl role')
+    .populate({ path: 'attachments', populate: { path: 'uploadedBy', select: 'name' } });
+  if (!finalTask) throw new ApiError(404, 'Task not found');
+
+  await notifyStatusChange(finalTask, previousStatus, finalTask.status);
   return finalTask;
 };
 

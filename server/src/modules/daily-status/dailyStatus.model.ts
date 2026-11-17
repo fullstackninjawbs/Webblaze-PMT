@@ -20,6 +20,8 @@ export interface IDailyStatus extends Document {
   workDone: string;
   plannedWork?: string;
   blockers?: string;
+  /** Short end-of-day conclusion written by the user. */
+  conclusion?: string;
   entries: IDailyStatusEntry[];
   totalHours: number;
   /** Business day "YYYY-MM-DD" in APP_TIMEZONE; one report per user per dayKey. */
@@ -63,6 +65,11 @@ const dailyStatusSchema = new Schema<IDailyStatus>(
       default: '',
     },
     blockers: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    conclusion: {
       type: String,
       trim: true,
       default: '',

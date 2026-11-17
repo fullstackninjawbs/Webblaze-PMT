@@ -1,6 +1,17 @@
 import { z } from 'zod';
 
 const TASK_STATUSES = ['unassigned', 'assigned', 'in_progress', 'in_review', 'completed', 'on_hold'] as const;
+
+/** PM decision on a task that is In Review. A rejection needs a reason for the assignee. */
+export const reviewTaskSchema = z.object({
+  body: z.object({
+    decision: z.enum(['approve', 'reject']),
+    reason: z.string().trim().max(2000).optional(),
+  }).refine((b) => b.decision === 'approve' || (b.reason && b.reason.length > 0), {
+    message: 'A reason is required when rejecting',
+    path: ['reason'],
+  }),
+});
 const DEPARTMENTS = ['seo', 'fullstack', 'design', 'shopify', 'wordpress', 'sales'] as const;
 
 const dateOrder = {

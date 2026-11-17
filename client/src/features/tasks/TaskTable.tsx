@@ -2,6 +2,8 @@ import { Table, Group, Text, Badge, Card } from '@mantine/core';
 import { UserAvatar } from '../../components/common/UserAvatar';
 import { Link } from 'react-router-dom';
 import { formatHours } from '../../utils/formatHours';
+import { LiveTimer } from '../../components/common/LiveTimer';
+import { taskStatusDisplay } from './taskStatus';
 
 const truncateText = (text: string, max: number = 48) => {
   if (!text) return '';
@@ -99,8 +101,8 @@ export const TaskTable = ({ tasks }: any) => {
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 {dateTasks.map((task: any, index: number) => (
                                   <Group key={task._id} gap="sm" wrap="nowrap" align="center" style={{ borderBottom: index !== dateTasks.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: index !== dateTasks.length - 1 ? '8px' : '0' }}>
-                                    <Badge color={task.status === 'completed' ? 'green' : 'blue'} variant="light" size="sm">
-                                      {task.status?.replace('_', ' ') || 'Assigned'}
+                                    <Badge color={taskStatusDisplay(task.status).color} variant="light" size="sm" style={{ flexShrink: 0 }}>
+                                      {taskStatusDisplay(task.status).label}
                                     </Badge>
                                     <Text size="sm" c="dimmed">—</Text>
                                     <Link to={task.milestone?.project?._id ? `/projects/${task.milestone.project._id}` : '#'} style={{ textDecoration: 'none' }}>
@@ -115,6 +117,9 @@ export const TaskTable = ({ tasks }: any) => {
                                       </Text>
                                     </Link>
                                     <Text size="sm" c="dimmed">—</Text>
+                                    {task.runningTimer && (
+                                      <LiveTimer startTime={task.runningTimer.startTime} userName={task.runningTimer.user?.name} size="xs" />
+                                    )}
                                     <Group gap={4} wrap="nowrap">
                                       <Text size="sm" fw={600} style={{ color: task.spentHours > task.estimatedHours ? '#dc2626' : '#0f172a' }}>
                                         {formatHours(task.spentHours)}

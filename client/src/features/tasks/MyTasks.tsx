@@ -15,6 +15,8 @@ import { PaginatedTable, usePagination } from '../../components/common/Paginated
 import { useGetProjectsQuery } from '../projects/project.slice';
 import { useGetTasksByUserQuery } from './task.slice';
 import { useGetActiveTimerQuery, useStartTimerMutation, useStopTimerMutation } from '../timelogs/timeLog.slice';
+import { TODO_STATUSES } from './task.slice';
+import { taskStatusDisplay } from './taskStatus';
 
 export const MyTasks = () => {
   const navigate = useNavigate();
@@ -29,6 +31,8 @@ export const MyTasks = () => {
     page,
     limit,
     search: searchQuery,
+    // My Tasks is the member's todo list: completed tasks are hidden
+    status: TODO_STATUSES,
   });
   const { data: activeTimerData } = useGetActiveTimerQuery();
   const [startTimer] = useStartTimerMutation();
@@ -80,9 +84,9 @@ export const MyTasks = () => {
 
   const groupedTasks = useMemo(() => {
     return {
-      active: filteredTasks.filter((t: any) => t.status === 'assigned' || t.status === 'in_progress'),
+      todo: filteredTasks.filter((t: any) => ['unassigned', 'assigned', 'rejected', 'on_hold'].includes(t.status)),
+      active: filteredTasks.filter((t: any) => t.status === 'in_progress'),
       review: filteredTasks.filter((t: any) => t.status === 'in_review'),
-      completed: filteredTasks.filter((t: any) => t.status === 'completed'),
     };
   }, [filteredTasks]);
 
@@ -135,8 +139,8 @@ export const MyTasks = () => {
         backgroundColor: isTimerRunningOnThisTask ? '#f0f9ff' : '#ffffff'
       }}>
         <Group justify="space-between" mb="xs">
-          <Badge color={isCompleted ? 'green' : rawStatus === 'in_review' ? 'orange' : isTimerRunningOnThisTask ? 'blue' : 'gray'} variant="light">
-            {isTimerRunningOnThisTask ? '⏱ Running' : (task.status || 'ASSIGNED').replace('_', ' ')}
+          <Badge color={isTimerRunningOnThisTask ? 'blue' : taskStatusDisplay(task.status).color} variant="light">
+            {isTimerRunningOnThisTask ? '⏱ Running' : taskStatusDisplay(task.status).label}
           </Badge>
 
           <Group gap={6}>
@@ -150,6 +154,13 @@ export const MyTasks = () => {
         <Text size="xs" c="dimmed" mb={8} lineClamp={1}>
           Project: {task.milestone?.project?.name || task.project?.name || 'General Project'}
         </Text>
+
+        {/* Sent back by the PM: show why */}
+        {task.status === 'rejected' && task.reviewFeedback && (
+          <Text size="xs" c="red.7" mb={8} lineClamp={2} style={{ background: '#fef2f2', borderRadius: 6, padding: '4px 8px' }}>
+            Rejected: {task.reviewFeedback}
+          </Text>
+        )}
 
         {/* Due Date Display */}
         {formattedDueDate && (
@@ -290,16 +301,31 @@ export const MyTasks = () => {
       <PaginatedTable meta={meta} onPageChange={setPage} onLimitChange={setLimit} isLoading={isLoading}>
         {viewMode === 'kanban' ? (
         <Grid gutter="xl">
-          {/* Active Tasks Column */}
+          {/* To Do Column: New, Assigned, Rejected (sent back), On Hold */}
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Title order={4} mb="md" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#3b82f6' }} />
-              Active Tasks ({groupedTasks.active.length})
+              To Do ({groupedTasks.todo.length})
+            </Title>
+            <Stack gap="md">
+              {groupedTasks.todo.length > 0 ? groupedTasks.todo.map(renderTaskCard) : (
+                <Card withBorder p="xl" ta="center" radius="md" bg="#F9FAFB">
+                  <Text c="dimmed" size="sm">Nothing waiting to start.</Text>
+                </Card>
+              )}
+            </Stack>
+          </Grid.Col>
+
+          {/* In Progress Column */}
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Title order={4} mb="md" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#f97316' }} />
+              In Progress ({groupedTasks.active.length})
             </Title>
             <Stack gap="md">
               {groupedTasks.active.length > 0 ? groupedTasks.active.map(renderTaskCard) : (
                 <Card withBorder p="xl" ta="center" radius="md" bg="#F9FAFB">
-                  <Text c="dimmed" size="sm">No active tasks matching filter.</Text>
+                  <Text c="dimmed" size="sm">No tasks in progress.</Text>
                 </Card>
               )}
             </Stack>
@@ -320,20 +346,6 @@ export const MyTasks = () => {
             </Stack>
           </Grid.Col>
 
-          {/* Completed Column */}
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <Title order={4} mb="md" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#10b981' }} />
-              Completed ({groupedTasks.completed.length})
-            </Title>
-            <Stack gap="md">
-              {groupedTasks.completed.length > 0 ? groupedTasks.completed.map(renderTaskCard) : (
-                <Card withBorder p="xl" ta="center" radius="md" bg="#F9FAFB">
-                  <Text c="dimmed" size="sm">No completed tasks yet.</Text>
-                </Card>
-              )}
-            </Stack>
-          </Grid.Col>
         </Grid>
       ) : (
         /* List View Table */
@@ -374,8 +386,8 @@ export const MyTasks = () => {
                         <Text size="sm">{t.milestone?.project?.name || t.project?.name || 'General'}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Badge color={isCompleted ? 'green' : isRunning ? 'blue' : 'gray'} variant="light">
-                          {isRunning ? '⏱ Running' : t.status.replace('_', ' ')}
+                        <Badge color={isRunning ? 'blue' : taskStatusDisplay(t.status).color} variant="light">
+                          {isRunning ? '⏱ Running' : taskStatusDisplay(t.status).label}
                         </Badge>
                       </Table.Td>
                       <Table.Td>

@@ -35,7 +35,7 @@ export const evaluateAndUpdateMilestoneStatus = async (
     const isHoursReached = milestone.estimatedHours > 0 && calculatedSpentHours >= milestone.estimatedHours;
     const areAllTasksCompleted = tasks.length > 0 && tasks.every((t) => t.status === 'completed');
     const hasActivity =
-      calculatedSpentHours > 0 || tasks.some((t) => t.status === 'in_progress' || t.status === 'in_review');
+      calculatedSpentHours > 0 || tasks.some((t) => t.status === 'in_progress' || t.status === 'in_review' || t.status === 'rejected');
 
     if (milestone.status === 'cancelled') {
       newStatus = 'cancelled';

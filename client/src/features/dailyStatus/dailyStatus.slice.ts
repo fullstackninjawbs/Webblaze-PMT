@@ -18,6 +18,7 @@ export interface DailyStatus {
   workDone: string;
   plannedWork: string;
   blockers?: string;
+  conclusion?: string;
   entries?: DailyStatusEntry[];
   /** Total hours the user logged that day across all tasks (server-computed). */
   totalHours?: number;
@@ -31,6 +32,7 @@ export interface SubmitDailyStatusBody {
   workDone: string;
   plannedWork?: string;
   blockers?: string;
+  conclusion?: string;
   entries?: { task?: string; title: string }[];
 }
 
