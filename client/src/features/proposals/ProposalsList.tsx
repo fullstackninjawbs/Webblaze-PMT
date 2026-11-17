@@ -446,7 +446,7 @@ export const ProposalsList: React.FC = () => {
               })}
               {filteredData.length === 0 && !isLoading && (
                 <Table.Tr>
-                  <Table.Td colSpan={5} ta="center" py={60}>
+                  <Table.Td colSpan={6} ta="center" py={60}>
                     <Stack align="center" gap="xs">
                       <ThemeIcon size={48} radius="xl" variant="light" color="gray">
                         <Target size={24} />
