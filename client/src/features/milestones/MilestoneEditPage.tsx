@@ -91,7 +91,7 @@ export const MilestoneEditPage: React.FC = () => {
 
       await updateMilestone({
         _id: id,
-        project: projectId || (milestone?.project as string),
+        project: milestoneProjectId,
         title: values.title,
         description: values.description || undefined,
         estimatedHours: Number(values.estimatedHours) || 0,
@@ -100,7 +100,7 @@ export const MilestoneEditPage: React.FC = () => {
         status: values.status,
       }).unwrap();
 
-      navigate(`/projects/${projectId || milestone?.project}`);
+      navigate(`/projects/${milestoneProjectId}`);
     } catch (e) {
       console.error('Failed to update milestone', e);
     }

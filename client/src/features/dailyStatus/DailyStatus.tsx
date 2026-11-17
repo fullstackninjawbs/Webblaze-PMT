@@ -48,7 +48,7 @@ const matchesSearch = (log: DailyStatusRecord, query: string) => {
 };
 
 export const DailyStatus: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useSelector((state: RootState) => state.auth);
 
   const isManagement = user?.role === Role.ADMIN || user?.role === Role.PM || user?.role === Role.TEAM_LEAD;
@@ -57,6 +57,14 @@ export const DailyStatus: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const [submitModalOpened, setSubmitModalOpened] = useState(searchParams.get('openEod') === 'true');
+  React.useEffect(() => {
+    if (searchParams.get('openEod')) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('openEod');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [selectedLog, setSelectedLog] = useState<DailyStatusRecord | null>(null);
 
   const { data: myLogsData, isLoading: isMyLogsLoading } = useGetMyDailyStatusesQuery();

@@ -4,6 +4,9 @@ export const PERMISSIONS = {
   'clients:manage':        [Role.ADMIN, Role.PM],
   'projects:manage':       [Role.ADMIN, Role.PM],
   'projects:view':         [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER],
+  // Project delivery data (projects, milestones, tasks, releases). Sales roles have no access.
+  'delivery:view':         [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER],
+  'clients:view':          [Role.ADMIN, Role.PM],
   'milestones:manage':     [Role.ADMIN, Role.PM],
   'tasks:manage':          [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER],
   'tasks:view':            [Role.ADMIN, Role.PM, Role.TEAM_LEAD, Role.TEAM_MEMBER],

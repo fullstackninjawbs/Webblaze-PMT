@@ -56,8 +56,8 @@ const AppRoutes = () => {
         }
       >
         <Route path="/dashboard" element={<DashboardShell />} />
-        <Route path="/clients" element={<ClientsList />} />
-        <Route path="/clients/:id" element={<ClientDetail />} />
+        <Route path="/clients" element={<RoleGuard allowedRoles={[Role.ADMIN, Role.PM]} fallback={<Navigate to="/dashboard" replace />}><ClientsList /></RoleGuard>} />
+        <Route path="/clients/:id" element={<RoleGuard allowedRoles={[Role.ADMIN, Role.PM]} fallback={<Navigate to="/dashboard" replace />}><ClientDetail /></RoleGuard>} />
         <Route path="/projects" element={<ProjectsList />} />
         <Route path="/projects/:id" element={<ProjectDetails />} />
 

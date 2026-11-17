@@ -87,19 +87,51 @@ invoiceSchema.index({ project: 1 });
 invoiceSchema.index({ status: 1 });
 
 // Middleware to compute pending amount and update status automatically
-invoiceSchema.pre('save', function(next) {
-  if (this.isModified('totalAmount') || this.isModified('receivedAmount')) {
-    this.pendingAmount = this.totalAmount - this.receivedAmount;
-    
-    // Auto-update status if not draft
-    if (this.status !== 'draft') {
-      if (this.pendingAmount <= 0) {
-        this.status = 'paid';
-      } else if (this.receivedAmount > 0) {
-        this.status = 'partially_paid';
-      }
-    }
+const roundMoney = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * Single source of truth for an invoice's money fields and status.
+ *  - received is always the sum of recorded payments; pending never goes below 0
+ *  - a draft with no payments stays a draft
+ *  - fully paid -> paid; past due with money still owed -> overdue;
+ *    some money received -> partially_paid; otherwise -> sent
+ * Only 'draft' and 'sent' are meaningful as manual choices; the rest are derived.
+ */
+export const deriveInvoiceState = (
+  input: { status: IInvoice['status']; totalAmount: number; paymentDetails?: { amount: number }[]; dueDate?: Date },
+  now: Date = new Date()
+): { receivedAmount: number; pendingAmount: number; status: IInvoice['status'] } => {
+  const total = roundMoney(input.totalAmount || 0);
+  const receivedAmount = roundMoney((input.paymentDetails || []).reduce((sum, p) => sum + (p.amount || 0), 0));
+  const pendingAmount = roundMoney(Math.max(0, total - receivedAmount));
+
+  let status: IInvoice['status'];
+  if (input.status === 'draft' && receivedAmount === 0) {
+    status = 'draft';
+  } else if (total > 0 && pendingAmount === 0) {
+    status = 'paid';
+  } else if (input.dueDate && new Date(input.dueDate).getTime() < now.getTime() && pendingAmount > 0) {
+    status = 'overdue';
+  } else if (receivedAmount > 0) {
+    status = 'partially_paid';
+  } else {
+    status = 'sent';
   }
+
+  return { receivedAmount, pendingAmount, status };
+};
+
+// Always recompute; the old hook only ran when amounts changed, so status edits went stale
+invoiceSchema.pre('save', function(next) {
+  const state = deriveInvoiceState({
+    status: this.status,
+    totalAmount: this.totalAmount,
+    paymentDetails: this.paymentDetails,
+    dueDate: this.dueDate,
+  });
+  this.receivedAmount = state.receivedAmount;
+  this.pendingAmount = state.pendingAmount;
+  this.status = state.status;
   next();
 });
 

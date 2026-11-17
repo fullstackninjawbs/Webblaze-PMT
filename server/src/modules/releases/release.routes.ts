@@ -4,6 +4,7 @@ import { authMiddleware } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 import { createReleaseSchema, updateReleaseSchema } from './release.validation';
 import { rbacMiddleware } from '../../middlewares/rbac.middleware';
+import { PERMISSIONS } from '../../config/permissions';
 import { Role } from '../../types';
 
 const router = express.Router();
@@ -18,8 +19,8 @@ router.post(
   releaseController.createRelease
 );
 
-router.get('/', releaseController.getReleases);
-router.get('/:id', releaseController.getReleaseById);
+router.get('/', rbacMiddleware(PERMISSIONS['delivery:view']), releaseController.getReleases);
+router.get('/:id', rbacMiddleware(PERMISSIONS['delivery:view']), releaseController.getReleaseById);
 
 router.put(
   '/:id',

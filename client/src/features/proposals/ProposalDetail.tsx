@@ -10,6 +10,8 @@ import { RootState } from '../../app/store';
 import { Role } from '../../types';
 import { notifications } from '@mantine/notifications';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { canViewDelivery } from '../../utils/permissions';
+import { getErrorMessage } from '../../utils/errors';
 
 const toDateInputString = (val?: string | Date | null) => {
   if (!val) return '';
@@ -312,7 +314,7 @@ export const ProposalDetail: React.FC = () => {
       console.error('Failed to save draft', err);
       notifications.show({
         title: 'Error Saving Draft',
-        message: err?.data?.message || err?.message || 'Failed to save draft.',
+        message: getErrorMessage(err, 'Failed to save draft.'),
         color: 'red',
       });
     }
@@ -340,7 +342,7 @@ export const ProposalDetail: React.FC = () => {
           console.error('Failed to submit proposal', err);
           notifications.show({
             title: 'Submission Error',
-            message: err?.data?.message || err?.message || 'Failed to submit proposal.',
+            message: getErrorMessage(err, 'Failed to submit proposal.'),
             color: 'red',
           });
         }
@@ -377,7 +379,16 @@ export const ProposalDetail: React.FC = () => {
     if (window.confirm('Are you sure you want to convert this won proposal into a Project?')) {
       try {
         const res = await convertToProject(id as string).unwrap();
-        navigate(`/projects/${res._id}`);
+        // Sales roles can't open delivery projects; they stay on the proposal, which now shows it is converted
+        if (canViewDelivery(user)) {
+          navigate(`/projects/${res._id}`);
+        } else {
+          notifications.show({
+            color: 'green',
+            title: 'Converted to project',
+            message: `"${res.name}" was created. The delivery team will take it from here.`,
+          });
+        }
       } catch (err) {
         console.error('Conversion failed', err);
         alert('Failed to convert. Ensure the proposal is WON and not already converted.');
@@ -455,7 +466,17 @@ export const ProposalDetail: React.FC = () => {
               Convert to Project
             </Button>
           )}
-          {areRequiredFieldsFilled ? (
+          {proposal.currentStage !== 'draft' && !proposal.isDraft ? (
+            <Button
+              onClick={handleSubmitProposal}
+              loading={isUpdating}
+              leftSection={<Send size={16} />}
+              color="indigo"
+              radius="md"
+            >
+              Save Changes
+            </Button>
+          ) : areRequiredFieldsFilled ? (
             <Group gap="xs">
               <Button 
                 variant="subtle"

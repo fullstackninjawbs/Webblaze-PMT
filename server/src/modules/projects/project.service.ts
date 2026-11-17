@@ -1,4 +1,5 @@
 import { Project, IProject } from './project.model';
+import { containsRegex } from '../../utils/regex';
 import { Milestone } from '../milestones/milestone.model';
 import { Task } from '../tasks/task.model';
 import { TimeLog } from '../timelogs/timeLog.model';
@@ -78,14 +79,14 @@ export class ProjectService {
       // If user is TL/TM, they already have a type filter. We should only narrow it down if allowed.
       // But for Admin/PM, they can filter by any department.
       if (userRole === Role.ADMIN || userRole === Role.PM) {
-        query.type = { $regex: new RegExp(params.department, 'i') };
-      } else if (allowedDeptRegexes.some(r => r.test(params.department))) {
-        query.type = { $regex: new RegExp(params.department, 'i') };
+        query.type = { $regex: containsRegex(params.department) };
+      } else if (allowedDeptRegexes.some(r => r.test(String(params.department)))) {
+        query.type = { $regex: containsRegex(params.department) };
       }
     }
 
     if (params.search) {
-      query.name = { $regex: new RegExp(params.search, 'i') };
+      query.name = { $regex: containsRegex(params.search) };
     }
 
     const populateOptions = [

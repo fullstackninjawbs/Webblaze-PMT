@@ -7,6 +7,7 @@ import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
 import { RequestUser, getUserId } from '../../utils/access';
+import { dayBounds, dayKey } from '../../utils/appTime';
 
 const populateOptions = [
   { path: 'user', select: 'name email avatarUrl role department' },
@@ -17,13 +18,6 @@ const populateOptions = [
 
 const roundHours = (hours: number) => Number(hours.toFixed(4));
 
-const dayBounds = (date: Date) => {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
-  return { start, end };
-};
 
 /**
  * Seconds a user logged on each task during one calendar day.
@@ -61,7 +55,7 @@ const buildEntries = async (
   const taskIds = rawEntries.map((e) => e.task).filter((id): id is string => !!id && Types.ObjectId.isValid(id));
   const tasks = taskIds.length
     ? await Task.find({ _id: { $in: taskIds } })
-        .select('title status milestone')
+        .select('title status milestone assignedTo')
         .populate({ path: 'milestone', select: 'project', populate: { path: 'project', select: 'name' } })
     : [];
   const taskMap = new Map(tasks.map((t) => [String(t._id), t as any]));
@@ -73,7 +67,13 @@ const buildEntries = async (
     const title = raw.title.trim();
     if (!title) continue;
 
-    const task = raw.task ? taskMap.get(String(raw.task)) : undefined;
+    const candidate = raw.task ? taskMap.get(String(raw.task)) : undefined;
+    // A line links to a task only if it is the user's task or they logged time on it that
+    // day. Otherwise posting any task id would reveal its title, status and project.
+    const task =
+      candidate && (String(candidate.assignedTo) === String(userId) || taskSeconds.has(String(candidate._id)))
+        ? candidate
+        : undefined;
     if (!task) {
       entries.push({ title });
       continue;
@@ -177,10 +177,13 @@ const applyEntries = async (
  * Returns whether an existing report was updated.
  */
 export const createDailyStatus = async (
-  data: Partial<IDailyStatus> & { entries?: RawEntry[] }
+  data: Partial<IDailyStatus> & { entries?: RawEntry[] },
+  isRetry = false
 ): Promise<{ status: IDailyStatus; updated: boolean }> => {
   const userId = String(data.user);
-  const date = data.date ? new Date(data.date) : new Date();
+  // Reports are always for today: the client cannot backdate or forward-date them
+  const date = new Date();
+  const key = dayKey(date);
   const { start, end } = dayBounds(date);
 
   const incoming: RawEntry[] =
@@ -188,16 +191,34 @@ export const createDailyStatus = async (
       ? data.entries
       : (data.workDone || '').split('\n').map((l) => ({ title: l.replace(/^\s*[-•*]\s*/, '').trim() }));
 
-  const existing = await DailyStatus.findOne({ user: userId, date: { $gte: start, $lte: end } }).sort({ createdAt: 1 });
+  // Older reports have no dayKey, so they are also matched by their date range
+  const existing = await DailyStatus.findOne({
+    user: userId,
+    $or: [{ dayKey: key }, { date: { $gte: start, $lte: end } }],
+  }).sort({ createdAt: 1 });
 
   if (existing) {
     const merged = mergeRawEntries(toRawEntries(existing), incoming);
+    if (!existing.dayKey) existing.dayKey = key;
     await applyEntries(existing, userId, existing.date, merged, data);
     return { status: await existing.populate(populateOptions), updated: true };
   }
 
-  const report = new DailyStatus({ user: userId, date, workDone: data.workDone, plannedWork: data.plannedWork, blockers: data.blockers });
-  await applyEntries(report, userId, date, mergeRawEntries(incoming), data);
+  const report = new DailyStatus({
+    user: userId,
+    date,
+    dayKey: key,
+    workDone: data.workDone,
+    plannedWork: data.plannedWork,
+    blockers: data.blockers,
+  });
+  try {
+    await applyEntries(report, userId, date, mergeRawEntries(incoming), data);
+  } catch (error: any) {
+    // A simultaneous submit created today's report first: merge into it instead
+    if (error?.code === 11000 && !isRetry) return createDailyStatus(data, true);
+    throw error;
+  }
   return { status: await report.populate(populateOptions), updated: false };
 };
 
@@ -209,9 +230,7 @@ export const mergeDuplicateDailyStatuses = async (): Promise<number> => {
   const all = await DailyStatus.find().sort({ createdAt: 1 });
   const groups = new Map<string, IDailyStatus[]>();
   for (const report of all) {
-    const day = new Date(report.date);
-    day.setHours(0, 0, 0, 0);
-    const key = `${report.user}-${day.getTime()}`;
+    const key = `${report.user}-${dayKey(new Date(report.date))}`;
     groups.set(key, [...(groups.get(key) || []), report]);
   }
 
@@ -220,11 +239,13 @@ export const mergeDuplicateDailyStatuses = async (): Promise<number> => {
     if (reports.length < 2) continue;
     const [keep, ...rest] = reports;
     const merged = mergeRawEntries(...reports.map(toRawEntries));
+    // Delete the duplicates first so giving the kept report its day key cannot collide
+    await DailyStatus.deleteMany({ _id: { $in: rest.map((r) => r._id) } });
+    keep.dayKey = dayKey(new Date(keep.date));
     await applyEntries(keep, String(keep.user), keep.date, merged, {
       plannedWork: rest.map((r) => r.plannedWork).filter(Boolean).pop(),
       blockers: rest.map((r) => r.blockers).filter(Boolean).pop(),
     });
-    await DailyStatus.deleteMany({ _id: { $in: rest.map((r) => r._id) } });
     removed += rest.length;
   }
   return removed;

@@ -1,4 +1,5 @@
 import { User } from './user.model';
+import { containsRegex } from '../../utils/regex';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
 import { normalizeDept } from '../../utils/department';
@@ -6,24 +7,30 @@ import { paginate, PaginationParams, PaginatedResult } from '../../utils/paginat
 
 export class UserService {
   static async getUsers(user?: any, params: PaginationParams = {}): Promise<PaginatedResult<any>> {
-    const query: any = {};
+    // Conditions are combined with $and so a search can never replace the department scope
+    const conditions: any[] = [];
     if (user && (user.role === Role.TEAM_LEAD || user.role === Role.TEAM_MEMBER)) {
       if (user.department) {
         const deptVariants = normalizeDept(user.department);
         const regexes = deptVariants.map((d) => new RegExp(d, 'i'));
-        query.$or = [
-          { department: { $in: regexes } },
-          { department: user.department }
-        ];
+        conditions.push({
+          $or: [
+            { department: { $in: regexes } },
+            { department: user.department }
+          ],
+        });
       }
     }
     if (params.search) {
-      query.$or = [
-        { name: { $regex: new RegExp(params.search, 'i') } },
-        { email: { $regex: new RegExp(params.search, 'i') } }
-      ];
+      conditions.push({
+        $or: [
+          { name: { $regex: containsRegex(params.search) } },
+          { email: { $regex: containsRegex(params.search) } }
+        ],
+      });
     }
-    return paginate(User, query, params, [], '-password');
+    const query: any = conditions.length > 0 ? { $and: conditions } : {};
+    return paginate(User, query, params, [], '-password -tokenVersion -resetPasswordToken -resetPasswordExpires');
   }
 
   static async getUserById(id: string) {
@@ -33,11 +40,32 @@ export class UserService {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  /** Self-service: a user may change only their own name, email and avatar. */
+  static async updateMyProfile(userId: string, data: { name?: string; email?: string; avatarUrl?: string }) {
+    const update: any = {};
+    if (data.name !== undefined) update.name = data.name;
+    if (data.avatarUrl !== undefined) update.avatarUrl = data.avatarUrl;
+    if (data.email !== undefined) {
+      const taken = await User.exists({ email: data.email, _id: { $ne: userId } });
+      if (taken) throw new ApiError(400, 'That email is already used by another account', 'DUPLICATE_EMAIL');
+      update.email = data.email;
+    }
+    const user = await User.findByIdAndUpdate(userId, update, { new: true, runValidators: true })
+      .select('-password -tokenVersion -resetPasswordToken -resetPasswordExpires');
+    if (!user) throw new ApiError(404, 'User not found');
+    return user;
+  }
+
   static async updateUser(id: string, data: any, currentUserId?: string) {
     if (data.password) delete data.password; // Do not update password here
-    
+
     const existingUser = await User.findById(id);
     if (!existingUser) throw new ApiError(404, 'User not found');
+
+    if (data.email && data.email !== existingUser.email) {
+      const taken = await User.exists({ email: data.email, _id: { $ne: id } });
+      if (taken) throw new ApiError(400, 'That email is already used by another account', 'DUPLICATE_EMAIL');
+    }
 
     // Prevent a user from changing their own role or deactivating their own account
     if (currentUserId && id.toString() === currentUserId.toString()) {
@@ -61,7 +89,7 @@ export class UserService {
       updateOps.$unset = { ...(updateOps.$unset || {}), department: 1 };
     }
 
-    const user = await User.findByIdAndUpdate(id, updateOps, { new: true }).select('-password');
+    const user = await User.findByIdAndUpdate(id, updateOps, { new: true, runValidators: true }).select('-password');
     return user;
   }
 

@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { RootState } from '../../app/store';
 import { Modal, TextInput, Text, Group, Stack, Badge, UnstyledButton, Box, ScrollArea, Kbd, Divider } from '@mantine/core';
 import { Search, Briefcase, CheckSquare, Users, DollarSign, CornerDownLeft, Clock } from 'lucide-react';
 import { useGetProjectsQuery } from '../../features/projects/project.slice';
@@ -8,6 +10,7 @@ import { useGetClientsQuery } from '../../features/clients/client.slice';
 import { useGetInvoicesQuery } from '../../features/invoices/invoice.slice';
 import { useGetUsersQuery } from '../../features/users/user.slice';
 import { formatHours } from '../../utils/formatHours';
+import { canViewDelivery, canViewClients, canViewFinancials } from '../../utils/permissions';
 
 const RECENT_KEY = 'pmt_recent_searches';
 const MAX_RECENT = 5;
@@ -24,10 +27,12 @@ export const GlobalSearchModal = ({ opened, onClose }: GlobalSearchModalProps) =
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 }, { skip: !opened });
-  const { data: tasksData } = useGetAllTasksQuery({ limit: 1000 }, { skip: !opened });
-  const { data: clientsData } = useGetClientsQuery(undefined, { skip: !opened });
-  const { data: invoicesData } = useGetInvoicesQuery(undefined, { skip: !opened });
+  // Only search what this role is allowed to load, so search never triggers 403 errors
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 }, { skip: !opened || !canViewDelivery(user) });
+  const { data: tasksData } = useGetAllTasksQuery({ limit: 1000 }, { skip: !opened || !canViewDelivery(user) });
+  const { data: clientsData } = useGetClientsQuery(undefined, { skip: !opened || !canViewClients(user) });
+  const { data: invoicesData } = useGetInvoicesQuery(undefined, { skip: !opened || !canViewFinancials(user) });
   const { data: usersData } = useGetUsersQuery({ limit: 1000 }, { skip: !opened });
 
   const projects = projectsData?.data || [];

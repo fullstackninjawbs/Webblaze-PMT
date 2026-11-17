@@ -54,7 +54,7 @@ export const invoiceApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: [{ type: 'Invoice', id: 'LIST' }, { type: 'Project', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Invoice', id: 'LIST' }, 'Project'],
     }),
     updateInvoice: builder.mutation<{ success: boolean; data: Invoice; message: string }, Partial<Invoice> & { _id: string }>({
       query: (body) => ({
@@ -65,7 +65,7 @@ export const invoiceApi = baseApi.injectEndpoints({
       invalidatesTags: (_result, _error, { _id }) => [
         { type: 'Invoice', id: _id },
         { type: 'Invoice', id: 'LIST' },
-        { type: 'Project', id: 'LIST' }
+        'Project'
       ],
     }),
     deleteInvoice: builder.mutation<{ success: boolean; data: null; message: string }, string>({
@@ -73,7 +73,7 @@ export const invoiceApi = baseApi.injectEndpoints({
         url: `/invoices/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [{ type: 'Invoice', id: 'LIST' }, { type: 'Project', id: 'LIST' }],
+      invalidatesTags: [{ type: 'Invoice', id: 'LIST' }, 'Project'],
     }),
   }),
 });

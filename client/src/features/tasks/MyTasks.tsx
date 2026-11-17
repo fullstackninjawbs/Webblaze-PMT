@@ -96,7 +96,7 @@ export const MyTasks = () => {
       await startTimer({ taskId }).unwrap();
       navigate(`/tasks/${taskId}`);
     } catch (err: any) {
-      alert(err.data?.message || 'Failed to start timer');
+      /* the global error toast shows the server's message */
     }
   };
 
@@ -104,7 +104,7 @@ export const MyTasks = () => {
     try {
       await stopTimer({}).unwrap();
     } catch (err: any) {
-      alert(err.data?.message || 'Failed to stop timer');
+      /* the global error toast shows the server's message */
     }
   };
 

@@ -1,4 +1,5 @@
 import { Milestone, IMilestone } from './milestone.model';
+import { containsRegex } from '../../utils/regex';
 import { Project } from '../projects/project.model';
 import { Task } from '../tasks/task.model';
 import { TimeLog } from '../timelogs/timeLog.model';
@@ -143,7 +144,7 @@ export const getMilestonesByProject = async (
 
   const filter: any = { project: projectId };
   if (params.status && params.status !== 'all') filter.status = params.status;
-  if (params.search) filter.title = { $regex: new RegExp(String(params.search), 'i') };
+  if (params.search) filter.title = { $regex: containsRegex(params.search) };
 
   const result = await paginate(Milestone, filter, params);
 
@@ -164,7 +165,8 @@ export const getMilestoneById = async (id: string, user?: RequestUser): Promise<
     throw new ApiError(403, 'You do not have access to this milestone');
   }
   await evaluateAndUpdateMilestoneStatus(id);
-  const milestone = await Milestone.findById(id).populate('project');
+  // Only non-financial project fields: budget and payments must not reach team roles
+  const milestone = await Milestone.findById(id).populate('project', 'name status client type team');
   if (!milestone) {
     throw new ApiError(404, 'Milestone not found');
   }
@@ -183,7 +185,7 @@ export const updateMilestone = async (id: string, updateData: Partial<IMilestone
   // A milestone cannot shrink below the hours already allocated to its tasks
   if (safeData.estimatedHours !== undefined && safeData.estimatedHours !== existing.estimatedHours) {
     const allocated = await getAllocatedHours(id);
-    if (safeData.estimatedHours < allocated) {
+    if (Math.round(safeData.estimatedHours * 60) < Math.round(allocated * 60)) {
       throw new ApiError(
         400,
         `Milestone estimate cannot be below the ${allocated}h already allocated to its tasks`

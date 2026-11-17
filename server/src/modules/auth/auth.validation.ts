@@ -24,6 +24,14 @@ export const forgotPasswordSchema = z.object({
   }),
 });
 
+// Without this, an empty newPassword was saved unhashed as "" and locked the user out
+export const changePasswordSchema = z.object({
+  body: z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  }),
+});
+
 export const resetPasswordSchema = z.object({
   body: z.object({
     token: z.string().min(1, 'Token is required'),

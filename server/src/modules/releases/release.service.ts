@@ -1,11 +1,17 @@
 import { Release, IRelease } from './release.model';
 import { ApiError } from '../../utils/ApiError';
 import { Role } from '../../types';
-import { getAccessibleProjectIds, isProjectScopedRole } from '../../utils/access';
+import { getAccessibleProjectIds, isProjectScopedRole, canAccessProject, RequestUser } from '../../utils/access';
+
+// Never populate the whole project: it carries budget and payment fields
+const releasePopulate = [
+  { path: 'project', select: 'name status' },
+  { path: 'teamMember', select: 'name avatarUrl role department' },
+];
 
 export const createRelease = async (data: Partial<IRelease>): Promise<IRelease> => {
   const release = await Release.create(data);
-  return release.populate(['project', 'teamMember']);
+  return release.populate(releasePopulate);
 };
 
 export const getAllReleases = async (userRole: Role, userId: string, filters: any = {}): Promise<IRelease[]> => {
@@ -22,9 +28,13 @@ export const getAllReleases = async (userRole: Role, userId: string, filters: an
     .sort({ releaseDate: 1 }); // Sort upcoming first
 };
 
-export const getReleaseById = async (id: string): Promise<IRelease> => {
-  const release = await Release.findById(id).populate(['project', 'teamMember']);
+export const getReleaseById = async (id: string, user?: RequestUser): Promise<IRelease> => {
+  const release = await Release.findById(id).populate(releasePopulate);
   if (!release) throw new ApiError(404, 'Release not found');
+  const projectId = (release.project as any)?._id || release.project;
+  if (user && !(await canAccessProject(user, projectId))) {
+    throw new ApiError(403, 'You do not have access to this release');
+  }
   return release;
 };
 
@@ -36,8 +46,8 @@ export const updateRelease = async (id: string, updateData: Partial<IRelease>, u
     throw new ApiError(403, 'Permission denied to update this release');
   }
 
-  const updated = await Release.findByIdAndUpdate(id, updateData, { new: true })
-    .populate(['project', 'teamMember']);
+  const updated = await Release.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
+    .populate(releasePopulate);
   
   return updated!;
 };

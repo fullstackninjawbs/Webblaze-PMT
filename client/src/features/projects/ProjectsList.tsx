@@ -52,6 +52,7 @@ import { Role, ProjectStatus } from '../../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 import { formatHours } from '../../utils/formatHours';
+import { canViewClients } from '../../utils/permissions';
 
 
 const projectSchema = z.object({
@@ -91,7 +92,9 @@ export const ProjectsList: React.FC = () => {
     search: searchQuery,
   });
   
-  const { data: clientsData } = useGetClientsQuery();
+  // Client list is only needed by the create/edit form, which only Admin / PM can open
+  const { user: currentUser } = useSelector((state: RootState) => state.auth);
+  const { data: clientsData } = useGetClientsQuery(undefined, { skip: !canViewClients(currentUser) });
 
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: tasksData } = useGetTasksByUserQuery({ userId: user?._id || '', limit: 1000 }, { skip: !user?._id || (user.role !== Role.TEAM_LEAD && user.role !== Role.TEAM_MEMBER) });
@@ -340,14 +343,15 @@ export const ProjectsList: React.FC = () => {
               </Text>
             )}
           </Table.Td>
-          <Table.Td style={{ whiteSpace: 'nowrap' }}>
-            <Text size="sm" style={{ color: '#d97706' }} fw={600}>
-              ${(project.pendingAmount || 0).toLocaleString()}
-            </Text>
-          </Table.Td>
+          {/* Order matches the headers: Received, then Pending */}
           <Table.Td style={{ whiteSpace: 'nowrap' }}>
             <Text size="sm" style={{ color: '#059669' }} fw={600}>
               ${(project.receivedAmount || 0).toLocaleString()}
+            </Text>
+          </Table.Td>
+          <Table.Td style={{ whiteSpace: 'nowrap' }}>
+            <Text size="sm" style={{ color: '#d97706' }} fw={600}>
+              ${(project.pendingAmount || 0).toLocaleString()}
             </Text>
           </Table.Td>
         </>

@@ -103,10 +103,11 @@ export const TaskCreatePage: React.FC = () => {
   };
 
   React.useEffect(() => {
-    if (projectDept && form.values.department !== projectDept) {
+    if (projectDept) {
       form.setFieldValue('department', projectDept);
     }
-  }, [projectDept, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectDept]);
 
   const handleSubmit = async (values: typeof form.values) => {
     try {

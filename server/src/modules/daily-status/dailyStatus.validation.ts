@@ -13,6 +13,5 @@ export const createDailyStatusSchema = z.object({
     plannedWork: z.string().optional(),
     blockers: z.string().optional(),
     entries: z.array(entrySchema).optional(),
-    date: z.string().optional(),
   }),
 });

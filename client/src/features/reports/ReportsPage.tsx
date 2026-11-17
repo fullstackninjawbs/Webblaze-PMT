@@ -63,7 +63,8 @@ export const ReportsPage: React.FC = () => {
   }).sort((a, b) => b.hours - a.hours);
 
   // 5. Department Hour Distribution
-  const depts = ['design', 'development', 'seo'] as const;
+  // Every department tasks can belong to (the old list had "development", which no task uses)
+  const depts = ['fullstack', 'design', 'seo', 'shopify', 'wordpress'] as const;
   const deptMetrics = depts.map((dept) => {
     const deptTasks = tasks.filter((t) => t.department === dept);
     const estimated = Math.round(deptTasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0) * 10) / 10;

@@ -1,4 +1,5 @@
 import { TimeLog, ITimeLog } from './timeLog.model';
+import { dayBounds, isSameBusinessDay } from '../../utils/appTime';
 import { Task } from '../tasks/task.model';
 import { evaluateAndUpdateMilestoneStatus } from '../milestones/milestone.service';
 import { ApiError } from '../../utils/ApiError';
@@ -21,6 +22,7 @@ export interface TeamMemberHoursSummary {
 }
 
 const roundHours = (hours: number) => Number(hours.toFixed(4));
+const toMinutes = (hours: number) => Math.round((hours || 0) * 60);
 
 const getMilestoneId = (task: any): string | null => {
   if (!task?.milestone) return null;
@@ -58,7 +60,7 @@ const assertCanLogTime = async (user: RequestUser, task: any) => {
  * logs, so every log write goes through here instead of doing ad-hoc $inc math.
  * Returns the refreshed task, after applying the automatic status transitions:
  *  - estimate reached while in progress -> in_review
- *  - hours removed below the estimate while completed -> reopened
+ *  - completed tasks are never reopened by a recalculation
  */
 export const syncTaskHours = async (taskId: string) => {
   const task = await Task.findById(taskId);
@@ -71,17 +73,24 @@ export const syncTaskHours = async (taskId: string) => {
   let status = task.status;
   const estimateReached = task.estimatedHours > 0 && spentHours >= task.estimatedHours;
 
+  // Reaching the estimate while working moves the task to review.
+  // Completed is a PM decision: recalculating hours (deleting a log, the resync script)
+  // must never reopen a completed task, even if its hours end up under the estimate.
   if (estimateReached && status === 'in_progress') {
     status = 'in_review';
-  } else if (!estimateReached && status === 'completed' && spentHours < task.estimatedHours) {
-    status = spentHours > 0 ? 'in_progress' : (task.assignedTo ? 'assigned' : 'unassigned');
   }
 
+  const movedToReview = status === 'in_review' && task.status !== 'in_review';
   if (task.spentHours !== spentHours || task.status !== status) {
-    if (status === 'in_review' && task.status !== 'in_review') task.inReviewAt = new Date();
+    if (movedToReview) task.inReviewAt = new Date();
     task.spentHours = spentHours;
     task.status = status;
     await task.save();
+  }
+
+  // The task left in_progress, so nobody can keep a timer running on it
+  if (movedToReview) {
+    await stopActiveTimersForTask(String(task._id), 'Auto-stopped: estimate reached');
   }
 
   const milestoneId = getMilestoneId(task);
@@ -119,13 +128,21 @@ const closeLog = async (log: ITimeLog, description?: string): Promise<ITimeLog> 
     if (durationSeconds > remainingSeconds) durationSeconds = remainingSeconds;
   }
 
-  log.endTime = endTime;
-  log.durationSeconds = durationSeconds;
-  if (description && !log.description) log.description = description;
-  await log.save();
+  // Close only if still open: two simultaneous stops must not both count the time
+  const update: any = { $set: { endTime, durationSeconds }, $unset: { isRunning: 1 } };
+  if (description && !log.description) update.$set.description = description;
+  const closed = await TimeLog.findOneAndUpdate(
+    { _id: log._id, endTime: { $exists: false } },
+    update,
+    { new: true }
+  );
+  if (!closed) {
+    // Someone else closed it first; return the current state without double counting
+    return (await TimeLog.findById(log._id)) || log;
+  }
 
   if (task) await syncTaskHours(String(task._id));
-  return log;
+  return closed;
 };
 
 export const stopTimer = async (userId: string, description?: string): Promise<ITimeLog> => {
@@ -158,6 +175,10 @@ export const startTimer = async (user: RequestUser, taskId: string, description?
   if (task.status === 'completed') {
     throw new ApiError(400, 'Cannot start a timer on a completed task');
   }
+  // In progress always has an owner; an unassigned task must be assigned first
+  if (!task.assignedTo) {
+    throw new ApiError(400, 'Assign this task to someone before starting a timer');
+  }
 
   const currentSpent = task.spentHours || 0;
   const estimated = task.estimatedHours || 0;
@@ -182,14 +203,23 @@ export const startTimer = async (user: RequestUser, taskId: string, description?
     if (milestoneId) await evaluateAndUpdateMilestoneStatus(milestoneId);
   }
 
-  const newLog = await TimeLog.create({
-    user: userId,
-    task: taskId,
-    startTime: new Date(),
-    description,
-  });
-
-  return newLog.populate('task', 'title milestone');
+  try {
+    const newLog = await TimeLog.create({
+      user: userId,
+      task: taskId,
+      startTime: new Date(),
+      isRunning: true,
+      description,
+    });
+    return newLog.populate('task', 'title milestone');
+  } catch (error: any) {
+    // A second, simultaneous start lost the race: return the timer that won
+    if (error?.code === 11000) {
+      const running = await TimeLog.findOne({ user: userId, endTime: { $exists: false } });
+      if (running) return running.populate('task', 'title milestone');
+    }
+    throw error;
+  }
 };
 
 export const getTimeLogsByTask = async (taskId: string, user?: RequestUser): Promise<ITimeLog[]> => {
@@ -278,7 +308,8 @@ export const createManualLog = async (
   const currentSpent = task.spentHours || 0;
   const estimated = task.estimatedHours || 0;
 
-  if (estimated > 0 && currentSpent + hours > estimated) {
+  // Compare in whole minutes: 1.1 + 2.2 in floating point is 3.3000000000000003 > 3.3
+  if (estimated > 0 && toMinutes(currentSpent) + toMinutes(hours) > toMinutes(estimated)) {
     const remaining = Math.max(0, estimated - currentSpent);
     throw new ApiError(
       400,
@@ -373,7 +404,7 @@ export const getTeamHoursSummary = async (user?: RequestUser): Promise<TeamMembe
  * Tasks the user worked on today, grouped by project, with the hours logged TODAY on
  * each task. Running timers count up to now so the EOD form is accurate mid-session.
  */
-const isSameDay = (a?: Date | null, b: Date = new Date()) => !!a && new Date(a).toDateString() === b.toDateString();
+const isSameDay = (a?: Date | null) => isSameBusinessDay(a);
 
 /** Shape of one task line in the EOD summary. */
 const toEodTask = (taskDoc: any) => {
@@ -394,10 +425,8 @@ const toEodTask = (taskDoc: any) => {
 };
 
 export const getMyEodSummary = async (userId: string) => {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  // "Today" is the business day in APP_TIMEZONE, not the server's clock
+  const { start: startOfDay, end: endOfDay } = dayBounds();
 
   const logs = await TimeLog.find({
     user: userId,

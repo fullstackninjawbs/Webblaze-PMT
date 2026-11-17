@@ -4,21 +4,34 @@ import { User, IUser } from '../users/user.model';
 import { ApiError } from '../../utils/ApiError';
 import { sendInviteEmail, sendResetPasswordEmail, verifyEmailTransport } from '../../utils/emailService';
 
+/**
+ * Every token carries a `typ` claim so one kind can never be used as another, and the
+ * user's tokenVersion so password changes, resets and role changes revoke it.
+ */
 const generateTokens = (userId: string, tokenVersion: number = 0) => {
   const accessToken = jwt.sign(
-    { id: userId, tokenVersion },
+    { id: userId, tokenVersion, typ: 'access' },
     process.env.JWT_ACCESS_SECRET as string,
     { expiresIn: (process.env.JWT_ACCESS_EXPIRES || '30d') as any }
   );
 
   const refreshToken = jwt.sign(
-    { id: userId, tokenVersion },
+    { id: userId, tokenVersion, typ: 'refresh' },
     process.env.JWT_REFRESH_SECRET as string,
     { expiresIn: (process.env.JWT_REFRESH_EXPIRES || '365d') as any }
   );
 
   return { accessToken, refreshToken };
 };
+
+/**
+ * Invite links use their own secret, so an invite can never verify as an access token
+ * and an access token can never be redeemed as an invite. JWT_INVITE_SECRET is
+ * preferred; without it a secret is derived from the access secret.
+ */
+const getInviteSecret = () =>
+  process.env.JWT_INVITE_SECRET ||
+  crypto.createHmac('sha256', String(process.env.JWT_ACCESS_SECRET)).update('invite-token-v1').digest('hex');
 
 export const loginUser = async (
   email: string,
@@ -45,10 +58,11 @@ export const registerUser = async (userData: any): Promise<{ user: IUser }> => {
   }
   const user = await User.create(userData);
 
-  // Generate 48h Invitation Magic Token
+  // 48h single-use invitation token. Bound to the current tokenVersion: accepting it
+  // bumps the version, so the same link cannot be used twice.
   const inviteToken = jwt.sign(
-    { id: user._id.toString(), email: user.email },
-    process.env.JWT_ACCESS_SECRET as string,
+    { id: user._id.toString(), typ: 'invite', tokenVersion: user.tokenVersion || 0 },
+    getInviteSecret(),
     { expiresIn: '48h' }
   );
 
@@ -71,11 +85,18 @@ export const acceptInviteToken = async (
   token: string
 ): Promise<{ user: IUser; tokens: { accessToken: string; refreshToken: string } }> => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET as string) as { id: string };
-    const user = await User.findById(decoded.id);
+    const decoded = jwt.verify(token, getInviteSecret()) as { id: string; typ?: string; tokenVersion?: number };
+    if (decoded.typ !== 'invite' || typeof decoded.tokenVersion !== 'number') {
+      throw new ApiError(401, 'Invalid invitation token');
+    }
 
+    const user = await User.findById(decoded.id);
     if (!user || !user.isActive) {
       throw new ApiError(401, 'User account not found or disabled');
+    }
+    // Already used, or the account changed since the invite was sent
+    if (decoded.tokenVersion !== (user.tokenVersion || 0)) {
+      throw new ApiError(401, 'Invitation has already been used');
     }
 
     user.tokenVersion = (user.tokenVersion || 0) + 1;
@@ -92,12 +113,17 @@ export const refreshTokens = async (
   token: string
 ): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET as string) as { id: string; tokenVersion?: number };
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET as string) as { id: string; tokenVersion?: number; typ?: string };
+    // Tokens issued before the typ claim existed have none; anything else must be a refresh token
+    if (decoded.typ !== undefined && decoded.typ !== 'refresh') {
+      throw new ApiError(401, 'Invalid refresh token');
+    }
     const user = await User.findById(decoded.id);
     if (!user || !user.isActive) {
       throw new ApiError(401, 'User not found or disabled');
     }
-    if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== (user.tokenVersion || 0)) {
+    // A token without a version can never be revoked, so it is not accepted
+    if (typeof decoded.tokenVersion !== 'number' || decoded.tokenVersion !== (user.tokenVersion || 0)) {
       throw new ApiError(401, 'Session invalidated due to role change');
     }
     return generateTokens((user._id as any).toString(), user.tokenVersion || 0);

@@ -49,6 +49,16 @@ describe('Proposal Service - computeDerivedFields', () => {
     expect(proposal.followUpsRequired).toBe(1); // 5 days is >= 3 days (FOLLOW_UP_1_DAYS)
   });
 
+  it('keeps the real applied day and month when computing the week start', async () => {
+    // Thursday 1 October 2026, midday local time
+    const proposal: any = { dateApplied: new Date(2026, 9, 1, 12, 0, 0) };
+    await computeDerivedFields(proposal);
+    expect(proposal.dayApplied).toBe('Thursday');
+    expect(proposal.month).toBe('October 2026');
+    expect(proposal.weekStarting.getDay()).toBe(1); // Monday
+    expect(proposal.weekStarting.getDate()).toBe(28); // Monday 28 September
+  });
+
   it('should process the stage state machine correctly', async () => {
     const proposal: any = { hired: true };
     await computeDerivedFields(proposal);

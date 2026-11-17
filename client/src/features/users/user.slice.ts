@@ -38,6 +38,14 @@ export const userApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: 'User', id }, 'User'],
     }),
+    updateMyProfile: builder.mutation<{ success: boolean; data: User }, { name?: string; email?: string }>({
+      query: (body) => ({
+        url: '/users/me',
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['User'],
+    }),
     deleteUser: builder.mutation<{ success: boolean }, string>({
       query: (id) => ({
         url: `/users/${id}`,
@@ -54,4 +62,5 @@ export const {
   useRegisterUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useUpdateMyProfileMutation,
 } = userApi;

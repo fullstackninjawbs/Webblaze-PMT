@@ -72,7 +72,7 @@ export const TaskDetail = () => {
     try {
       await startTimer({ taskId: task._id }).unwrap();
     } catch (err: any) {
-      alert(err.data?.message || 'Failed to start timer');
+      /* the global error toast shows the server's message */
     }
   };
 
@@ -102,7 +102,7 @@ export const TaskDetail = () => {
     try {
       await updateTask({ _id: task._id, status: val as any }).unwrap();
     } catch (err: any) {
-      alert(err?.data?.error?.message || err?.data?.message || 'Failed to update status');
+      /* the global error toast shows the server's message */
     }
   };
 
@@ -119,7 +119,7 @@ export const TaskDetail = () => {
         ...(comment ? { workSummary: comment } : {}),
       } as any).unwrap();
     } catch (err: any) {
-      alert(err?.data?.error?.message || err?.data?.message || 'Failed to update status');
+      /* the global error toast shows the server's message */
       return;
     }
 
@@ -165,7 +165,7 @@ export const TaskDetail = () => {
       setManualHours(1);
       setManualDescription('');
     } catch (err: any) {
-      alert(err.data?.message || 'Failed to log manual time');
+      /* the global error toast shows the server's message */
     }
   };
 

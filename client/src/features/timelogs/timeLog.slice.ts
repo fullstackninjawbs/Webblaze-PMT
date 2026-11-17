@@ -109,7 +109,12 @@ export const timeLogApi = baseApi.injectEndpoints({
         body,
       }),
       invalidatesTags: (_result, _error, { taskId }) => [
-        'ActiveTimer', 
+        'ActiveTimer',
+        // Starting may auto-stop the previous timer, changing that task, its milestone and team views
+        'Task',
+        'TimeLog',
+        'Milestone',
+        'Project',
         { type: 'TimeLog', id: `LIST-TASK-${taskId}` },
         { type: 'Task', id: taskId }, // Invalidate task as its status might change to in_progress
       ],
@@ -128,6 +133,9 @@ export const timeLogApi = baseApi.injectEndpoints({
           'ActiveTimer',
           'Task',
           'Milestone',
+          // Team views provide the plain 'TimeLog' tag
+          'TimeLog',
+          'Project',
           ...(taskId ? [{ type: 'TimeLog' as const, id: `LIST-TASK-${taskId}` }, { type: 'Task' as const, id: taskId }] : []),
         ];
       },

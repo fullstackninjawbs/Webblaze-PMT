@@ -7,7 +7,7 @@ import { ApiError } from '../../utils/ApiError';
 export const createTask = asyncHandler(async (req: Request, res: Response) => {
   const user = (req as any).user;
   const taskData = { ...req.body, createdBy: user.id || user._id };
-  const task = await taskService.createTask(taskData);
+  const task = await taskService.createTask(taskData, user);
   res.status(201).json({
     success: true,
     data: task,

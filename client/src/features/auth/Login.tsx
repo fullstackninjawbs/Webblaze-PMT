@@ -47,7 +47,7 @@ export const Login: React.FC = () => {
       (async () => {
         try {
           const res = await acceptInvite({ inviteToken }).unwrap();
-          dispatch(setCredentials({ user: res.data.user, accessToken: res.data.accessToken }));
+          dispatch(setCredentials({ user: res.data.user, accessToken: res.data.accessToken, refreshToken: (res.data as any).refreshToken }));
           navigate('/dashboard', { replace: true });
         } catch (err: any) {
           setInviteError(err?.data?.error?.message || 'Failed to authenticate invitation link. Please log in with temporary credentials.');
@@ -60,7 +60,7 @@ export const Login: React.FC = () => {
     try {
       const result = await login(values).unwrap();
       dispatch(baseApi.util.resetApiState());
-      dispatch(setCredentials({ user: result.data.user, accessToken: result.data.accessToken }));
+      dispatch(setCredentials({ user: result.data.user, accessToken: result.data.accessToken, refreshToken: result.data.refreshToken }));
 
       if (rememberMe) {
         localStorage.setItem('remember_user', values.email);

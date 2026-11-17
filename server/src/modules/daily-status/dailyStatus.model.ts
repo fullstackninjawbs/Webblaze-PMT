@@ -22,6 +22,8 @@ export interface IDailyStatus extends Document {
   blockers?: string;
   entries: IDailyStatusEntry[];
   totalHours: number;
+  /** Business day "YYYY-MM-DD" in APP_TIMEZONE; one report per user per dayKey. */
+  dayKey?: string;
   date: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -74,6 +76,9 @@ const dailyStatusSchema = new Schema<IDailyStatus>(
       default: 0,
       min: 0,
     },
+    dayKey: {
+      type: String,
+    },
     date: {
       type: Date,
       default: Date.now,
@@ -88,6 +93,12 @@ const dailyStatusSchema = new Schema<IDailyStatus>(
 // Indexes
 dailyStatusSchema.index({ user: 1 });
 dailyStatusSchema.index({ date: -1 });
+// One report per user per business day, enforced by the database. Older reports without
+// a dayKey are not covered until the merge script gives the kept report its key.
+dailyStatusSchema.index(
+  { user: 1, dayKey: 1 },
+  { unique: true, partialFilterExpression: { dayKey: { $exists: true } }, name: 'one_report_per_user_per_day' }
+);
 dailyStatusSchema.index({ project: 1 });
 
 export const DailyStatus = mongoose.model<IDailyStatus>('DailyStatus', dailyStatusSchema);

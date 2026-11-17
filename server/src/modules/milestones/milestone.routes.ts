@@ -39,7 +39,7 @@ router.delete(
 );
 
 // All authenticated users can view milestones (could be further restricted to team members)
-router.get('/', getMilestones);
-router.get('/:id', getMilestoneById);
+router.get('/', rbacMiddleware(PERMISSIONS['delivery:view']), getMilestones);
+router.get('/:id', rbacMiddleware(PERMISSIONS['delivery:view']), getMilestoneById);
 
 export default router;

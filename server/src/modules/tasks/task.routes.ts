@@ -25,12 +25,13 @@ router.post(
 );
 
 // Any team member can view tasks
-router.get('/', getTasks);
-router.get('/:id', getTaskById);
+router.get('/', rbacMiddleware(PERMISSIONS['delivery:view']), getTasks);
+router.get('/:id', rbacMiddleware(PERMISSIONS['delivery:view']), getTaskById);
 
 // Updating a task (status, work summary, details) can be done by ADMIN, PM, TL, or assigned TEAM_MEMBER
 router.put(
   '/:id',
+  rbacMiddleware(PERMISSIONS['delivery:view']),
   validate(updateTaskSchema),
   updateTask
 );

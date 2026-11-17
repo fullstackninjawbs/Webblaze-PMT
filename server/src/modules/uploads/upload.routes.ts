@@ -2,70 +2,96 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { ApiError } from '../../utils/ApiError';
 import { Attachment } from './attachment.model';
 
 const router = Router();
 
-// Configure local storage
+/**
+ * Only document and image types are accepted. The stored extension comes from this
+ * table, never from the uploaded file name, so an "invoice.pdf.html" cannot be saved
+ * as HTML and run scripts when opened.
+ */
+const ALLOWED_TYPES: Record<string, string> = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/gif': '.gif',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf',
+  'text/plain': '.txt',
+  'text/csv': '.csv',
+  'application/zip': '.zip',
+  'application/x-zip-compressed': '.zip',
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.ms-powerpoint': '.ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+};
+
+export const UPLOADS_DIR = path.join(__dirname, '../../../public/uploads');
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadsDir = path.join(__dirname, '../../../public/uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+  destination: (_req, _file, cb) => {
+    try {
+      if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+      cb(null, UPLOADS_DIR);
+    } catch (err) {
+      cb(new ApiError(500, 'File storage is not available on this server') as any, UPLOADS_DIR);
     }
-    cb(null, uploadsDir);
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
-  }
+  filename: (_req, file, cb) => {
+    const ext = ALLOWED_TYPES[file.mimetype] || '';
+    cb(null, `file-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`);
+  },
 });
 
-// File validation
 const upload = multer({
   storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 }, // 10MB, one file per request
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_TYPES[file.mimetype]) return cb(null, true);
+    cb(new ApiError(400, 'This file type is not allowed. Upload images, PDF, Office documents, text, CSV or ZIP files.', 'FILE_TYPE_NOT_ALLOWED') as any);
   },
-  fileFilter: (req, file, cb) => {
-    cb(null, true);
-  }
 });
 
-// Upload endpoint
-router.post(
-  '/',
-  authMiddleware,
-  upload.single('file'),
-  async (req: Request, res: Response, next) => {
+/** Public base URL for uploaded files. API_PUBLIC_URL avoids trusting the Host header. */
+const getPublicBaseUrl = (req: Request) =>
+  (process.env.API_PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/+$/, '');
+
+router.post('/', authMiddleware, (req: Request, res: Response, next) => {
+  upload.single('file')(req, res, async (uploadError: any) => {
     try {
+      if (uploadError) {
+        if (uploadError instanceof ApiError) throw uploadError;
+        if (uploadError?.code === 'LIMIT_FILE_SIZE') throw new ApiError(400, 'File is too large. The limit is 10MB.', 'FILE_TOO_LARGE');
+        throw new ApiError(400, uploadError?.message || 'Upload failed');
+      }
       if (!req.file) {
         throw new ApiError(400, 'No file uploaded');
       }
 
       const user = (req as any).user;
-      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-      
       const attachment = await Attachment.create({
-        name: req.file.originalname,
-        url: fileUrl,
+        name: path.basename(req.file.originalname).slice(0, 255),
+        url: `${getPublicBaseUrl(req)}/uploads/${req.file.filename}`,
         mimeType: req.file.mimetype,
         sizeBytes: req.file.size,
-        uploadedBy: user._id || user.id
+        uploadedBy: user._id || user.id,
       });
-      
+
       res.status(201).json({
         success: true,
         data: attachment,
-        message: 'File uploaded successfully'
+        message: 'File uploaded successfully',
       });
     } catch (error) {
       next(error);
     }
-  }
-);
+  });
+});
 
 export default router;

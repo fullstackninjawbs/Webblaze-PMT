@@ -69,7 +69,7 @@ export const milestoneApi = baseApi.injectEndpoints({
         url: `/milestones/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Milestone'],
+      invalidatesTags: ['Milestone', 'Task', 'TimeLog', 'ActiveTimer', 'Project'],
     }),
   }),
 });

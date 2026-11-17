@@ -1,4 +1,7 @@
 import { IProposal, Proposal } from './proposal.model';
+import { nextSequence } from '../../utils/counter';
+import { Types } from 'mongoose';
+import { containsRegex } from '../../utils/regex';
 import { salesCrmConfig } from '../../config/salesCrmConfig';
 
 const getAverage = (obj: any): number => {
@@ -33,15 +36,16 @@ export const computeDerivedFields = async (proposal: Partial<IProposal> | any) =
   if (proposal.dateApplied) {
     const dApplied = new Date(proposal.dateApplied);
     
-    // Week starting (assuming Monday start)
+    // Week starting (Monday). Work on a copy: calling setDate on dApplied itself used to
+    // move it to Monday, so every proposal recorded "Monday" and sometimes the wrong month.
     const day = dApplied.getDay();
-    const diff = dApplied.getDate() - day + (day === 0 ? -6 : 1);
-    const weekStart = new Date(dApplied.setDate(diff));
-    weekStart.setHours(0,0,0,0);
+    const weekStart = new Date(dApplied);
+    weekStart.setDate(dApplied.getDate() - day + (day === 0 ? -6 : 1));
+    weekStart.setHours(0, 0, 0, 0);
     proposal.weekStarting = weekStart;
 
     // Month
-    proposal.month = dApplied.toLocaleString('default', { month: 'long', year: 'numeric' });
+    proposal.month = dApplied.toLocaleString('en-US', { month: 'long', year: 'numeric' });
     
     // Day Applied
     proposal.dayApplied = dApplied.toLocaleDateString('en-US', { weekday: 'long' });
@@ -106,9 +110,9 @@ export const computeDerivedFields = async (proposal: Partial<IProposal> | any) =
       } else {
         proposal.currentStage = 'sent';
       }
-    } else if (proposal.currentStage) {
-      // Keep explicitly set stage
     } else {
+      // The stage always follows the checkpoints. A stage sent directly by the client
+      // (e.g. "won" without hired) is never kept, so KPIs and conversion stay honest.
       proposal.currentStage = 'applied';
     }
   }
@@ -116,6 +120,9 @@ export const computeDerivedFields = async (proposal: Partial<IProposal> | any) =
   // 6. Date Closed & Sales Cycle
   if ((proposal.hired || proposal.lost) && !proposal.dateClosed) {
     proposal.dateClosed = new Date();
+  } else if (!proposal.hired && !proposal.lost && proposal.dateClosed) {
+    // Un-marking hired/lost reopens the proposal
+    proposal.dateClosed = null;
   }
   
   if (proposal.dateApplied) {
@@ -142,29 +149,26 @@ export const computeDerivedFields = async (proposal: Partial<IProposal> | any) =
   return proposal;
 };
 
-export const generateNextProposalCode = async (): Promise<string> => {
-  const proposals = await Proposal.find({ proposalCode: { $exists: true, $ne: null } })
-    .select('proposalCode')
-    .lean();
-
+/** Highest number used by existing codes like "P-0042"; the counter starts after it. */
+const highestExistingCodeNumber = async (): Promise<number> => {
+  const proposals = await Proposal.find({ proposalCode: { $exists: true, $ne: null } }).select('proposalCode').lean();
   let maxNum = 0;
   for (const p of proposals) {
-    if (p.proposalCode) {
-      const match = p.proposalCode.match(/\d+$/);
-      if (match) {
-        const num = parseInt(match[0], 10);
-        if (num > maxNum) maxNum = num;
-      }
-    }
+    const match = p.proposalCode?.match(/\d+$/);
+    if (match) maxNum = Math.max(maxNum, parseInt(match[0], 10));
   }
+  return maxNum;
+};
 
-  let nextCode = `P-${String(maxNum + 1).padStart(4, '0')}`;
-  let counter = 1;
-  while (await Proposal.exists({ proposalCode: nextCode })) {
-    nextCode = `P-${String(maxNum + 1 + counter).padStart(4, '0')}`;
-    counter++;
+/** Next proposal code from an atomic counter, so simultaneous creates never collide. */
+export const generateNextProposalCode = async (): Promise<string> => {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const num = await nextSequence('proposalCode', highestExistingCodeNumber);
+    const code = `P-${String(num).padStart(4, '0')}`;
+    // Skip any number a hand-entered older code already uses
+    if (!(await Proposal.exists({ proposalCode: code }))) return code;
   }
-  return nextCode;
+  throw new ApiError(500, 'Could not allocate a proposal code');
 };
 
 export const syncProposalIndexes = async () => {
@@ -246,7 +250,7 @@ export class ProposalService {
     const andConditions: any[] = [];
 
     if (query.search) {
-      const searchRegex = new RegExp(query.search, 'i');
+      const searchRegex = containsRegex(query.search);
       const matchingUsers = await User.find({
         $or: [{ name: searchRegex }, { email: searchRegex }]
       }).select('_id');
@@ -343,7 +347,8 @@ export class ProposalService {
       data.salesExec = userId;
     }
 
-    if (!data.proposalCode) {
+    // Codes are always assigned by the server, never taken from the request
+    {
       data.proposalCode = await generateNextProposalCode();
     }
     if (!data.currentStage) {
@@ -500,7 +505,9 @@ export class ProposalService {
     }
 
     const query: any = {
-      currentStage: { $nin: ['won', 'lost', 'no_response'] },
+      // Drafts are private to their author and need no client follow-up
+      currentStage: { $nin: ['won', 'lost', 'no_response', 'draft'] },
+      isDraft: { $ne: true },
       nextFollowUpDate: { $lte: new Date() } // due today or overdue
     };
     if (isSalesMemberOnly(user)) {
@@ -522,6 +529,17 @@ export class ProposalService {
     if (proposal.currentStage !== 'won') throw new ApiError(400, 'Only WON proposals can be converted');
     if (proposal.convertedProjectId) throw new ApiError(400, 'Proposal is already converted');
 
+    // Claim the proposal atomically before creating anything, so two simultaneous
+    // conversions cannot both create a project.
+    const projectId = new Types.ObjectId();
+    const claimed = await Proposal.updateOne(
+      { _id: id, currentStage: 'won', $or: [{ convertedProjectId: null }, { convertedProjectId: { $exists: false } }] },
+      { $set: { convertedProjectId: projectId } }
+    );
+    if (claimed.modifiedCount === 0) throw new ApiError(400, 'Proposal is already converted');
+
+    try {
+
     // A project requires a Client record: reuse one with the same name, otherwise create it
     const clientName = (proposal.clientName || 'Unknown Client').trim();
     let client = await Client.findOne({ name: new RegExp(`^${clientName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') });
@@ -536,6 +554,7 @@ export class ProposalService {
     }
 
     const newProject = await Project.create({
+      _id: projectId,
       name: proposal.jobTitle || 'New Project from Proposal',
       client: client._id,
       description: proposal.notes || '',
@@ -545,10 +564,12 @@ export class ProposalService {
       createdBy: user._id || user.id,
     });
 
-    proposal.convertedProjectId = newProject._id as any;
-    await proposal.save();
-
     return newProject;
+    } catch (error) {
+      // Release the claim so the conversion can be retried
+      await Proposal.updateOne({ _id: id, convertedProjectId: projectId }, { $unset: { convertedProjectId: 1 } });
+      throw error;
+    }
   }
 }
 

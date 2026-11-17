@@ -12,3 +12,6 @@ coverage
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# User uploads are runtime data, never source
+server/public/uploads/

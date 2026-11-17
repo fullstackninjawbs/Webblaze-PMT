@@ -13,8 +13,8 @@ const router = Router();
 router.use(authMiddleware);
 
 // All roles can GET projects (Service filters based on role)
-router.get('/', projectController.getProjects);
-router.get('/:id', projectController.getProjectById);
+router.get('/', rbacMiddleware(PERMISSIONS['delivery:view']), projectController.getProjects);
+router.get('/:id', rbacMiddleware(PERMISSIONS['delivery:view']), projectController.getProjectById);
 
 // Admin and PM can create and update projects
 router.post('/', rbacMiddleware(PERMISSIONS['projects:manage']), validate(createProjectSchema), projectController.createProject);

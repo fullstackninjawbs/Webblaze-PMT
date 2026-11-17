@@ -4,7 +4,7 @@ const paymentDetailSchema = z.object({
   paymentDate: z.string().datetime(),
   method: z.string(),
   transactionId: z.string().optional(),
-  amount: z.number().min(0),
+  amount: z.number().positive('Payment amount must be greater than 0'),
 });
 
 export const createInvoiceSchema = z.object({
@@ -25,7 +25,7 @@ export const updateInvoiceSchema = z.object({
     issueDate: z.string().datetime().optional(),
     dueDate: z.string().datetime().optional(),
     totalAmount: z.number().min(0).optional(),
-    receivedAmount: z.number().min(0).optional(),
+    // receivedAmount is not accepted: it is always the sum of paymentDetails
     status: z.enum(['draft', 'sent', 'partially_paid', 'paid', 'overdue']).optional(),
     paymentDetails: z.array(paymentDetailSchema).optional(),
   }),

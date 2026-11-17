@@ -1,4 +1,5 @@
 import { Task, ITask } from './task.model';
+import { containsRegex } from '../../utils/regex';
 import { Milestone } from '../milestones/milestone.model';
 import { Project } from '../projects/project.model';
 import { User } from '../users/user.model';
@@ -32,7 +33,9 @@ const enforceHourCap = async (milestoneId: string, estimatedHours: number, curre
   }
 
   const allocated = await getAllocatedHours(milestoneId, currentTaskId);
-  if (allocated + estimatedHours > milestone.estimatedHours) {
+  // Compare in whole minutes: 1.1 + 2.2 is 3.3000000000000003 in floating point
+  const toMinutes = (h: number) => Math.round((h || 0) * 60);
+  if (toMinutes(allocated) + toMinutes(estimatedHours) > toMinutes(milestone.estimatedHours)) {
     throw new ApiError(
       400,
       `Task exceeds milestone estimated hours. Milestone budget: ${milestone.estimatedHours}h, already allocated: ${allocated}h, this task: ${estimatedHours}h`
@@ -87,9 +90,15 @@ const notifyStatusChange = async (task: ITask, oldStatus: TaskStatus, newStatus:
   }).catch((err) => console.error('Task status change email error:', err));
 };
 
-export const createTask = async (data: Partial<ITask>): Promise<ITask> => {
+export const createTask = async (data: Partial<ITask>, user?: RequestUser): Promise<ITask> => {
   if (!data.milestone) {
     throw new ApiError(400, 'Milestone is required');
+  }
+
+  // The creator must already have access to the milestone's project. Without this, a team
+  // member could create a task anywhere and, by assigning themselves, be added to that team.
+  if (user && !(await canAccessMilestone(user, data.milestone))) {
+    throw new ApiError(403, 'You do not have access to this milestone');
   }
 
   const milestone = await Milestone.findById(data.milestone).populate('project');
@@ -109,8 +118,18 @@ export const createTask = async (data: Partial<ITask>): Promise<ITask> => {
   // Derived fields are never accepted from the client
   const { spentHours: _spent, status: requestedStatus, ...safeData } = data as any;
 
-  // Status follows assignment unless the creator explicitly picked something else
-  safeData.status = requestedStatus || (safeData.assignedTo ? 'assigned' : 'unassigned');
+  // Work statuses cannot be skipped to on creation, except by Admin / PM
+  const isManager = !user || user.role === Role.ADMIN || user.role === Role.PM;
+  if (!isManager && ['in_progress', 'in_review', 'completed'].includes(requestedStatus)) {
+    throw new ApiError(403, `Only PM or Admin can create a task as ${String(requestedStatus).replace('_', ' ')}`);
+  }
+
+  // Status follows assignment; an explicit on_hold (or a manager's choice) is kept
+  const assignmentStatus = safeData.assignedTo ? 'assigned' : 'unassigned';
+  safeData.status =
+    !requestedStatus || requestedStatus === 'assigned' || requestedStatus === 'unassigned'
+      ? assignmentStatus
+      : requestedStatus;
   safeData.spentHours = 0;
 
   const task = await Task.create(safeData);
@@ -133,7 +152,7 @@ export const getTasksByMilestone = async (
 
   const query: any = { milestone: milestoneId };
   if (params.status && params.status !== 'all') query.status = params.status;
-  if (params.search) query.title = { $regex: new RegExp(String(params.search), 'i') };
+  if (params.search) query.title = { $regex: containsRegex(params.search) };
 
   return paginate(Task, query, params, [
     { path: 'assignedTo', select: 'name email avatarUrl role department' },
@@ -151,8 +170,12 @@ export const getTasksByUser = async (
   }
 
   const query: any = { assignedTo: userId };
+  // Viewing someone else's tasks: only within projects the requester can access
+  if (requester && isProjectScopedRole(requester.role) && getUserId(requester) !== String(userId)) {
+    query.milestone = { $in: await getAccessibleMilestoneIds(requester) };
+  }
   if (params.status && params.status !== 'all') query.status = params.status;
-  if (params.search) query.title = { $regex: new RegExp(String(params.search), 'i') };
+  if (params.search) query.title = { $regex: containsRegex(params.search) };
 
   return paginate(Task, query, params, [
     { path: 'assignedTo', select: 'name email avatarUrl role department' },
@@ -168,9 +191,9 @@ export const getAllTasks = async (user?: RequestUser, params: PaginationParams =
   }
 
   if (params.status && params.status !== 'all') query.status = params.status;
-  if (params.search) query.title = { $regex: new RegExp(String(params.search), 'i') };
+  if (params.search) query.title = { $regex: containsRegex(params.search) };
   if (params.department && params.department !== 'all') {
-    query.department = { $regex: new RegExp(String(params.department), 'i') };
+    query.department = { $regex: containsRegex(params.department) };
   }
   if (params.userId && params.userId !== 'all') query.assignedTo = params.userId;
 

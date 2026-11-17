@@ -15,6 +15,7 @@ import { ReleaseSheet } from './ReleaseSheet';
 import { TeamTimeTrackingPanel } from './TeamTimeTrackingPanel';
 import { SalesDashboard } from './SalesDashboard';
 import { formatHours } from '../../utils/formatHours';
+import { canViewDelivery } from '../../utils/permissions';
 
 export const DashboardShell: React.FC = () => {
   const navigate = useNavigate();
@@ -33,10 +34,12 @@ export const DashboardShell: React.FC = () => {
     }
   }, [user, isSalesDept, navigate]);
 
-  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 });
-  const { data: tasksData } = useGetTasksByUserQuery({ userId: user?._id || '', limit: 1000 }, { skip: !user?._id });
-  const { data: allTasksData } = useGetAllTasksQuery({ limit: 1000 }, { skip: user?.role === Role.TEAM_MEMBER });
-  const { data: releasesData } = useGetReleasesQuery();
+  // Sales roles only see the sales dashboard and cannot load delivery data
+  const skipDelivery = !canViewDelivery(user);
+  const { data: projectsData } = useGetProjectsQuery({ limit: 1000 }, { skip: skipDelivery });
+  const { data: tasksData } = useGetTasksByUserQuery({ userId: user?._id || '', limit: 1000 }, { skip: skipDelivery || !user?._id });
+  const { data: allTasksData } = useGetAllTasksQuery({ limit: 1000 }, { skip: skipDelivery || user?.role === Role.TEAM_MEMBER });
+  const { data: releasesData } = useGetReleasesQuery(undefined, { skip: skipDelivery });
 
   const [searchQuery, setSearchQuery] = useState('');
 

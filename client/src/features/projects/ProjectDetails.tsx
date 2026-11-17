@@ -581,7 +581,7 @@ export const ProjectDetails = () => {
                     <CheckCircle size={16} color="#10b981" />
                     <Text size="xs" fw={700} tt="uppercase" style={{ color: '#64748b', letterSpacing: '0.05em' }}>Received</Text>
                   </Group>
-                  <Text fw={800} style={{ fontSize: '1.25rem', color: '#059669' }}>$0</Text>
+                  <Text fw={800} style={{ fontSize: '1.25rem', color: '#059669' }}>${(project.receivedAmount || 0).toLocaleString()}</Text>
                 </Paper>
 
                 <Paper p="md" radius="lg" withBorder style={{ borderColor: '#e8ecf4', minWidth: 140, background: '#ffffff' }}>
@@ -1777,7 +1777,7 @@ const ProjectTasks = ({
         <Select
           placeholder="Filter Department"
           leftSection={<Filter size={14} />}
-          data={['design', 'development', 'seo']}
+          data={DEPARTMENT_OPTIONS}
           value={deptFilter}
           onChange={setDeptFilter}
           clearable
@@ -1785,7 +1785,14 @@ const ProjectTasks = ({
         <Select
           placeholder="Filter Status"
           leftSection={<Filter size={14} />}
-          data={['assigned', 'in_progress', 'in_review', 'completed']}
+          data={[
+            { value: 'unassigned', label: 'Unassigned' },
+            { value: 'assigned', label: 'Assigned' },
+            { value: 'in_progress', label: 'In Progress' },
+            { value: 'in_review', label: 'In Review' },
+            { value: 'completed', label: 'Completed' },
+            { value: 'on_hold', label: 'On Hold' },
+          ]}
           value={statusFilter}
           onChange={setStatusFilter}
           clearable
@@ -2096,7 +2103,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
 
   const releaseForm = useForm({
     initialValues: {
-      department: 'development',
+      department: 'fullstack',
       teamMember: '',
       details: '',
       releaseDate: '',
@@ -2242,11 +2249,7 @@ const ProjectReleases = ({ projectId }: { projectId: string }) => {
           <Stack gap="sm">
             <Select
               label="Department"
-              data={[
-                { value: 'design', label: 'Design' },
-                { value: 'development', label: 'Development' },
-                { value: 'seo', label: 'SEO' }
-              ]}
+              data={DEPARTMENT_OPTIONS}
               {...releaseForm.getInputProps('department')}
               withAsterisk
             />

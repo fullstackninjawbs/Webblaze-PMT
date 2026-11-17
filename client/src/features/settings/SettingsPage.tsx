@@ -33,7 +33,7 @@ import {
   Sparkles,
   KeyRound,
 } from 'lucide-react';
-import { useUpdateUserMutation } from '../users/user.slice';
+import { useUpdateMyProfileMutation } from '../users/user.slice';
 import { useChangePasswordMutation, setUser, updateToken } from '../auth/auth.slice';
 import { Role } from '../../types';
 
@@ -67,7 +67,7 @@ export const SettingsPage: React.FC = () => {
   const [prefSuccess, setPrefSuccess] = useState('');
 
   // Mutation hooks
-  const [updateUser, { isLoading: isUpdatingProfile }] = useUpdateUserMutation();
+  const [updateMyProfile, { isLoading: isUpdatingProfile }] = useUpdateMyProfileMutation();
   const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -78,10 +78,8 @@ export const SettingsPage: React.FC = () => {
     if (!user?._id) return;
 
     try {
-      const res = await updateUser({
-        id: user._id,
-        data: { name: profileName, email: profileEmail },
-      }).unwrap();
+      // Self-service endpoint: works for every role, not only admins
+      const res = await updateMyProfile({ name: profileName, email: profileEmail }).unwrap();
 
       if (res.success) {
         setProfileSuccess('Profile details updated successfully!');

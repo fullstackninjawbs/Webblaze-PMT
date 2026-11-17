@@ -31,7 +31,7 @@ export const getReleases = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getReleaseById = asyncHandler(async (req: Request, res: Response) => {
-  const release = await releaseService.getReleaseById(req.params.id);
+  const release = await releaseService.getReleaseById(req.params.id, (req as any).user);
   
   res.status(200).json({
     success: true,
