@@ -260,6 +260,10 @@ export const updateTask = async (id: string, updateData: Partial<ITask>, user?: 
     await stopActiveTimersForTask(id, `Auto-stopped: task moved to ${updateData.status || 'reassigned'}`);
   }
 
+  if (statusChanged && updateData.status === 'in_review') {
+    (updateData as any).inReviewAt = new Date();
+  }
+
   const updatedTask = await Task.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
   if (!updatedTask) {
     throw new ApiError(404, 'Task not found after update');
@@ -275,7 +279,7 @@ export const updateTask = async (id: string, updateData: Partial<ITask>, user?: 
     const spent = updatedTask.spentHours || 0;
     if (updatedTask.estimatedHours > 0 && spent >= updatedTask.estimatedHours && updatedTask.status === 'in_progress') {
       await stopActiveTimersForTask(id, 'Auto-stopped: estimate reached');
-      await Task.updateOne({ _id: id }, { status: 'in_review' });
+      await Task.updateOne({ _id: id }, { status: 'in_review', inReviewAt: new Date() });
     } else if (spent < updatedTask.estimatedHours && updatedTask.status === 'in_review' && previousStatus === 'in_review') {
       // Estimate raised above logged hours: the task has room again
       await Task.updateOne({ _id: id }, { status: spent > 0 ? 'in_progress' : 'assigned' });

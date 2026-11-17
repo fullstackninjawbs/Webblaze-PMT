@@ -49,6 +49,10 @@ export interface EodTask {
   /** Hours logged on this task today, including a running timer up to now. */
   hoursToday: number;
   isRunning: boolean;
+  /** True when the user moved this task to review today. */
+  movedToReviewToday?: boolean;
+  /** Comment written when moving to review today; used as the EOD line text. */
+  reviewNote?: string;
 }
 
 export interface EodSummary {

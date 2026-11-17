@@ -78,6 +78,7 @@ export const syncTaskHours = async (taskId: string) => {
   }
 
   if (task.spentHours !== spentHours || task.status !== status) {
+    if (status === 'in_review' && task.status !== 'in_review') task.inReviewAt = new Date();
     task.spentHours = spentHours;
     task.status = status;
     await task.save();
@@ -372,6 +373,26 @@ export const getTeamHoursSummary = async (user?: RequestUser): Promise<TeamMembe
  * Tasks the user worked on today, grouped by project, with the hours logged TODAY on
  * each task. Running timers count up to now so the EOD form is accurate mid-session.
  */
+const isSameDay = (a?: Date | null, b: Date = new Date()) => !!a && new Date(a).toDateString() === b.toDateString();
+
+/** Shape of one task line in the EOD summary. */
+const toEodTask = (taskDoc: any) => {
+  const movedToReviewToday = taskDoc.status === 'in_review' && isSameDay(taskDoc.inReviewAt);
+  return {
+    id: String(taskDoc._id),
+    title: taskDoc.title,
+    status: taskDoc.status,
+    milestoneTitle: taskDoc.milestone?.title,
+    estimatedHours: taskDoc.estimatedHours || 0,
+    spentHours: taskDoc.spentHours || 0,
+    hoursToday: 0,
+    isRunning: false,
+    movedToReviewToday,
+    // The comment written when moving to review today becomes the EOD line text
+    reviewNote: movedToReviewToday && taskDoc.workSummary ? String(taskDoc.workSummary).trim() : undefined,
+  };
+};
+
 export const getMyEodSummary = async (userId: string) => {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -383,7 +404,7 @@ export const getMyEodSummary = async (userId: string) => {
     startTime: { $gte: startOfDay, $lte: endOfDay },
   }).populate({
     path: 'task',
-    select: 'title status milestone estimatedHours spentHours',
+    select: 'title status milestone estimatedHours spentHours workSummary inReviewAt',
     populate: {
       path: 'milestone',
       select: 'title project',
@@ -415,20 +436,31 @@ export const getMyEodSummary = async (userId: string) => {
 
     let taskEntry = projectData.tasks.find((t) => t.id === String(taskDoc._id));
     if (!taskEntry) {
-      taskEntry = {
-        id: String(taskDoc._id),
-        title: taskDoc.title,
-        status: taskDoc.status,
-        milestoneTitle: taskDoc.milestone.title,
-        estimatedHours: taskDoc.estimatedHours || 0,
-        spentHours: taskDoc.spentHours || 0,
-        hoursToday: 0,
-        isRunning: false,
-      };
+      taskEntry = toEodTask(taskDoc);
       projectData.tasks.push(taskEntry);
     }
     taskEntry.hoursToday += seconds / 3600;
     if (isRunning) taskEntry.isRunning = true;
+  }
+
+  // Tasks this user moved to review today belong in the report even with no time logged today
+  const reviewedToday = await Task.find({
+    assignedTo: userId,
+    inReviewAt: { $gte: startOfDay, $lte: endOfDay },
+  })
+    .select('title status milestone estimatedHours spentHours workSummary inReviewAt')
+    .populate({ path: 'milestone', select: 'title project', populate: { path: 'project', select: 'name' } });
+
+  for (const taskDoc of reviewedToday as any[]) {
+    if (!taskDoc?.milestone?.project) continue;
+    const projectId = String(taskDoc.milestone.project._id);
+    if (!projectsMap.has(projectId)) {
+      projectsMap.set(projectId, { id: projectId, name: taskDoc.milestone.project.name, timeSpent: 0, tasks: [] });
+    }
+    const projectData = projectsMap.get(projectId)!;
+    if (!projectData.tasks.find((t) => t.id === String(taskDoc._id))) {
+      projectData.tasks.push(toEodTask(taskDoc));
+    }
   }
 
   const projects = Array.from(projectsMap.values()).map((p) => ({

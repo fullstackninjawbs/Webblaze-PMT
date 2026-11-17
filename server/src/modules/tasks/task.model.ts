@@ -11,8 +11,11 @@ export interface ITask extends Document {
   endDate?: Date;
   assignedTo?: Types.ObjectId;
   status: 'unassigned' | 'assigned' | 'in_progress' | 'in_review' | 'completed' | 'on_hold';
+  /** Comment written when the task was last moved to review; prefills the EOD report. */
   workSummary?: string;
   prLink?: string;
+  /** When the task last entered in_review. */
+  inReviewAt?: Date;
   attachments?: Types.ObjectId[];
   createdBy: Types.ObjectId;
   createdAt: Date;
@@ -68,6 +71,9 @@ const taskSchema = new Schema<ITask>(
     },
     prLink: {
       type: String,
+    },
+    inReviewAt: {
+      type: Date,
     },
     attachments: [
       {

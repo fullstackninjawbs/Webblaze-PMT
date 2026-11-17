@@ -24,6 +24,7 @@ interface Row {
   status?: string;
   hoursToday?: number;
   isRunning?: boolean;
+  movedToReview?: boolean;
 }
 
 let rowSeq = 0;
@@ -41,7 +42,9 @@ const rowsFromTasks = (projects: { name: string; tasks: EodTask[] }[]): Row[] =>
   projects.flatMap((p) =>
     p.tasks.map((t) => ({
       key: newKey(),
-      text: t.title,
+      // The review comment says what was done; fall back to the task title
+      text: t.reviewNote || t.title,
+      movedToReview: t.movedToReviewToday,
       taskId: t.id,
       projectName: p.name,
       status: t.status,
@@ -206,6 +209,9 @@ export const EodSubmitModal: React.FC<Props> = ({ opened, onClose, isUpdate = fa
                         {status && <Badge size="xs" variant="light" color={status.color}>{status.label}</Badge>}
                       </Group>
                       <Group gap={6} wrap="nowrap">
+                        {row.movedToReview && (
+                          <Badge size="xs" color="grape" variant="filled">Sent to review today</Badge>
+                        )}
                         {row.isRunning && (
                           <Badge size="xs" color="blue" variant="filled">Running</Badge>
                         )}

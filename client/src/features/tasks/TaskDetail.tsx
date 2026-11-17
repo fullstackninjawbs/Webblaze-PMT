@@ -107,10 +107,22 @@ export const TaskDetail = () => {
   };
 
   const confirmStatusUpdate = async () => {
-    if (isTimerActiveForThisTask) {
-      await stopTimer({ description: statusComment }).unwrap();
+    const comment = statusComment.trim();
+    if (selectedStatus === 'in_review' && !comment) return;
+
+    try {
+      // The server stops running timers on this task when it leaves in_progress.
+      // The comment is saved on the task and prefills today's EOD report.
+      await updateTask({
+        _id: task._id,
+        status: selectedStatus as any,
+        ...(comment ? { workSummary: comment } : {}),
+      } as any).unwrap();
+    } catch (err: any) {
+      alert(err?.data?.error?.message || err?.data?.message || 'Failed to update status');
+      return;
     }
-    await updateTask({ _id: task._id, status: selectedStatus as any }).unwrap();
+
     setStatusModalOpened(false);
     setStatusComment('');
 
@@ -364,7 +376,15 @@ export const TaskDetail = () => {
             onChange={(e) => setStatusComment(e.target.value)}
             minRows={3}
           />
-          <Button onClick={confirmStatusUpdate}>
+          {selectedStatus === 'in_review' && (
+            <Text size="xs" c="dimmed" mt={-8}>
+              This comment is added to today&apos;s EOD report for this task.
+            </Text>
+          )}
+          <Button
+            onClick={confirmStatusUpdate}
+            disabled={selectedStatus === 'in_review' && !statusComment.trim()}
+          >
             {selectedStatus === 'in_review' ? 'Mark In Review' : 'Confirm Update'}
           </Button>
         </Stack>
