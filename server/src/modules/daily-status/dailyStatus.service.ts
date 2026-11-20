@@ -55,7 +55,7 @@ const buildEntries = async (
   const taskIds = rawEntries.map((e) => e.task).filter((id): id is string => !!id && Types.ObjectId.isValid(id));
   const tasks = taskIds.length
     ? await Task.find({ _id: { $in: taskIds } })
-        .select('title status milestone assignedTo')
+        .select('title status milestone assignedTo spentHours')
         .populate({ path: 'milestone', select: 'project', populate: { path: 'project', select: 'name' } })
     : [];
   const taskMap = new Map(tasks.map((t) => [String(t._id), t as any]));
@@ -92,6 +92,7 @@ const buildEntries = async (
       projectName: project?.name,
       taskStatus: task.status,
       hours,
+      totalHours: roundHours(task.spentHours || 0),
     });
   }
 

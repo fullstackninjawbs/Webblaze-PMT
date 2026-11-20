@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Drawer, Text, Group, Badge, Stack, Paper, SimpleGrid, Divider, Anchor } from '@mantine/core';
+import { Drawer, Text, Group, Badge, Stack, Paper, SimpleGrid, Divider, Anchor, Tooltip } from '@mantine/core';
 import { Calendar, Clock, Briefcase, ListChecks, StickyNote, AlertTriangle, ArrowUpRight, Target, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserAvatar } from '../../components/common/UserAvatar';
@@ -145,15 +145,22 @@ const ReportBody: React.FC<{ log: DailyStatus; onClose: () => void; navigate: (t
                           )}
                         </Group>
                       </div>
-                      <Badge
-                        size="lg"
-                        variant="light"
-                        color={e.hours > 0 ? 'cyan' : 'gray'}
-                        leftSection={<Clock size={12} />}
-                        style={{ flexShrink: 0 }}
-                      >
-                        {e.hours > 0 ? formatHours(e.hours) : '0m'}
-                      </Badge>
+                      <Stack gap={4} align="flex-end" style={{ flexShrink: 0 }}>
+                        <Tooltip label="Time logged on this task on the report's day" withArrow>
+                          <Badge
+                            size="md"
+                            variant="light"
+                            color={e.hours > 0 ? 'cyan' : 'gray'}
+                            leftSection={<Clock size={12} />}
+                            tt="none"
+                          >
+                            {e.hours > 0 ? `${formatHours(e.hours)} that day` : 'No time that day'}
+                          </Badge>
+                        </Tooltip>
+                        {e.totalHours !== undefined && e.totalHours > 0 && (
+                          <Text size="xs" c="dimmed">{formatHours(e.totalHours)} total on task</Text>
+                        )}
+                      </Stack>
                     </Group>
                   </Paper>
                 );

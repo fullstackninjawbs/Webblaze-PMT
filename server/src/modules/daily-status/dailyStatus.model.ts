@@ -12,6 +12,8 @@ export interface IDailyStatusEntry {
   projectName?: string;
   taskStatus?: string;
   hours?: number;
+  /** Total hours logged on the task (by anyone) when the report was submitted. */
+  totalHours?: number;
 }
 
 export interface IDailyStatus extends Document {
@@ -39,6 +41,7 @@ const entrySchema = new Schema<IDailyStatusEntry>(
     projectName: { type: String },
     taskStatus: { type: String },
     hours: { type: Number, default: 0, min: 0 },
+    totalHours: { type: Number, min: 0 },
   },
   { _id: false }
 );

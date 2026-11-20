@@ -9,6 +9,8 @@ export interface DailyStatusEntry {
   taskStatus?: string;
   /** Hours logged on this task on the report's day (server-computed). */
   hours?: number;
+  /** Total hours on the task when the report was submitted. */
+  totalHours?: number;
 }
 
 export interface DailyStatus {

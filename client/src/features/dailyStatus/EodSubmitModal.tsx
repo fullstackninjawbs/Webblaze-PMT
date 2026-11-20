@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Modal, Title, Text, Group, Paper, Stack, TextInput, ActionIcon, Button, Badge, Loader, Center, Tooltip, Anchor, Textarea,
+  Modal, Title, Text, Group, Paper, Stack, ActionIcon, Button, Badge, Loader, Center, Tooltip, Anchor, Textarea,
 } from '@mantine/core';
 import { Sparkles, Send, Trash2, Clock, ExternalLink, ListChecks, PenLine } from 'lucide-react';
 import { useGetMyEodSummaryQuery, EodTask } from '../timelogs/timeLog.slice';
@@ -237,8 +237,11 @@ export const EodSubmitModal: React.FC<Props> = ({ opened, onClose, isUpdate = fa
                     </Group>
                   )}
 
-                  <Group gap="sm" wrap="nowrap">
-                    <TextInput
+                  <Group gap="sm" wrap="nowrap" align="flex-start">
+                    <Textarea
+                      autosize
+                      minRows={1}
+                      maxRows={8}
                       style={{ flexGrow: 1 }}
                       variant={row.taskId ? 'filled' : 'default'}
                       leftSection={row.taskId ? <ListChecks size={14} color="#2563eb" /> : <PenLine size={14} color="#94a3b8" />}

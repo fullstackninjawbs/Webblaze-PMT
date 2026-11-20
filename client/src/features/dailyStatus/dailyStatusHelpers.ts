@@ -7,6 +7,8 @@ export interface NormalizedEntry {
   projectName?: string;
   status?: string;
   hours: number;
+  /** Total logged on the task: snapshot from submit time, else the task's current total. */
+  totalHours?: number;
 }
 
 const idOf = (v: any): string | undefined => (v ? String(typeof v === 'object' ? v._id : v) : undefined);
@@ -24,6 +26,7 @@ export const getEntries = (log: DailyStatus): NormalizedEntry[] => {
       projectName: e.projectName || (typeof e.project === 'object' ? e.project?.name : undefined),
       status: e.taskStatus || (typeof e.task === 'object' ? e.task?.status : undefined),
       hours: e.hours || 0,
+      totalHours: e.totalHours ?? (typeof e.task === 'object' ? e.task?.spentHours : undefined),
     }));
   }
 
